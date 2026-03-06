@@ -494,6 +494,39 @@ def my_bookings():
         WHERE b.user_id=? ORDER BY b.created_at DESC""", (g.user["id"],))
     return jsonify(rows)
 
+
+@app.route("/api/agencies/<int:aid>/bookings", methods=["GET"])
+@token_required
+def agency_bookings(aid):
+    u = g.user
+    if u["role"] not in ["admin"] and u.get("agencyId") != aid:
+        return jsonify({"error":"Forbidden"}), 403
+    rows = db_query("""SELECT b.*, o.title offer_title, o.price, o.category, o.image_url,
+        u.name traveler_name, u.email traveler_email
+        FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        JOIN users u ON b.user_id=u.id
+        WHERE o.agency_id=?
+        ORDER BY b.created_at DESC""", (aid,))
+    return jsonify(rows)
+
+@app.route("/api/bookings/<int:bid>/status", methods=["PATCH"])
+@token_required
+def update_booking_status(bid):
+    u = g.user
+    d = request.json or {}
+    status = d.get("status")
+    if status not in ["pending","confirmed","cancelled"]:
+        return jsonify({"error":"Invalid status"}), 400
+    # Check ownership: agency owns the offer, or admin
+    booking = db_query("""SELECT b.*, o.agency_id FROM bookings b
+        JOIN offers o ON b.offer_id=o.id WHERE b.id=?""", (bid,), one=True)
+    if not booking: return jsonify({"error":"Not found"}), 404
+    if u["role"] == "agency" and booking["agency_id"] != u.get("agencyId"):
+        return jsonify({"error":"Forbidden"}), 403
+    db_run("UPDATE bookings SET status=? WHERE id=?", (status, bid))
+    return jsonify({"message":f"Booking {status}"})
+
 # ─── ADMIN ────────────────────────────────────────────────────────────────────
 
 @app.route("/api/admin/stats", methods=["GET"])
@@ -530,6 +563,19 @@ def admin_reviews():
         ORDER BY (r.status='pending') DESC, r.created_at DESC""")
     return jsonify(rows)
 
+@app.route("/api/admin/bookings", methods=["GET"])
+@admin_required
+def admin_bookings():
+    rows = db_query("""SELECT b.*, o.title offer_title, o.price, o.category,
+        u.name traveler_name, u.email traveler_email,
+        a.name agency_name
+        FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        JOIN users u ON b.user_id=u.id
+        JOIN agencies a ON o.agency_id=a.id
+        ORDER BY b.created_at DESC""")
+    return jsonify(rows)
+
 @app.route("/api/admin/users", methods=["GET"])
 @admin_required
 def admin_users():
@@ -545,12 +591,14 @@ def serve(path):
         return send_from_directory("static", path)
     return send_from_directory("static", "index.html")
 
+# ─── STARTUP (gunicorn + direct) ─────────────────────────────────────────────
+if not os.path.exists(DB):
+    print("🔧  Initialising database …")
+    init_db()
+
 # ─── MAIN ────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    if not os.path.exists(DB):
-        print("🔧  Initialising database …")
-        init_db()
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀  Get Lost DZ  →  http://localhost:{port}")
     print("    admin@getlostdz.com / admin123")

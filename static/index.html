@@ -125,7 +125,7 @@ const TR={
     approve:'Approuver',reject:'Refuser',suspend:'Suspendre',
     aboutTitle:'Notre histoire',
     ap1:"Get Lost DZ est une plateforme algérienne connectant les voyageurs aux meilleures agences locales pour des expériences authentiques en Algérie et à l'étranger.",
-    ap2:'Avec près de 100k abonnés Instagram et plus de 1000 voyages organisés, nous sommes devenus la référence du tourisme expérientiel en Algérie.',
+    ap2:'Avec près de 24 000 abonnés Instagram et plus de 150 voyages organisés, nous sommes devenus la référence du tourisme expérientiel en Algérie.',
     ap3:'Notre équipe passionnée valide chaque offre pour garantir qualité, sécurité et authenticité à chaque aventure.',
     vals:[{i:'🎯',t:'Mission',d:'Rendre le voyage accessible et mémorable pour tous.'},{i:'🌿',t:'Authenticité',d:'Chaque expérience est vérifiée et certifiée par notre équipe.'},{i:'🤝',t:'Partenaires',d:'15+ agences certifiées, expertes dans leurs régions.'},{i:'⭐',t:'Excellence',d:'98% de voyageurs satisfaits. La qualité est notre priorité.'}],
   },
@@ -250,7 +250,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
       <div style={{maxWidth:1280,margin:'0 auto',padding:'0 20px',height:68,display:'flex',alignItems:'center',justifyContent:'space-between',direction:lang==='ar'?'rtl':'ltr'}}>
         {/* LOGO */}
         <div style={{cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setPage('home')}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:44,width:'auto',objectFit:'contain'}}
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:44,width:'auto',objectFit:'contain'}}
             onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>
           <div style={{display:'none',alignItems:'center',gap:8}}>
             <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--teal2)'}}>Get Lost DZ</div>
@@ -470,7 +470,7 @@ function AuthModal({mode,onClose,t}){
     <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
       <div style={{background:'#fff',borderRadius:24,padding:'32px 28px',maxWidth:420,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)'}} className="fade" onClick={e=>e.stopPropagation()}>
         <div style={{textAlign:'center',marginBottom:24}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:14}}
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:52,marginBottom:14}}
             onError={e=>e.target.style.display='none'}/>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)'}}>{isLogin?t.loginTitle:t.regTitle}</div>
         </div>
@@ -546,7 +546,7 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
           <div style={{display:'flex',justifyContent:'center',alignItems:'center'}} className="fade">
             <div style={{position:'relative'}}>
               <div style={{width:420,height:420,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal3),var(--teal4))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 20px 60px rgba(13,185,168,.2)',animation:'float 5s ease-in-out infinite'}}>
-                <img src="/logo-1.png" alt="Get Lost DZ" style={{width:'75%',height:'75%',objectFit:'contain'}}/>
+                <img src="/logo-dark.png" alt="Get Lost DZ" style={{width:'75%',height:'75%',objectFit:'contain'}}/>
               </div>
               {/* Floating badges */}
               {[{top:-10,right:20,ico:'✈️',txt:'International'},{bottom:30,left:-20,ico:'🏔️',txt:'Aventures'},{top:'45%',right:-30,ico:'⭐',txt:'4.9/5'}].map((b,i)=>(
@@ -601,7 +601,7 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
       {/* TRUST BAND */}
       <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',padding:'72px 24px'}}>
         <div style={{maxWidth:1100,margin:'0 auto',textAlign:'center'}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:80,marginBottom:20,filter:'brightness(0) invert(1) sepia(1) saturate(3) hue-rotate(140deg)'}}
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:80,marginBottom:20,filter:'brightness(0) invert(1) sepia(1) saturate(3) hue-rotate(140deg)'}}
             onError={e=>e.target.style.display='none'}/>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'#fff',marginBottom:12}}>Pourquoi choisir Get Lost DZ ?</div>
           <p style={{color:'rgba(255,255,255,.65)',maxWidth:540,margin:'0 auto 32px',lineHeight:1.8}}>Chaque offre est validée par notre équipe. Qualité, sécurité et authenticité garanties.</p>
@@ -687,7 +687,7 @@ function DashPage({t,openAuth}){
   const load=useCallback(async()=>{
     if(!user)return;setLoading(true);
     try{
-      if(user.role==='agency'&&user.agencyId){setOffers(await api(`/agencies/${user.agencyId}/offers`));}
+      if(user.role==='agency'&&user.agencyId){setOffers(await api(`/agencies/${user.agencyId}/offers`));setBookings(await api(`/agencies/${user.agencyId}/bookings`));}
       else if(user.role==='traveler'){setBookings(await api('/bookings/my'));}
     }catch(e){show(e.message,'err');}
     setLoading(false);
@@ -742,7 +742,7 @@ function DashPage({t,openAuth}){
           </div>
           {user.role==='agency'&&(
             <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['stats',t.stats2],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer]].map(([tk,lbl])=>(
+              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
               ))}
             </div>
@@ -759,6 +759,30 @@ function DashPage({t,openAuth}){
               {SC('👁',t.views,offers.reduce((s,o)=>s+(o.views||0),0))}
             </div>
           )}
+          {tab==='bookings'&&(loading?<Spin/>:(
+            <Card>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead><tr>{['Voyageur','Email','Offre','Prix','Date','Statut','Action'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {bookings.map(b=>(
+                    <tr key={b.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
+                      <td style={{...TD,fontWeight:700,color:'var(--navy)'}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>{b.traveler_name}</div></td>
+                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
+                      <td style={{...TD,fontWeight:600,maxWidth:160}}>{b.offer_title}</td>
+                      <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()} DZD</td>
+                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{(b.created_at||'').split('T')[0]}</td>
+                      <td style={TD}><Badge status={b.status}/></td>
+                      <td style={TD}><div style={{display:'flex',gap:5}}>
+                        {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('✅ Réservation confirmée!');load();}catch(e){show(e.message,'err');}}}>✅ Confirmer</button>}
+                        {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annulée');load();}catch(e){show(e.message,'err');}}}>✕ Annuler</button>}
+                      </div></td>
+                    </tr>
+                  ))}
+                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation reçue pour l'instant.</td></tr>}
+                </tbody>
+              </table>
+            </Card>
+          ))}
           {tab==='offers'&&(loading?<Spin/>:(
             <Card>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
@@ -837,13 +861,13 @@ function AdminPage({t,openAuth}){
   const {user}=useAuth();
   const {show}=useToast();
   const [tab,setTab]=useState('offers');
-  const [data,setData]=useState({offers:[],agencies:[],users:[],reviews:[],stats:null});
+  const [data,setData]=useState({offers:[],agencies:[],users:[],reviews:[],bookings:[],stats:null});
   const [loading,setLoading]=useState(false);
   const load=useCallback(async()=>{
     if(!user||user.role!=='admin')return;setLoading(true);
     try{
-      const [stats,offers,agencies,users,reviews]=await Promise.all([api('/admin/stats'),api('/admin/offers'),api('/agencies'),api('/admin/users'),api('/admin/reviews')]);
-      setData({stats,offers,agencies,users,reviews});
+      const [stats,offers,agencies,users,reviews,bookings]=await Promise.all([api('/admin/stats'),api('/admin/offers'),api('/agencies'),api('/admin/users'),api('/admin/reviews'),api('/admin/bookings')]);
+      setData({stats,offers,agencies,users,reviews,bookings});
     }catch(e){show(e.message,'err');}
     setLoading(false);
   },[user]);
@@ -858,7 +882,7 @@ function AdminPage({t,openAuth}){
     </div>
   );
   const patch=async(url,body,msg)=>{try{await api(url,{method:'PATCH',body});show(msg);load();}catch(e){show(e.message,'err');}};
-  const {stats,offers,agencies,users,reviews}=data;
+  const {stats,offers,agencies,users,reviews,bookings=[]}=data;
   const pendO=offers.filter(o=>o.status==='pending').length;
   const pendR=reviews.filter(r=>r.status==='pending').length;
   const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
@@ -883,7 +907,7 @@ function AdminPage({t,openAuth}){
             ))}
           </div>}
           <div style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
-            {[['offers',t.aOffers,pendO],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR]].map(([tk,lbl,badge])=>(
+            {[['offers',t.aOffers,pendO],['bookings','Réservations',0],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR]].map(([tk,lbl,badge])=>(
               <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>
                 {lbl}{badge>0&&<span style={{marginLeft:6,padding:'1px 7px',background:'#F59E0B',color:'#fff',borderRadius:10,fontSize:10,fontWeight:800}}>{badge}</span>}
               </button>
@@ -893,6 +917,24 @@ function AdminPage({t,openAuth}){
       </div>
       <div style={{maxWidth:1280,margin:'0 auto',padding:'24px 24px 60px'}}>
         {loading?<Spin/>:<>
+          {tab==='bookings'&&<Tbl cols={['Voyageur','Email','Offre','Agence','Prix','Date','Statut','Action']}>
+            {bookings.map(b=>(
+              <tr key={b.id}>
+                <td style={{...TD,fontWeight:700}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>{b.traveler_name}</div></td>
+                <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
+                <td style={{...TD,fontWeight:600,maxWidth:150,fontSize:13}}>{b.offer_title}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{b.agency_name}</td>
+                <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:12}}>{(b.created_at||'').split('T')[0]}</td>
+                <td style={TD}><Badge status={b.status}/></td>
+                <td style={TD}><div style={{display:'flex',gap:5}}>
+                  {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('Confirmée!');load();}catch(e){show(e.message,'err');}}}>✅</button>}
+                  {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annulée');load();}catch(e){show(e.message,'err');}}}>✕</button>}
+                </div></td>
+              </tr>
+            ))}
+            {!bookings.length&&<tr><td colSpan={8} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation.</td></tr>}
+          </Tbl>}
           {tab==='offers'&&<Tbl cols={['Titre','Agence','Cat.','Prix','Statut','Actions']}>
             {offers.map(o=>(
               <tr key={o.id} style={{background:o.status==='pending'?'#FFFBEB':''}}>
@@ -961,7 +1003,7 @@ function AboutPage({t}){
       {/* Hero */}
       <div style={{background:'linear-gradient(160deg,var(--teal3) 0%,var(--teal4) 40%,#fff 80%)',padding:'80px 24px 60px'}}>
         <div style={{maxWidth:900,margin:'0 auto',textAlign:'center'}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:100,marginBottom:24}}/>
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:100,marginBottom:24}}/>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(28px,4vw,44px)',color:'var(--navy)',marginBottom:16}}>{t.aboutTitle}</div>
           <p style={{color:'var(--muted)',fontSize:16,lineHeight:1.9,maxWidth:640,margin:'0 auto'}}>{t.ap1}</p>
         </div>
@@ -975,7 +1017,7 @@ function AboutPage({t}){
             <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15}}>{t.ap3}</p>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-            {['100K+\nInstagram','1000+\nVoyages','40+\nDestinations','98%\nSatisfaction'].map((s,i)=>{
+            {['24K+\nInstagram','150+\nVoyages','40+\nDestinations','98%\nSatisfaction'].map((s,i)=>{
               const [n,l]=s.split('\n');
               return <Card key={i} style={{padding:'24px 20px',textAlign:'center'}}>
                 <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--teal2)'}}>{n}</div>
@@ -1001,10 +1043,14 @@ function AboutPage({t}){
         <Card style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',border:'none',padding:'48px',textAlign:'center'}}>
           <div style={{fontSize:40,marginBottom:14}}>📱</div>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:'#fff',marginBottom:10}}>Suivez-nous sur les réseaux</div>
-          <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>100 K+ voyageurs nous font confiance sur Instagram</p>
+          <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>24 000+ voyageurs nous font confiance sur Instagram</p>
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-            {['📸 Instagram','📘 Facebook','▶️ YouTube','🎵 TikTok'].map(x=>(
-              <button key={x} style={{...B.white,fontSize:13,padding:'9px 20px'}}>{x}</button>
+            {[
+                {ico:'📸',lbl:'Instagram',url:'https://www.instagram.com/get_lost_dz/'},
+                {ico:'🔗',lbl:'Link Tree',url:'https://www.hopp.bio/get-lost'},
+                {ico:'📘',lbl:'Facebook',url:'https://www.facebook.com/getlostdz'},
+              ].map(({ico,lbl,url})=>(
+              <a key={lbl} href={url} target="_blank" rel="noopener noreferrer" style={{...B.white,fontSize:13,padding:'9px 20px',textDecoration:'none',display:'inline-block'}}>{ico} {lbl}</a>
             ))}
           </div>
         </Card>
@@ -1020,16 +1066,15 @@ function Footer({t,setPage}){
       <div style={{maxWidth:1280,margin:'0 auto'}}>
         <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:40,marginBottom:40}}>
           <div>
-            <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:16,filter:'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(140deg)'}}
+            <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:52,marginBottom:16,filter:'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(140deg)'}}
               onError={e=>e.target.style.display='none'}/>
             <p style={{color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.8,maxWidth:240}}>La référence du tourisme expérientiel en Algérie.</p>
           </div>
-          {[['Navigation',[[t.navHome,'home'],[t.navTrips,'trips'],[t.navAbout,'about']]],['Contact',[['📧 contact@getlostdz.com'],['📱 +213 XX XX XX XX'],['📍 Alger, Algérie']]],['Réseaux',[['📸 Instagram'],['📘 Facebook'],['▶️ YouTube']]]]
+          {[['Navigation',[[t.navHome,'home',null],[t.navTrips,'trips',null],[t.navAbout,'about',null]]],['Contact',[['📧 contact@getlostdz.com',null,null],['📱 +213 XX XX XX XX',null,null],['📍 Alger, Algérie',null,null]]],['Réseaux',[['📸 Instagram',null,'https://www.instagram.com/get_lost_dz/'],['🔗 Linktree',null,'https://www.hopp.bio/get-lost'],['📘 Facebook',null,'https://www.facebook.com/getlostdz']]]]
           .map(([title,links])=>(
             <div key={title}>
               <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:12,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal)',marginBottom:16}}>{title}</div>
-              {links.map(([lbl,pg])=><div key={lbl} onClick={()=>pg&&setPage(pg)} style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,cursor:pg?'pointer':'default',transition:'color .18s'}}
-                onMouseEnter={e=>{if(pg)e.target.style.color='rgba(255,255,255,.9)'}} onMouseLeave={e=>{if(pg)e.target.style.color='rgba(255,255,255,.5)'}}>{lbl}</div>)}
+              {links.map(([lbl,pg,url])=>url?<a key={lbl} href={url} target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,display:'block',textDecoration:'none',transition:'color .18s'}} onMouseEnter={e=>e.target.style.color='rgba(255,255,255,.9)'} onMouseLeave={e=>e.target.style.color='rgba(255,255,255,.5)'}>{lbl}</a>:<div key={lbl} onClick={()=>pg&&setPage(pg)} style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,cursor:pg?'pointer':'default',transition:'color .18s'}} onMouseEnter={e=>{if(pg)e.target.style.color='rgba(255,255,255,.9)'}} onMouseLeave={e=>{if(pg)e.target.style.color='rgba(255,255,255,.5)'}}>{lbl}</div>))}
             </div>
           ))}
         </div>
