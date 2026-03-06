@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Get Lost DZ — In The Right Direction</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teal:#0DB9A8;--teal2:#09907F;--teal3:#E6F9F7;--teal4:#CCF2EE;
+  --navy:#0B2340;--navy2:#1A3A5C;
+  --white:#FFFFFF;--offwhite:#F7FAFA;--gray:#F0F4F5;
+  --text:#1A2E3B;--muted:#6B8591;--light:#A8BEC6;
+  --gold:#F59E0B;--red:#EF4444;--green:#10B981;
+  --shadow:0 2px 20px rgba(11,35,64,.08);
+  --shadow2:0 8px 40px rgba(11,35,64,.12);
+}
+html{scroll-behavior:smooth}
+body{font-family:'Poppins',sans-serif;background:var(--white);color:var(--text);overflow-x:hidden}
+::-webkit-scrollbar{width:6px;background:#f0f4f5}
+::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px}
+button{font-family:'Poppins',sans-serif;cursor:pointer}
+input,textarea,select{font-family:'Poppins',sans-serif;outline:none}
+@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.fade{animation:fadeUp .5s ease both}
+.toast-in{animation:slideIn .3s ease both}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useCallback,useRef,createContext,useContext}=React;
+
+/* ── API ──────────────────────────────────────────────────────────────────── */
+async function api(path,opts={}){
+  const tok=localStorage.getItem('glz_tok');
+  const res=await fetch('/api'+path,{
+    headers:{'Content-Type':'application/json',...(tok?{Authorization:`Bearer ${tok}`}:{})},
+    method:opts.method||'GET',
+    body:opts.body?JSON.stringify(opts.body):undefined
+  });
+  const data=await res.json();
+  if(!res.ok)throw new Error(data.error||'Erreur');
+  return data;
+}
+
+/* ── AUTH CONTEXT ─────────────────────────────────────────────────────────── */
+const AuthCtx=createContext(null);
+function AuthProvider({children}){
+  const [user,setUser]=useState(null);
+  useEffect(()=>{const s=localStorage.getItem('glz_user');if(s)try{setUser(JSON.parse(s))}catch{}},[]);
+  const login=async(email,password)=>{
+    const d=await api('/auth/login',{method:'POST',body:{email,password}});
+    localStorage.setItem('glz_tok',d.token);localStorage.setItem('glz_user',JSON.stringify(d.user));
+    setUser(d.user);return d.user;
+  };
+  const register=async(body)=>{
+    const d=await api('/auth/register',{method:'POST',body});
+    localStorage.setItem('glz_tok',d.token);localStorage.setItem('glz_user',JSON.stringify(d.user));
+    setUser(d.user);return d.user;
+  };
+  const logout=()=>{localStorage.removeItem('glz_tok');localStorage.removeItem('glz_user');setUser(null);};
+  return <AuthCtx.Provider value={{user,login,register,logout}}>{children}</AuthCtx.Provider>;
+}
+const useAuth=()=>useContext(AuthCtx);
+
+/* ── TOAST ────────────────────────────────────────────────────────────────── */
+const ToastCtx=createContext(null);
+function ToastProvider({children}){
+  const [toasts,setToasts]=useState([]);
+  const show=(msg,type='ok')=>{
+    const id=Date.now()+Math.random();
+    setToasts(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4000);
+  };
+  const colors={ok:{bg:'#10B981',text:'#fff'},err:{bg:'#EF4444',text:'#fff'},warn:{bg:'#F59E0B',text:'#fff'}};
+  return(
+    <ToastCtx.Provider value={{show}}>
+      {children}
+      <div style={{position:'fixed',top:76,right:18,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
+        {toasts.map(t=>{const c=colors[t.type]||colors.ok;return(
+          <div key={t.id} className="toast-in" style={{padding:'12px 20px',borderRadius:12,fontSize:14,fontWeight:600,maxWidth:340,background:c.bg,color:c.text,boxShadow:'0 8px 24px rgba(0,0,0,.15)'}}>
+            {t.type==='ok'?'✅':t.type==='err'?'❌':'⚠️'} {t.msg}
+          </div>
+        );})}
+      </div>
+    </ToastCtx.Provider>
+  );
+}
+const useToast=()=>useContext(ToastCtx);
+
+/* ── TRANSLATIONS ─────────────────────────────────────────────────────────── */
+const TR={
+  fr:{
+    navHome:'Accueil',navTrips:'Voyages',navAbout:'À Propos',navLogin:'Connexion',navReg:"S'inscrire",navDash:'Mon espace',navAdmin:'Admin',navLogout:'Déconnexion',
+    heroTag:'🌍 Agence de voyage algérienne',heroTitle1:'Découvrez',heroTitle2:"l'Algérie",heroTitle3:'& le monde',heroSub:"Zanzibar, Sahara, Kabylie… Des voyages inoubliables organisés par les meilleures agences d'Algérie.",heroCta:'Voir les voyages',heroCta2:'En savoir plus',
+    stats:['Abonnés Instagram','Voyages organisés','Destinations','Satisfaction'],
+    catTitle:'Que recherchez-vous ?',cats:{all:'Tout voir',intl:'International',national:'Algérie',hike:'Randonnées',visa:'Visas'},
+    catIco:{intl:'✈️',national:'🇩🇿',hike:'🥾',visa:'📋'},
+    catDesc:{intl:'Afrique, Asie, Europe',national:'Sahara, Kabylie, Hoggar',hike:'Trek & bivouac',visa:'Express 48h'},
+    featTitle:'Voyages populaires',seeAll:'Voir tous les voyages',
+    from:'À partir de',per:'/pers.',days:'j',revs:'avis',details:'Voir l\'offre',
+    srchPh:'Rechercher une destination…',sortBy:'Trier :',sorts:[['rating','Mieux notés'],['price_asc','Prix ↑'],['price_desc','Prix ↓']],
+    itin:'Programme',incl:'Ce qui est inclus',dates:'Dates disponibles',
+    revTitle:'Avis voyageurs',leaveRev:'Laisser un avis',yourRating:'Votre note',revPlaceholder:'Partagez votre expérience…',submitRev:'Publier mon avis',noRevs:'Aucun avis pour l\'instant. Soyez le premier !',
+    book:'🎫 Réserver ce voyage',booked:'Réservation envoyée !',bookMsg:"L'agence vous contactera sous 24h.",
+    loginTitle:'Connexion',regTitle:'Créer un compte',emailLbl:'Email',passLbl:'Mot de passe',nameLbl:'Votre nom',agNameLbl:'Nom de l\'agence',descLbl:'Description',
+    noAcc:'Pas de compte ?',hasAcc:'Déjà un compte ?',roleT:'Je suis voyageur',roleA:'Je suis une agence',
+    demo:'💡 Comptes démo: admin@getlostdz.com/admin123 · agency1@getlostdz.com/agency123 · sarah@test.com/user123',
+    dashWelcome:'Bonjour',myOffers:'Mes offres',addOffer:'+ Nouvelle offre',stats2:'Statistiques',
+    totOff:'Offres',approved:'Validées',pending:'En attente',views:'Vues totales',
+    status:{approved:'Validée',pending:'En attente',rejected:'Refusée'},
+    fTitle:'Titre *',fCat:'Catégorie',fPrice:'Prix (DZD) *',fDur:'Durée (jours)',fRegion:'Région *',fDesc:'Description',fImg:'URL image',fItin:'Programme (1 étape/ligne)',fIncl:'Inclus (1 item/ligne)',fDates:'Dates dispo (1/ligne)',
+    submit:'Soumettre pour validation',save:'Sauvegarder',cancel:'Annuler',confirmDel:'Supprimer cette offre ?',
+    myBook:'Mes réservations',noBook:'Aucune réservation. Explorez nos voyages !',
+    adminTitle:'Administration',aOffers:'Offres',aAgencies:'Agences',aUsers:'Utilisateurs',aRevs:'Avis',
+    approve:'Approuver',reject:'Refuser',suspend:'Suspendre',
+    aboutTitle:'Notre histoire',
+    ap1:"Get Lost DZ est une plateforme algérienne connectant les voyageurs aux meilleures agences locales pour des expériences authentiques en Algérie et à l'étranger.",
+    ap2:'Avec près de 24 000 abonnés Instagram et plus de 150 voyages organisés, nous sommes devenus la référence du tourisme expérientiel en Algérie.',
+    ap3:'Notre équipe passionnée valide chaque offre pour garantir qualité, sécurité et authenticité à chaque aventure.',
+    vals:[{i:'🎯',t:'Mission',d:'Rendre le voyage accessible et mémorable pour tous.'},{i:'🌿',t:'Authenticité',d:'Chaque expérience est vérifiée et certifiée par notre équipe.'},{i:'🤝',t:'Partenaires',d:'15+ agences certifiées, expertes dans leurs régions.'},{i:'⭐',t:'Excellence',d:'98% de voyageurs satisfaits. La qualité est notre priorité.'}],
+  },
+  en:{
+    navHome:'Home',navTrips:'Trips',navAbout:'About',navLogin:'Login',navReg:'Sign Up',navDash:'My Space',navAdmin:'Admin',navLogout:'Logout',
+    heroTag:'🌍 Algerian travel agency',heroTitle1:'Discover',heroTitle2:'Algeria',heroTitle3:'& the world',heroSub:'Zanzibar, Sahara, Kabylie… Unforgettable trips organized by Algeria\'s best agencies.',heroCta:'Explore Trips',heroCta2:'Learn More',
+    stats:['Instagram Followers','Organized Trips','Destinations','Satisfaction'],
+    catTitle:'What are you looking for?',cats:{all:'See all',intl:'International',national:'Algeria',hike:'Hiking',visa:'Visas'},
+    catIco:{intl:'✈️',national:'🇩🇿',hike:'🥾',visa:'📋'},
+    catDesc:{intl:'Africa, Asia, Europe',national:'Sahara, Kabylie, Hoggar',hike:'Trek & bivouac',visa:'Express 48h'},
+    featTitle:'Popular Trips',seeAll:'See all trips',
+    from:'From',per:'/person',days:'d',revs:'reviews',details:'View offer',
+    srchPh:'Search a destination…',sortBy:'Sort:',sorts:[['rating','Top Rated'],['price_asc','Price ↑'],['price_desc','Price ↓']],
+    itin:'Itinerary',incl:'What\'s included',dates:'Available Dates',
+    revTitle:'Traveler Reviews',leaveRev:'Leave a Review',yourRating:'Your Rating',revPlaceholder:'Share your experience…',submitRev:'Post Review',noRevs:'No reviews yet. Be the first!',
+    book:'🎫 Book This Trip',booked:'Booking Sent!',bookMsg:'The agency will contact you within 24h.',
+    loginTitle:'Login',regTitle:'Create Account',emailLbl:'Email',passLbl:'Password',nameLbl:'Your name',agNameLbl:'Agency Name',descLbl:'Description',
+    noAcc:'No account?',hasAcc:'Already have an account?',roleT:'I\'m a traveler',roleA:'I\'m an agency',
+    demo:'💡 Demo accounts: admin@getlostdz.com/admin123 · agency1@getlostdz.com/agency123 · sarah@test.com/user123',
+    dashWelcome:'Hello',myOffers:'My Offers',addOffer:'+ New Offer',stats2:'Statistics',
+    totOff:'Offers',approved:'Approved',pending:'Pending',views:'Total Views',
+    status:{approved:'Approved',pending:'Pending',rejected:'Rejected'},
+    fTitle:'Title *',fCat:'Category',fPrice:'Price (DZD) *',fDur:'Duration (days)',fRegion:'Region *',fDesc:'Description',fImg:'Image URL',fItin:'Itinerary (1 step/line)',fIncl:'Included (1 item/line)',fDates:'Available dates (1/line)',
+    submit:'Submit for Validation',save:'Save',cancel:'Cancel',confirmDel:'Delete this offer?',
+    myBook:'My Bookings',noBook:'No bookings yet. Explore our trips!',
+    adminTitle:'Administration',aOffers:'Offers',aAgencies:'Agencies',aUsers:'Users',aRevs:'Reviews',
+    approve:'Approve',reject:'Reject',suspend:'Suspend',
+    aboutTitle:'Our Story',
+    ap1:'Get Lost DZ is an Algerian platform connecting travelers to the best local agencies for authentic experiences in Algeria and abroad.',
+    ap2:'With nearly 24,000 Instagram followers and over 150 organized trips, we have become the reference for experiential tourism in Algeria.',
+    ap3:'Our passionate team validates each offer to guarantee quality, safety and authenticity for every adventure.',
+    vals:[{i:'🎯',t:'Mission',d:'Make travel accessible and memorable for everyone.'},{i:'🌿',t:'Authenticity',d:'Every experience is verified and certified by our team.'},{i:'🤝',t:'Partners',d:'15+ certified agencies, experts in their regions.'},{i:'⭐',t:'Excellence',d:'98% satisfied travelers. Quality is our priority.'}],
+  },
+  ar:{
+    navHome:'الرئيسية',navTrips:'الرحلات',navAbout:'من نحن',navLogin:'دخول',navReg:'تسجيل',navDash:'مساحتي',navAdmin:'الإدارة',navLogout:'خروج',
+    heroTag:'🌍 وكالة سفر جزائرية',heroTitle1:'اكتشف',heroTitle2:'الجزائر',heroTitle3:'والعالم',heroSub:'زنجبار، الصحراء، القبائل… رحلات لا تُنسى مع أفضل وكالات الجزائر.',heroCta:'استكشف الرحلات',heroCta2:'اعرف أكثر',
+    stats:['متابع على إنستغرام','رحلة منظمة','وجهة','رضا العملاء'],
+    catTitle:'ماذا تبحث عن؟',cats:{all:'الكل',intl:'دولي',national:'الجزائر',hike:'مشي وتخييم',visa:'تأشيرات'},
+    catIco:{intl:'✈️',national:'🇩🇿',hike:'🥾',visa:'📋'},
+    catDesc:{intl:'أفريقيا، آسيا، أوروبا',national:'الصحراء، القبائل، الهقار',hike:'ترك وبيواك',visa:'سريع 48 ساعة'},
+    featTitle:'رحلات شعبية',seeAll:'عرض كل الرحلات',
+    from:'من',per:'/شخص',days:'أيام',revs:'تقييم',details:'عرض التفاصيل',
+    srchPh:'ابحث عن وجهة…',sortBy:'ترتيب:',sorts:[['rating','الأعلى تقييماً'],['price_asc','السعر تصاعدي'],['price_desc','السعر تنازلي']],
+    itin:'البرنامج',incl:'ما يشمله العرض',dates:'التواريخ المتاحة',
+    revTitle:'تقييمات المسافرين',leaveRev:'اترك تقييماً',yourRating:'تقييمك',revPlaceholder:'شاركنا تجربتك…',submitRev:'نشر التقييم',noRevs:'لا توجد تقييمات بعد. كن الأول!',
+    book:'🎫 احجز هذه الرحلة',booked:'تم إرسال الحجز!',bookMsg:'ستتواصل معك الوكالة خلال 24 ساعة.',
+    loginTitle:'تسجيل الدخول',regTitle:'إنشاء حساب',emailLbl:'البريد الإلكتروني',passLbl:'كلمة المرور',nameLbl:'اسمك',agNameLbl:'اسم الوكالة',descLbl:'الوصف',
+    noAcc:'ليس لديك حساب؟',hasAcc:'لديك حساب بالفعل؟',roleT:'أنا مسافر',roleA:'أنا وكالة',
+    demo:'💡 حسابات تجريبية: admin@getlostdz.com/admin123 · agency1@getlostdz.com/agency123 · sarah@test.com/user123',
+    dashWelcome:'مرحباً',myOffers:'عروضي',addOffer:'+ عرض جديد',stats2:'إحصائيات',
+    totOff:'العروض',approved:'معتمدة',pending:'في الانتظار',views:'إجمالي المشاهدات',
+    status:{approved:'معتمد',pending:'في الانتظار',rejected:'مرفوض'},
+    fTitle:'العنوان *',fCat:'الفئة',fPrice:'السعر (دج) *',fDur:'المدة (أيام)',fRegion:'المنطقة *',fDesc:'الوصف',fImg:'رابط الصورة',fItin:'البرنامج (سطر لكل مرحلة)',fIncl:'يشمل (سطر لكل بند)',fDates:'التواريخ المتاحة (سطر/تاريخ)',
+    submit:'إرسال للمراجعة',save:'حفظ',cancel:'إلغاء',confirmDel:'حذف هذا العرض؟',
+    myBook:'حجوزاتي',noBook:'لا توجد حجوزات بعد. استكشف رحلاتنا!',
+    adminTitle:'الإدارة',aOffers:'العروض',aAgencies:'الوكالات',aUsers:'المستخدمون',aRevs:'التقييمات',
+    approve:'اعتماد',reject:'رفض',suspend:'تعليق',
+    aboutTitle:'قصتنا',
+    ap1:'Get Lost DZ منصة جزائرية تربط المسافرين بأفضل الوكالات المحلية لتجارب أصيلة في الجزائر وخارجها.',
+    ap2:'مع ما يقارب 24,000 متابع على إنستغرام وأكثر من 150 رحلة منظمة، أصبحنا المرجع للسياحة التجريبية في الجزائر.',
+    ap3:'فريقنا الشغوف يتحقق من كل عرض لضمان الجودة والأمان والأصالة في كل مغامرة.',
+    vals:[{i:'🎯',t:'مهمتنا',d:'جعل السفر ميسوراً ولا يُنسى للجميع.'},{i:'🌿',t:'الأصالة',d:'كل تجربة يتم التحقق منها وتوثيقها من قبل فريقنا.'},{i:'🤝',t:'شركاؤنا',d:'أكثر من 15 وكالة معتمدة وخبيرة في مناطقها.'},{i:'⭐',t:'التميز',d:'98% من المسافرين راضون. الجودة هي أولويتنا.'}],
+  }
+};
+
+/* ── SHARED STYLES ────────────────────────────────────────────────────────── */
+const B={
+  pri:{background:'linear-gradient(135deg,#0DB9A8,#09907F)',color:'#fff',border:'none',borderRadius:50,padding:'12px 28px',fontWeight:700,fontSize:14,boxShadow:'0 4px 20px rgba(13,185,168,.35)',cursor:'pointer',transition:'all .2s'},
+  out:{background:'transparent',color:'var(--teal)',border:'2px solid var(--teal)',borderRadius:50,padding:'11px 28px',fontWeight:700,fontSize:14,cursor:'pointer',transition:'all .2s'},
+  ghost:{background:'rgba(11,35,64,.06)',color:'var(--navy)',border:'none',borderRadius:50,padding:'10px 22px',fontWeight:600,fontSize:14,cursor:'pointer',transition:'all .2s'},
+  sm:{background:'var(--teal3)',color:'var(--teal2)',border:'1px solid var(--teal4)',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',transition:'all .2s'},
+  danger:{background:'#FEE2E2',color:'#DC2626',border:'1px solid #FECACA',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer'},
+  white:{background:'#fff',color:'var(--teal2)',border:'none',borderRadius:50,padding:'12px 28px',fontWeight:700,fontSize:14,boxShadow:'0 4px 20px rgba(0,0,0,.12)',cursor:'pointer'},
+};
+const INP={width:'100%',border:'1.5px solid #E2EBF0',borderRadius:10,padding:'11px 15px',fontSize:14,background:'#fff',color:'var(--text)',marginBottom:12,transition:'border .2s'};
+const TA=(h=80)=>({...INP,height:h,resize:'vertical'});
+const TH={textAlign:'left',padding:'11px 16px',fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1.2,borderBottom:'2px solid #F0F4F5',background:'#FAFCFC'};
+const TD={padding:'13px 16px',borderBottom:'1px solid #F0F4F5',fontSize:14,color:'var(--text)'};
+
+/* ── HELPERS ──────────────────────────────────────────────────────────────── */
+const Stars=({v=0,size=14,interactive=false,onRate})=>{
+  const [h,setH]=useState(0);
+  return <span style={{display:'inline-flex',gap:2}}>{[1,2,3,4,5].map(i=>(
+    <span key={i} style={{fontSize:size,cursor:interactive?'pointer':'default',color:i<=(h||v)?'#F59E0B':'#DDE5E8',lineHeight:1}}
+      onClick={()=>interactive&&onRate?.(i)} onMouseEnter={()=>interactive&&setH(i)} onMouseLeave={()=>interactive&&setH(0)}>★</span>
+  ))}</span>;
+};
+
+const Badge=({status})=>{
+  const m={approved:{bg:'#D1FAE5',c:'#065F46'},pending:{bg:'#FEF3C7',c:'#92400E'},rejected:{bg:'#FEE2E2',c:'#991B1B'},suspended:{bg:'#FEE2E2',c:'#991B1B'}};
+  const s=m[status]||m.pending;
+  return <span style={{padding:'3px 11px',borderRadius:20,fontSize:11,fontWeight:700,background:s.bg,color:s.c,letterSpacing:.3}}>{status}</span>;
+};
+
+const Spin=()=>(
+  <div style={{display:'flex',justifyContent:'center',padding:'60px 0'}}>
+    <div style={{width:36,height:36,border:'3px solid #E2EBF0',borderTopColor:'var(--teal)',borderRadius:'50%',animation:'spin 1s linear infinite'}}/>
+  </div>
+);
+
+const Card=({children,style={}})=>(
+  <div style={{background:'#fff',borderRadius:20,boxShadow:'var(--shadow)',border:'1px solid #EEF3F5',...style}}>{children}</div>
+);
+
+const SectionTitle=({children,sub,center=false})=>(
+  <div style={{textAlign:center?'center':'left',marginBottom:40}}>
+    <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(22px,3.5vw,32px)',color:'var(--navy)',lineHeight:1.2,marginBottom:8}}>{children}</div>
+    {sub&&<p style={{color:'var(--muted)',fontSize:15,maxWidth:480,margin:center?'0 auto':0}}>{sub}</p>}
+    <div style={{width:50,height:4,background:'linear-gradient(90deg,var(--teal),var(--teal2))',borderRadius:2,marginTop:12,...(center?{margin:'12px auto 0'}:{})}}/>
+  </div>
+);
+
+/* ── NAVBAR ───────────────────────────────────────────────────────────────── */
+function Navbar({page,setPage,lang,setLang,openAuth,t}){
+  const {user,logout}=useAuth();
+  const {show}=useToast();
+  const [scroll,setScroll]=useState(false);
+  useEffect(()=>{const h=()=>setScroll(window.scrollY>30);window.addEventListener('scroll',h);return()=>window.removeEventListener('scroll',h);},[]);
+  const nl=(pg)=>({padding:'8px 16px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',border:'none',background:page===pg?'var(--teal3)':'transparent',color:page===pg?'var(--teal2)':'var(--navy)',transition:'all .18s'});
+  return(
+    <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:300,background:'rgba(255,255,255,.97)',backdropFilter:'blur(20px)',borderBottom:scroll?'1px solid #E8F0F2':'1px solid transparent',boxShadow:scroll?'var(--shadow)':'none',transition:'all .3s'}}>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 20px',height:68,display:'flex',alignItems:'center',justifyContent:'space-between',direction:lang==='ar'?'rtl':'ltr'}}>
+        {/* LOGO */}
+        <div style={{cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setPage('home')}>
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:44,width:'auto',objectFit:'contain'}}
+            onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>
+          <div style={{display:'none',alignItems:'center',gap:8}}>
+            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--teal2)'}}>Get Lost DZ</div>
+          </div>
+        </div>
+        {/* NAV */}
+        <div style={{display:'flex',gap:4,alignItems:'center'}}>
+          <button style={nl('home')} onClick={()=>setPage('home')}>{t.navHome}</button>
+          <button style={nl('trips')} onClick={()=>setPage('trips')}>{t.navTrips}</button>
+          <button style={nl('about')} onClick={()=>setPage('about')}>{t.navAbout}</button>
+          {user&&<button style={nl('dash')} onClick={()=>setPage('dash')}>{t.navDash}</button>}
+          {user?.role==='admin'&&<button style={nl('admin')} onClick={()=>setPage('admin')}>{t.navAdmin}</button>}
+        </div>
+        {/* RIGHT */}
+        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+          <div style={{display:'flex',gap:2,background:'#F0F4F5',borderRadius:8,padding:3}}>
+            {['fr','en','ar'].map(l=>(
+              <button key={l} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
+            ))}
+          </div>
+          {user?(
+            <>
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--teal3)',borderRadius:50,padding:'5px 14px 5px 5px',cursor:'pointer'}} onClick={()=>setPage('dash')}>
+                <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{user.name[0].toUpperCase()}</div>
+                <span style={{fontSize:13,fontWeight:700,color:'var(--teal2)'}}>{user.name.split(' ')[0]}</span>
+              </div>
+              <button style={{...B.ghost,padding:'8px 16px',fontSize:13}} onClick={()=>{logout();setPage('home');show('À bientôt !')}}>{t.navLogout}</button>
+            </>
+          ):(
+            <>
+              <button style={{...B.ghost,padding:'8px 18px',fontSize:13}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
+              <button style={{...B.pri,padding:'8px 20px',fontSize:13}} onClick={()=>openAuth('register')}>{t.navReg}</button>
+            </>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+/* ── OFFER CARD ───────────────────────────────────────────────────────────── */
+function OfferCard({offer,t,onOpen}){
+  const [hov,setHov]=useState(false);
+  const avg=offer.avg_rating;
+  return(
+    <div onClick={()=>onOpen(offer)}
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{background:'#fff',borderRadius:20,overflow:'hidden',border:'1px solid #EEF3F5',cursor:'pointer',transition:'all .25s',boxShadow:hov?'0 20px 50px rgba(13,185,168,.18)':'var(--shadow)',transform:hov?'translateY(-5px)':'none'}}>
+      <div style={{position:'relative'}}>
+        <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'} alt={offer.title}
+          onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'}
+          style={{width:'100%',height:200,objectFit:'cover',display:'block',transition:'transform .3s',...(hov?{transform:'scale(1.03)'}:{})}}/>
+        <div style={{position:'absolute',top:12,left:12,background:'rgba(255,255,255,.95)',backdropFilter:'blur(4px)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>
+          {t.catIco[offer.category]} {t.cats[offer.category]||offer.category}
+        </div>
+        {avg&&<div style={{position:'absolute',bottom:12,right:12,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 10px',display:'flex',alignItems:'center',gap:4}}>
+          <span style={{color:'#F59E0B',fontSize:13}}>★</span>
+          <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>{avg}</span>
+        </div>}
+      </div>
+      <div style={{padding:'16px 20px 20px'}}>
+        <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:6,lineHeight:1.3}}>{offer.title}</div>
+        <div style={{display:'flex',gap:14,color:'var(--muted)',fontSize:12,fontWeight:500,marginBottom:14,flexWrap:'wrap'}}>
+          <span>📍 {offer.region}</span>
+          <span>⏱ {offer.duration}{t.days}</span>
+          <span>💬 {offer.review_count||0} {t.revs}</span>
+        </div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:10,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginBottom:1}}>{t.from}</div>
+            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--teal2)',lineHeight:1}}>
+              {(offer.price||0).toLocaleString()} <span style={{fontSize:11,color:'var(--muted)',fontWeight:500}}>DZD{t.per}</span>
+            </div>
+          </div>
+          <button style={{...B.pri,padding:'9px 18px',fontSize:12}} onClick={e=>{e.stopPropagation();onOpen(offer);}}>{t.details}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── OFFER MODAL ──────────────────────────────────────────────────────────── */
+function OfferModal({offer,onClose,t,lang}){
+  const {user}=useAuth();
+  const {show}=useToast();
+  const [reviews,setReviews]=useState([]);
+  const [rf,setRf]=useState({rating:0,title:'',comment:''});
+  const [booking,setBooking]=useState(false);
+  const [submitting,setSubmitting]=useState(false);
+  const rtl=lang==='ar';
+  useEffect(()=>{if(offer)api(`/offers/${offer.id}/reviews`).then(setReviews).catch(()=>{});},[offer?.id]);
+  if(!offer)return null;
+  const avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):(offer.avg_rating||null);
+  const SL=({children})=><div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal2)',marginBottom:10}}>{children}</div>;
+  const handleBook=async()=>{
+    if(!user){onClose();show('Connectez-vous pour réserver','warn');return;}
+    setBooking(true);
+    try{await api('/bookings',{method:'POST',body:{offerId:offer.id}});show(t.bookMsg);}
+    catch(e){show(e.message,'err');}
+    setBooking(false);
+  };
+  const handleReview=async()=>{
+    if(!user){show('Connectez-vous pour laisser un avis','warn');return;}
+    if(!rf.rating||!rf.title.trim()){show('Note et titre requis','err');return;}
+    setSubmitting(true);
+    try{await api(`/offers/${offer.id}/reviews`,{method:'POST',body:rf});show('Avis soumis, il sera publié après modération.');setRf({rating:0,title:'',comment:''});}
+    catch(e){show(e.message,'err');}
+    setSubmitting(false);
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:24,overflow:'hidden',maxWidth:660,width:'100%',maxHeight:'92vh',overflowY:'auto',direction:rtl?'rtl':'ltr'}} className="fade" onClick={e=>e.stopPropagation()}>
+        <div style={{position:'relative'}}>
+          <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'} alt={offer.title}
+            onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'}
+            style={{width:'100%',height:240,objectFit:'cover',display:'block'}}/>
+          <button onClick={onClose} style={{position:'absolute',top:14,right:14,background:'rgba(255,255,255,.95)',border:'none',borderRadius:'50%',width:36,height:36,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.15)'}}>×</button>
+          <div style={{position:'absolute',bottom:14,left:14,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 14px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>{t.catIco[offer.category]} {t.cats[offer.category]}</div>
+        </div>
+        <div style={{padding:'24px 28px 30px'}}>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)',marginBottom:8}}>{offer.title}</div>
+          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+            <Stars v={parseFloat(avg)||0} size={16}/>
+            {avg&&<span style={{fontWeight:800,color:'#F59E0B'}}>{avg}</span>}
+            <span style={{color:'var(--muted)',fontSize:13}}>({reviews.length} {t.revs})</span>
+          </div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:18}}>
+            {[['📍',offer.region],['⏱',`${offer.duration} ${t.days}`],['💰',`${(offer.price||0).toLocaleString()} DZD${t.per}`],offer.agency_name&&['🏢',offer.agency_name]].filter(Boolean).filter(([,v])=>v).map(([i,v])=>(
+              <span key={v} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:13,fontWeight:500,color:'var(--text)'}}>{i} {v}</span>
+            ))}
+          </div>
+          {offer.description&&<p style={{color:'var(--muted)',lineHeight:1.8,marginBottom:20,fontSize:14}}>{offer.description}</p>}
+          {offer.itinerary?.length>0&&<div style={{marginBottom:18}}>
+            <SL>{t.itin}</SL>
+            {offer.itinerary.map((s,i)=><div key={i} style={{display:'flex',gap:12,marginBottom:7,fontSize:14}}>
+              <span style={{width:22,height:22,borderRadius:'50%',background:'var(--teal3)',color:'var(--teal2)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,flexShrink:0,marginTop:1}}>{i+1}</span>
+              <span style={{color:'var(--text)'}}>{s}</span>
+            </div>)}
+          </div>}
+          {offer.includes?.length>0&&<div style={{marginBottom:18}}>
+            <SL>{t.incl}</SL>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+              {offer.includes.map((x,i)=><span key={i} style={{padding:'6px 14px',background:'var(--teal3)',borderRadius:20,fontSize:12,fontWeight:600,color:'var(--teal2)'}}>✓ {x}</span>)}
+            </div>
+          </div>}
+          {offer.available_dates?.length>0&&<div style={{marginBottom:22}}>
+            <SL>{t.dates}</SL>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+              {offer.available_dates.map((d,i)=><span key={i} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:12,border:'1px solid #E2EBF0'}}>📅 {d}</span>)}
+            </div>
+          </div>}
+          {/* Reviews */}
+          <div style={{borderTop:'2px solid #F0F4F5',paddingTop:20,marginBottom:16}}>
+            <SL>💬 {t.revTitle}</SL>
+            {reviews.length===0?<p style={{color:'var(--muted)',fontSize:14}}>{t.noRevs}</p>
+            :reviews.map(r=>(
+              <div key={r.id} style={{background:'#FAFCFC',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid #EEF3F5'}}>
+                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                  <div style={{display:'flex',alignItems:'center',gap:8}}>
+                    <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff'}}>{r.user_name?.[0]?.toUpperCase()}</div>
+                    <span style={{fontWeight:700,fontSize:14,color:'var(--navy)'}}>{r.user_name}</span>
+                    <Stars v={r.rating} size={12}/>
+                  </div>
+                  <span style={{fontSize:11,color:'var(--muted)'}}>{(r.created_at||'').split('T')[0]}</span>
+                </div>
+                <div style={{fontWeight:600,fontSize:14,marginBottom:3,color:'var(--navy)'}}>{r.title}</div>
+                {r.comment&&<div style={{color:'var(--muted)',fontSize:13}}>{r.comment}</div>}
+              </div>
+            ))}
+          </div>
+          {user?.role==='traveler'&&<div style={{background:'var(--teal3)',borderRadius:16,padding:20,marginBottom:20}}>
+            <SL>✏️ {t.leaveRev}</SL>
+            <div style={{marginBottom:12}}>
+              <div style={{fontSize:12,color:'var(--muted)',marginBottom:6,fontWeight:600}}>{t.yourRating}</div>
+              <Stars v={rf.rating} size={28} interactive onRate={v=>setRf(p=>({...p,rating:v}))}/>
+            </div>
+            <input style={INP} placeholder={t.revTitle+'…'} value={rf.title} onChange={e=>setRf(p=>({...p,title:e.target.value}))}/>
+            <textarea style={TA(70)} placeholder={t.revPlaceholder} value={rf.comment} onChange={e=>setRf(p=>({...p,comment:e.target.value}))}/>
+            <button style={B.pri} onClick={handleReview} disabled={submitting}>{submitting?'…':t.submitRev}</button>
+          </div>}
+          {/* Book CTA */}
+          <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',borderRadius:16,padding:'20px 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,.6)',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{t.from}</div>
+              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal)',lineHeight:1}}>
+                {(offer.price||0).toLocaleString()} <span style={{fontSize:12,color:'rgba(255,255,255,.5)',fontWeight:400}}>DZD{t.per}</span>
+              </div>
+            </div>
+            <button style={{...B.white,fontSize:14,padding:'12px 24px'}} onClick={handleBook} disabled={booking}>{booking?'…':t.book}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── AUTH MODAL ───────────────────────────────────────────────────────────── */
+function AuthModal({mode,onClose,t}){
+  const {login,register}=useAuth();
+  const {show}=useToast();
+  const [isLogin,setIsLogin]=useState(mode==='login');
+  const [role,setRole]=useState('traveler');
+  const [f,setF]=useState({email:'',password:'',name:'',agencyName:'',description:''});
+  const [loading,setLoading]=useState(false);
+  useEffect(()=>setIsLogin(mode==='login'),[mode]);
+  const submit=async()=>{
+    if(!f.email||!f.password){show('Email et mot de passe requis','err');return;}
+    setLoading(true);
+    try{
+      if(isLogin){const u=await login(f.email,f.password);show(`Bienvenue, ${u.name}!`);}
+      else{if(!f.name){show('Nom requis','err');setLoading(false);return;}await register({...f,role});show('Compte créé !');}
+      onClose();
+    }catch(e){show(e.message,'err');}
+    setLoading(false);
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:24,padding:'32px 28px',maxWidth:420,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)'}} className="fade" onClick={e=>e.stopPropagation()}>
+        <div style={{textAlign:'center',marginBottom:24}}>
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:52,marginBottom:14}}
+            onError={e=>e.target.style.display='none'}/>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)'}}>{isLogin?t.loginTitle:t.regTitle}</div>
+        </div>
+        {!isLogin&&(
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
+            {['traveler','agency'].map(r=>(
+              <button key={r} style={{padding:'11px 0',borderRadius:12,fontWeight:700,fontSize:13,border:`2px solid ${role===r?'var(--teal)':'#E2EBF0'}`,background:role===r?'var(--teal3)':'#fff',color:role===r?'var(--teal2)':'var(--muted)',cursor:'pointer',transition:'all .18s'}}
+                onClick={()=>setRole(r)}>{r==='traveler'?`🧳 ${t.roleT}`:`🏢 ${t.roleA}`}</button>
+            ))}
+          </div>
+        )}
+        <input style={INP} type="email" placeholder={t.emailLbl} value={f.email} onChange={e=>setF(p=>({...p,email:e.target.value}))}/>
+        <input style={INP} type="password" placeholder={t.passLbl} value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        {!isLogin&&<>
+          <input style={INP} placeholder={role==='agency'?t.agNameLbl:t.nameLbl} value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          {role==='agency'&&<textarea style={TA(66)} placeholder={t.descLbl} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))}/>}
+        </>}
+        <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'…':isLogin?t.loginTitle:t.regTitle}</button>
+        <div style={{textAlign:'center',marginTop:14,fontSize:13,color:'var(--muted)'}}>
+          {isLogin?<>{t.noAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(false)}>{t.regTitle}</span></>
+          :<>{t.hasAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(true)}>{t.loginTitle}</span></>}
+        </div>
+        <div style={{marginTop:16,padding:'10px 14px',background:'#F7FAFA',borderRadius:10,fontSize:11,color:'var(--muted)',lineHeight:1.6}}>{t.demo}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── HOME PAGE ────────────────────────────────────────────────────────────── */
+function HomePage({t,setPage,setFilterCat,onOpen}){
+  const [feat,setFeat]=useState([]);
+  useEffect(()=>{api('/offers?sort=rating').then(d=>setFeat(d.slice(0,3))).catch(()=>{});},[]);
+  const categories=[
+    {k:'intl',bg:'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=400&q=80'},
+    {k:'national',bg:'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400&q=80'},
+    {k:'hike',bg:'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80'},
+    {k:'visa',bg:'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80'},
+  ];
+  return(
+    <div>
+      {/* HERO */}
+      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',background:'linear-gradient(160deg,#E6F9F7 0%,#CCF2EE 35%,#fff 70%)',position:'relative',overflow:'hidden',paddingTop:68}}>
+        {/* BG decorations */}
+        <div style={{position:'absolute',top:-80,right:-80,width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(13,185,168,.12) 0%,transparent 70%)'}}/>
+        <div style={{position:'absolute',bottom:-100,left:-50,width:400,height:400,borderRadius:'50%',background:'radial-gradient(circle,rgba(13,185,168,.08) 0%,transparent 70%)'}}/>
+        <div style={{maxWidth:1280,margin:'0 auto',padding:'60px 24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',width:'100%'}}>
+          {/* LEFT */}
+          <div className="fade">
+            <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'#fff',border:'1px solid var(--teal4)',borderRadius:50,padding:'6px 16px',fontSize:12,fontWeight:600,color:'var(--teal2)',marginBottom:24,boxShadow:'0 2px 12px rgba(13,185,168,.1)'}}>
+              {t.heroTag}
+            </div>
+            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(36px,5vw,62px)',lineHeight:1.1,color:'var(--navy)',marginBottom:20}}>
+              {t.heroTitle1}<br/>
+              <span style={{background:'linear-gradient(135deg,var(--teal),var(--teal2))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{t.heroTitle2}</span><br/>
+              {t.heroTitle3}
+            </div>
+            <p style={{fontSize:16,color:'var(--muted)',lineHeight:1.8,marginBottom:32,maxWidth:440}}>{t.heroSub}</p>
+            <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+              <button style={{...B.pri,fontSize:15,padding:'14px 32px'}} onClick={()=>setPage('trips')}>{t.heroCta}</button>
+              <button style={{...B.out,fontSize:15,padding:'13px 32px'}} onClick={()=>setPage('about')}>{t.heroCta2}</button>
+            </div>
+            {/* Stats */}
+            <div style={{display:'flex',gap:32,marginTop:44,flexWrap:'wrap'}}>
+              {['24K+','150+','40+','98%'].map((n,i)=>(
+                <div key={i}>
+                  <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal2)',lineHeight:1}}>{n}</div>
+                  <div style={{fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:2}}>{t.stats[i]}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* RIGHT — Logo hero image */}
+          <div style={{display:'flex',justifyContent:'center',alignItems:'center'}} className="fade">
+            <div style={{position:'relative'}}>
+              <div style={{width:420,height:420,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal3),var(--teal4))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 20px 60px rgba(13,185,168,.2)',animation:'float 5s ease-in-out infinite'}}>
+                <img src="/logo-dark.png" alt="Get Lost DZ" style={{width:'75%',height:'75%',objectFit:'contain'}}/>
+              </div>
+              {/* Floating badges */}
+              {[{top:-10,right:20,ico:'✈️',txt:'International'},{bottom:30,left:-20,ico:'🏔️',txt:'Aventures'},{top:'45%',right:-30,ico:'⭐',txt:'4.9/5'}].map((b,i)=>(
+                <div key={i} style={{position:'absolute',top:b.top,bottom:b.bottom,left:b.left,right:b.right,background:'#fff',borderRadius:14,padding:'10px 16px',boxShadow:'0 8px 24px rgba(11,35,64,.12)',display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}}>
+                  <span style={{fontSize:18}}>{b.ico}</span>
+                  <span style={{fontWeight:700,fontSize:13,color:'var(--navy)'}}>{b.txt}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* CATEGORIES */}
+      <div style={{background:'#fff',padding:'80px 24px'}}>
+        <div style={{maxWidth:1280,margin:'0 auto'}}>
+          <SectionTitle center sub="Trouvez le voyage parfait selon vos envies">{t.catTitle}</SectionTitle>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:20}}>
+            {categories.map(({k,bg})=>(
+              <div key={k} onClick={()=>{setFilterCat(k);setPage('trips');}}
+                style={{position:'relative',borderRadius:20,overflow:'hidden',cursor:'pointer',height:180,transition:'transform .25s'}}
+                onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px) scale(1.01)'}
+                onMouseLeave={e=>e.currentTarget.style.transform='none'}>
+                <img src={bg} alt={k} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(11,35,64,.75) 0%,rgba(11,35,64,.2) 60%,transparent 100%)'}}/>
+                <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'16px 20px'}}>
+                  <div style={{fontSize:24,marginBottom:4}}>{t.catIco[k]}</div>
+                  <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'#fff'}}>{t.cats[k]}</div>
+                  <div style={{fontSize:12,color:'rgba(255,255,255,.7)',fontWeight:500}}>{t.catDesc[k]}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* FEATURED */}
+      <div style={{background:'var(--offwhite)',padding:'80px 24px'}}>
+        <div style={{maxWidth:1280,margin:'0 auto'}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:40,flexWrap:'wrap',gap:16}}>
+            <SectionTitle sub="Nos voyages les mieux notés par la communauté">{t.featTitle}</SectionTitle>
+            <button style={{...B.out,marginTop:8}} onClick={()=>setPage('trips')}>{t.seeAll} →</button>
+          </div>
+          {feat.length===0?<Spin/>:(
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
+              {feat.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* TRUST BAND */}
+      <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',padding:'72px 24px'}}>
+        <div style={{maxWidth:1100,margin:'0 auto',textAlign:'center'}}>
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:80,marginBottom:20,filter:'brightness(0) invert(1) sepia(1) saturate(3) hue-rotate(140deg)'}}
+            onError={e=>e.target.style.display='none'}/>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'#fff',marginBottom:12}}>Pourquoi choisir Get Lost DZ ?</div>
+          <p style={{color:'rgba(255,255,255,.65)',maxWidth:540,margin:'0 auto 32px',lineHeight:1.8}}>Chaque offre est validée par notre équipe. Qualité, sécurité et authenticité garanties.</p>
+          <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
+            {['✅ Offres validées','⭐ Avis vérifiés','🤝 Agences certifiées','🌍 24K communauté'].map(x=>(
+              <div key={x} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',borderRadius:50,padding:'10px 20px',fontSize:13,fontWeight:600,color:'rgba(255,255,255,.9)'}}>{x}</div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── TRIPS PAGE ───────────────────────────────────────────────────────────── */
+function TripsPage({t,filterCat,setFilterCat,onOpen}){
+  const [offers,setOffers]=useState([]);
+  const [loading,setLoading]=useState(true);
+  const [search,setSearch]=useState('');
+  const [sort,setSort]=useState('rating');
+  const [debSearch,setDebSearch]=useState('');
+  useEffect(()=>{const tm=setTimeout(()=>setDebSearch(search),400);return()=>clearTimeout(tm);},[search]);
+  useEffect(()=>{
+    setLoading(true);
+    const p=new URLSearchParams({sort});
+    if(filterCat&&filterCat!=='all')p.set('category',filterCat);
+    if(debSearch)p.set('search',debSearch);
+    api(`/offers?${p}`).then(d=>{setOffers(d);setLoading(false);}).catch(()=>setLoading(false));
+  },[filterCat,sort,debSearch]);
+  return(
+    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
+      {/* Header band */}
+      <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'48px 24px 36px'}}>
+        <div style={{maxWidth:1280,margin:'0 auto'}}>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(24px,4vw,38px)',color:'var(--navy)',marginBottom:6}}>Nos Voyages</div>
+          <p style={{color:'var(--muted)',fontSize:15}}>Découvrez toutes nos offres — Algérie, Afrique, Asie et plus.</p>
+          {/* Search + Sort */}
+          <div style={{display:'flex',gap:10,marginTop:24,flexWrap:'wrap'}}>
+            <div style={{position:'relative',flex:1,minWidth:240}}>
+              <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16}}>🔍</span>
+              <input style={{...INP,paddingLeft:42,marginBottom:0,borderRadius:50,boxShadow:'var(--shadow)'}} placeholder={t.srchPh} value={search} onChange={e=>setSearch(e.target.value)}/>
+            </div>
+            <select style={{...INP,width:'auto',marginBottom:0,borderRadius:50,paddingLeft:16,background:'#fff',cursor:'pointer',boxShadow:'var(--shadow)'}} value={sort} onChange={e=>setSort(e.target.value)}>
+              {t.sorts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
+        {/* Category filters */}
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
+          {['all','intl','national','hike','visa'].map(c=>(
+            <button key={c} style={{padding:'8px 20px',borderRadius:50,cursor:'pointer',fontSize:13,fontWeight:700,border:'none',background:filterCat===c?'var(--teal)':'#fff',color:filterCat===c?'#fff':'var(--text)',boxShadow:filterCat===c?'0 4px 14px rgba(13,185,168,.3)':'var(--shadow)',transition:'all .2s'}}
+              onClick={()=>setFilterCat(c)}>{t.catIco[c]||'🌍'} {t.cats[c]||c}</button>
+          ))}
+        </div>
+        {loading?<Spin/>:offers.length===0
+          ?<div style={{textAlign:'center',padding:'60px 0',color:'var(--muted)'}}>
+            <div style={{fontSize:48,marginBottom:12}}>🔍</div>
+            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,marginBottom:6}}>Aucune offre trouvée</div>
+            <div style={{fontSize:14}}>Essayez une autre recherche</div>
+          </div>
+          :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
+            {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
+          </div>
+        }
+      </div>
+    </div>
+  );
+}
+
+/* ── DASHBOARD ────────────────────────────────────────────────────────────── */
+function DashPage({t,openAuth}){
+  const {user}=useAuth();
+  const {show}=useToast();
+  const [tab,setTab]=useState('stats');
+  const [offers,setOffers]=useState([]);
+  const [bookings,setBookings]=useState([]);
+  const [loading,setLoading]=useState(false);
+  const [editTarget,setEditTarget]=useState(null);
+  const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',imageUrl:'',itinerary:'',includes:'',dates:''};
+  const [form,setForm]=useState(EF);
+  const load=useCallback(async()=>{
+    if(!user)return;setLoading(true);
+    try{
+      if(user.role==='agency'&&user.agencyId){setOffers(await api(`/agencies/${user.agencyId}/offers`));}
+      else if(user.role==='traveler'){setBookings(await api('/bookings/my'));}
+    }catch(e){show(e.message,'err');}
+    setLoading(false);
+  },[user]);
+  useEffect(()=>{load();},[load]);
+  if(!user)return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--offwhite)',paddingTop:68}}>
+      <Card style={{padding:'48px 40px',textAlign:'center',maxWidth:380}}>
+        <div style={{fontSize:48,marginBottom:16}}>🔐</div>
+        <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Accès réservé</div>
+        <p style={{color:'var(--muted)',marginBottom:24,fontSize:14}}>Connectez-vous pour accéder à votre espace personnel.</p>
+        <button style={{...B.pri,width:'100%'}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
+      </Card>
+    </div>
+  );
+  const submitOffer=async()=>{
+    if(!form.title||!form.price||!form.region){show('Titre, prix et région requis','err');return;}
+    try{
+      const body={title:form.title,category:form.category,price:parseInt(form.price),duration:parseInt(form.duration)||1,region:form.region,description:form.description,imageUrl:form.imageUrl,
+        itinerary:form.itinerary.split('\n').filter(Boolean),includes:form.includes.split('\n').filter(Boolean),dates:form.dates.split('\n').filter(Boolean)};
+      if(editTarget){await api(`/offers/${editTarget.id}`,{method:'PUT',body});show('Offre mise à jour!');}
+      else{await api('/offers',{method:'POST',body});show('Offre soumise pour validation!');}
+      setForm(EF);setEditTarget(null);setTab('offers');load();
+    }catch(e){show(e.message,'err');}
+  };
+  const delOffer=async(id)=>{
+    if(!window.confirm(t.confirmDel))return;
+    try{await api(`/offers/${id}`,{method:'DELETE'});show('Offre supprimée');load();}
+    catch(e){show(e.message,'err');}
+  };
+  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',imageUrl:o.image_url||'',itinerary:(o.itinerary||[]).join('\n'),includes:(o.includes||[]).join('\n'),dates:(o.available_dates||[]).join('\n')});setTab('add');};
+  const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
+  const FI=({label,fk,type='text'})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><input style={INP} type={type} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
+  const FTA=({label,fk,h=88})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><textarea style={TA(h)} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
+  const SC=(ico,lbl,val,c='var(--teal2)')=>(
+    <Card style={{padding:'20px 24px'}}>
+      <div style={{fontSize:28,marginBottom:10}}>{ico}</div>
+      <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:30,color:c,lineHeight:1}}>{val}</div>
+      <div style={{color:'var(--muted)',fontSize:12,fontWeight:600,marginTop:4,textTransform:'uppercase',letterSpacing:.8}}>{lbl}</div>
+    </Card>
+  );
+  return(
+    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
+      <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
+        <div style={{maxWidth:1280,margin:'0 auto'}}>
+          <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
+            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:900,color:'#fff'}}>{user.name[0]}</div>
+            <div>
+              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)'}}>{t.dashWelcome}, {user.name} 👋</div>
+              <div style={{color:'var(--muted)',fontSize:13}}>{user.role==='agency'?'Compte Agence':user.role==='admin'?'Administrateur':'Compte Voyageur'}</div>
+            </div>
+          </div>
+          {user.role==='agency'&&(
+            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
+              {[['stats',t.stats2],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer]].map(([tk,lbl])=>(
+                <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
+        {user.role==='agency'&&<>
+          {tab==='stats'&&!loading&&(
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:16}}>
+              {SC('📦',t.totOff,offers.length)}
+              {SC('✅',t.approved,offers.filter(o=>o.status==='approved').length)}
+              {SC('⏳',t.pending,offers.filter(o=>o.status==='pending').length,'#D97706')}
+              {SC('👁',t.views,offers.reduce((s,o)=>s+(o.views||0),0))}
+            </div>
+          )}
+          {tab==='offers'&&(loading?<Spin/>:(
+            <Card>
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead><tr>{['Titre','Cat.','Prix','Durée','Note','Statut','Actions'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <tbody>
+                  {offers.map(o=>(
+                    <tr key={o.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
+                      <td style={{...TD,fontWeight:700,color:'var(--navy)'}}>{o.title}</td>
+                      <td style={{...TD,color:'var(--muted)'}}>{t.cats[o.category]||o.category}</td>
+                      <td style={{...TD,fontWeight:700,color:'var(--teal2)',fontFamily:'Nunito'}}>{(o.price||0).toLocaleString()}</td>
+                      <td style={{...TD,color:'var(--muted)'}}>{o.duration}j</td>
+                      <td style={TD}>{o.avg_rating?<><Stars v={parseFloat(o.avg_rating)} size={12}/> <span style={{color:'#F59E0B',fontSize:12,fontWeight:700}}>{o.avg_rating}</span></>:'—'}</td>
+                      <td style={TD}><Badge status={o.status}/></td>
+                      <td style={TD}><div style={{display:'flex',gap:6}}><button style={B.sm} onClick={()=>startEdit(o)}>✏️</button><button style={B.danger} onClick={()=>delOffer(o.id)}>🗑️</button></div></td>
+                    </tr>
+                  ))}
+                  {!offers.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune offre. Créez votre première offre!</td></tr>}
+                </tbody>
+              </table>
+            </Card>
+          ))}
+          {tab==='add'&&(
+            <Card style={{padding:28}}>
+              {editTarget&&<div style={{marginBottom:18,padding:'11px 16px',background:'#FEF3C7',border:'1px solid #F59E0B',borderRadius:10,color:'#92400E',fontSize:13,fontWeight:600}}>✏️ Modification : {editTarget.title}</div>}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:4}}>
+                <FI label={t.fTitle} fk="title"/>
+                <div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{t.fCat}</label>
+                  <select style={{...INP,background:'#fff'}} value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
+                    {['intl','national','hike','visa'].map(c=><option key={c} value={c}>{t.cats[c]}</option>)}
+                  </select>
+                </div>
+                <FI label={t.fPrice} fk="price" type="number"/>
+                <FI label={t.fDur} fk="duration" type="number"/>
+                <FI label={t.fRegion} fk="region"/>
+                <FI label={t.fImg} fk="imageUrl"/>
+              </div>
+              <FTA label={t.fDesc} fk="description" h={72}/>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+                <FTA label={t.fItin} fk="itinerary" h={90}/>
+                <FTA label={t.fIncl} fk="includes" h={90}/>
+                <FTA label={t.fDates} fk="dates" h={90}/>
+              </div>
+              <div style={{display:'flex',gap:10,marginTop:8}}>
+                <button style={B.pri} onClick={submitOffer}>{editTarget?t.save:t.submit}</button>
+                {editTarget&&<button style={B.ghost} onClick={()=>{setEditTarget(null);setForm(EF);setTab('offers');}}>{t.cancel}</button>}
+              </div>
+            </Card>
+          )}
+        </>}
+        {user.role==='traveler'&&(loading?<Spin/>:bookings.length===0
+          ?<div style={{textAlign:'center',padding:'60px 0'}}>
+            <div style={{fontSize:48,marginBottom:12}}>🎫</div>
+            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>{t.myBook}</div>
+            <p style={{color:'var(--muted)',fontSize:14}}>{t.noBook}</p>
+          </div>
+          :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
+            {bookings.map(b=>(
+              <Card key={b.id} style={{overflow:'hidden'}}>
+                {b.image_url&&<img src={b.image_url} alt={b.offer_title} style={{width:'100%',height:120,objectFit:'cover'}}/>}
+                <div style={{padding:'16px 18px'}}>
+                  <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
+                  <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><Badge status={b.status}/><span style={{fontSize:11,color:'var(--muted)'}}>{(b.created_at||'').split('T')[0]}</span></div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── ADMIN ────────────────────────────────────────────────────────────────── */
+function AdminPage({t,openAuth}){
+  const {user}=useAuth();
+  const {show}=useToast();
+  const [tab,setTab]=useState('offers');
+  const [data,setData]=useState({offers:[],agencies:[],users:[],reviews:[],stats:null});
+  const [loading,setLoading]=useState(false);
+  const load=useCallback(async()=>{
+    if(!user||user.role!=='admin')return;setLoading(true);
+    try{
+      const [stats,offers,agencies,users,reviews]=await Promise.all([api('/admin/stats'),api('/admin/offers'),api('/agencies'),api('/admin/users'),api('/admin/reviews')]);
+      setData({stats,offers,agencies,users,reviews});
+    }catch(e){show(e.message,'err');}
+    setLoading(false);
+  },[user]);
+  useEffect(()=>{load();},[load]);
+  if(!user||user.role!=='admin')return(
+    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--offwhite)',paddingTop:68}}>
+      <Card style={{padding:'48px 40px',textAlign:'center',maxWidth:380}}>
+        <div style={{fontSize:48,marginBottom:16}}>🛡️</div>
+        <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Admin uniquement</div>
+        <button style={{...B.pri,width:'100%',marginTop:16}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
+      </Card>
+    </div>
+  );
+  const patch=async(url,body,msg)=>{try{await api(url,{method:'PATCH',body});show(msg);load();}catch(e){show(e.message,'err');}};
+  const {stats,offers,agencies,users,reviews}=data;
+  const pendO=offers.filter(o=>o.status==='pending').length;
+  const pendR=reviews.filter(r=>r.status==='pending').length;
+  const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
+  const Tbl=({children,cols})=>(
+    <Card><table style={{width:'100%',borderCollapse:'collapse'}}>
+      <thead><tr>{cols.map(c=><th key={c} style={TH}>{c}</th>)}</tr></thead>
+      <tbody>{children}</tbody>
+    </table></Card>
+  );
+  return(
+    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
+      <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
+        <div style={{maxWidth:1280,margin:'0 auto'}}>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--navy)',marginBottom:20}}>🛡️ {t.adminTitle}</div>
+          {stats&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12,marginBottom:24}}>
+            {[['📦','Offres',stats.total_offers,'var(--teal2)'],['⏳','En attente',stats.pending_offers,'#D97706'],['✅','Validées',stats.approved_offers,'#059669'],['🏢','Agences',stats.total_agencies,'var(--teal2)'],['👤','Voyageurs',stats.total_travelers,'var(--teal2)'],['💬','Avis',stats.total_reviews,'var(--teal2)'],['🔔','Avis pend.',stats.pending_reviews,'#D97706'],['🎫','Réservations',stats.total_bookings,'var(--teal2)']].map(([ico,lbl,val,c])=>(
+              <div key={lbl} style={{background:'rgba(255,255,255,.8)',borderRadius:12,padding:'14px 16px',backdropFilter:'blur(4px)'}}>
+                <div style={{fontSize:20,marginBottom:6}}>{ico}</div>
+                <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:c,lineHeight:1}}>{val}</div>
+                <div style={{color:'var(--muted)',fontSize:11,fontWeight:600,marginTop:2}}>{lbl}</div>
+              </div>
+            ))}
+          </div>}
+          <div style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
+            {[['offers',t.aOffers,pendO],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR]].map(([tk,lbl,badge])=>(
+              <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>
+                {lbl}{badge>0&&<span style={{marginLeft:6,padding:'1px 7px',background:'#F59E0B',color:'#fff',borderRadius:10,fontSize:10,fontWeight:800}}>{badge}</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <div style={{maxWidth:1280,margin:'0 auto',padding:'24px 24px 60px'}}>
+        {loading?<Spin/>:<>
+          {tab==='offers'&&<Tbl cols={['Titre','Agence','Cat.','Prix','Statut','Actions']}>
+            {offers.map(o=>(
+              <tr key={o.id} style={{background:o.status==='pending'?'#FFFBEB':''}}>
+                <td style={{...TD,fontWeight:700,color:'var(--navy)'}}>{o.title}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{o.agency_name||'—'}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{t.cats[o.category]||o.category}</td>
+                <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(o.price||0).toLocaleString()}</td>
+                <td style={TD}><Badge status={o.status}/></td>
+                <td style={TD}><div style={{display:'flex',gap:6}}>
+                  {o.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/offers/${o.id}/status`,{status:'approved'},'✅ Approuvé')}>{t.approve}</button>}
+                  {o.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/offers/${o.id}/status`,{status:'rejected'},'Refusé')}>{t.reject}</button>}
+                </div></td>
+              </tr>
+            ))}
+          </Tbl>}
+          {tab==='agencies'&&<Tbl cols={['Agence','Plan','Email','Offres','Statut','Actions']}>
+            {agencies.map(a=>(
+              <tr key={a.id}>
+                <td style={{...TD,fontWeight:700}}><span style={{marginRight:8,fontSize:18}}>{a.logo}</span>{a.name}</td>
+                <td style={TD}><span style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:a.plan==='premium'?'#FEF3C7':'#F0F4F5',color:a.plan==='premium'?'#92400E':'var(--muted)'}}>{a.plan}</span></td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{a.email}</td>
+                <td style={TD}>{a.offer_count||0}</td>
+                <td style={TD}><Badge status={a.status}/></td>
+                <td style={TD}><div style={{display:'flex',gap:6}}>
+                  {a.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'approved'},'Activée')}>{t.approve}</button>}
+                  {a.status==='approved'&&<button style={B.danger} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'suspended'},'Suspendue')}>{t.suspend}</button>}
+                </div></td>
+              </tr>
+            ))}
+          </Tbl>}
+          {tab==='users'&&<Tbl cols={['Nom','Email','Rôle','Inscrit le']}>
+            {users.map(u=>(
+              <tr key={u.id}>
+                <td style={{...TD,fontWeight:700}}>{u.name}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{u.email}</td>
+                <td style={TD}><span style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:u.role==='admin'?'#D1FAE5':u.role==='agency'?'#EDE9FE':'#F0F4F5',color:u.role==='admin'?'#065F46':u.role==='agency'?'#5B21B6':'var(--muted)'}}>{u.role}</span></td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{(u.created_at||'').split('T')[0]}</td>
+              </tr>
+            ))}
+          </Tbl>}
+          {tab==='reviews'&&<Tbl cols={['Utilisateur','Offre','Note','Titre','Statut','Actions']}>
+            {reviews.map(r=>(
+              <tr key={r.id} style={{background:r.status==='pending'?'#FFFBEB':''}}>
+                <td style={{...TD,fontWeight:700}}>{r.user_name}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13,maxWidth:160}}>{r.offer_title}</td>
+                <td style={TD}><Stars v={r.rating} size={13}/></td>
+                <td style={{...TD,fontWeight:600}}>{r.title}</td>
+                <td style={TD}><Badge status={r.status}/></td>
+                <td style={TD}><div style={{display:'flex',gap:6}}>
+                  {r.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'approved'},'Approuvé')}>{t.approve}</button>}
+                  {r.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'rejected'},'Refusé')}>{t.reject}</button>}
+                </div></td>
+              </tr>
+            ))}
+          </Tbl>}
+        </>}
+      </div>
+    </div>
+  );
+}
+
+/* ── ABOUT PAGE ───────────────────────────────────────────────────────────── */
+function AboutPage({t}){
+  return(
+    <div style={{background:'#fff',paddingTop:68}}>
+      {/* Hero */}
+      <div style={{background:'linear-gradient(160deg,var(--teal3) 0%,var(--teal4) 40%,#fff 80%)',padding:'80px 24px 60px'}}>
+        <div style={{maxWidth:900,margin:'0 auto',textAlign:'center'}}>
+          <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:100,marginBottom:24}}/>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(28px,4vw,44px)',color:'var(--navy)',marginBottom:16}}>{t.aboutTitle}</div>
+          <p style={{color:'var(--muted)',fontSize:16,lineHeight:1.9,maxWidth:640,margin:'0 auto'}}>{t.ap1}</p>
+        </div>
+      </div>
+      <div style={{maxWidth:1100,margin:'0 auto',padding:'60px 24px'}}>
+        {/* Story */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',marginBottom:72}}>
+          <div>
+            <SectionTitle>Notre communauté</SectionTitle>
+            <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15,marginBottom:16}}>{t.ap2}</p>
+            <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15}}>{t.ap3}</p>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
+            {['24K+\nInstagram','150+\nVoyages','40+\nDestinations','98%\nSatisfaction'].map((s,i)=>{
+              const [n,l]=s.split('\n');
+              return <Card key={i} style={{padding:'24px 20px',textAlign:'center'}}>
+                <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--teal2)'}}>{n}</div>
+                <div style={{color:'var(--muted)',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:4}}>{l}</div>
+              </Card>;
+            })}
+          </div>
+        </div>
+        {/* Values */}
+        <SectionTitle center sub="Ce qui nous différencie">Nos valeurs</SectionTitle>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:20,marginBottom:60}}>
+          {t.vals.map(({i,t:title,d})=>(
+            <Card key={title} style={{padding:'28px 24px',transition:'all .25s'}}
+              onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow='0 16px 40px rgba(13,185,168,.15)';}}
+              onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--shadow)';}}>
+              <div style={{width:48,height:48,borderRadius:14,background:'var(--teal3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,marginBottom:16}}>{i}</div>
+              <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:8}}>{title}</div>
+              <div style={{color:'var(--muted)',fontSize:13,lineHeight:1.7}}>{d}</div>
+            </Card>
+          ))}
+        </div>
+        {/* Social CTA */}
+        <Card style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',border:'none',padding:'48px',textAlign:'center'}}>
+          <div style={{fontSize:40,marginBottom:14}}>📱</div>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:'#fff',marginBottom:10}}>Suivez-nous sur les réseaux</div>
+          <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>24 000+ voyageurs nous font confiance sur Instagram</p>
+          <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
+            {['📸 Instagram','📘 Facebook','▶️ YouTube','🎵 TikTok'].map(x=>(
+              <button key={x} style={{...B.white,fontSize:13,padding:'9px 20px'}}>{x}</button>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+/* ── FOOTER ───────────────────────────────────────────────────────────────── */
+function Footer({t,setPage}){
+  return(
+    <footer style={{background:'var(--navy)',padding:'52px 24px 24px'}}>
+      <div style={{maxWidth:1280,margin:'0 auto'}}>
+        <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:40,marginBottom:40}}>
+          <div>
+            <img src="/logo-dark.png" alt="Get Lost DZ" style={{height:52,marginBottom:16,filter:'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(140deg)'}}
+              onError={e=>e.target.style.display='none'}/>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.8,maxWidth:240}}>La référence du tourisme expérientiel en Algérie.</p>
+          </div>
+          {[['Navigation',[[t.navHome,'home'],[t.navTrips,'trips'],[t.navAbout,'about']]],['Contact',[['📧 contact@getlostdz.com'],['📱 +213 XX XX XX XX'],['📍 Alger, Algérie']]],['Réseaux',[['📸 Instagram'],['📘 Facebook'],['▶️ YouTube']]]]
+          .map(([title,links])=>(
+            <div key={title}>
+              <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:12,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal)',marginBottom:16}}>{title}</div>
+              {links.map(([lbl,pg])=><div key={lbl} onClick={()=>pg&&setPage(pg)} style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,cursor:pg?'pointer':'default',transition:'color .18s'}}
+                onMouseEnter={e=>{if(pg)e.target.style.color='rgba(255,255,255,.9)'}} onMouseLeave={e=>{if(pg)e.target.style.color='rgba(255,255,255,.5)'}}>{lbl}</div>)}
+            </div>
+          ))}
+        </div>
+        <div style={{borderTop:'1px solid rgba(255,255,255,.08)',paddingTop:20,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
+          <span style={{color:'rgba(255,255,255,.3)',fontSize:12}}>© {new Date().getFullYear()} Get Lost DZ — Tous droits réservés</span>
+          <div style={{display:'flex',gap:16}}>{['Mentions légales','CGU','FAQ'].map(l=><span key={l} style={{color:'rgba(255,255,255,.3)',fontSize:12,cursor:'pointer'}}>{l}</span>)}</div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/* ── APP ──────────────────────────────────────────────────────────────────── */
+function App(){
+  const [lang,setLang]=useState('fr');
+  const [page,setPage]=useState('home');
+  const [filterCat,setFilterCat]=useState('all');
+  const [authModal,setAuthModal]=useState(null);
+  const [selOffer,setSelOffer]=useState(null);
+  const t=TR[lang];
+  return(
+    <div style={{direction:lang==='ar'?'rtl':'ltr'}}>
+      <Navbar page={page} setPage={setPage} lang={lang} setLang={setLang} openAuth={setAuthModal} t={t}/>
+      {page==='home'&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
+      {page==='trips'&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
+      {page==='about'&&<AboutPage t={t}/>}
+      {page==='dash'&&<DashPage t={t} openAuth={setAuthModal}/>}
+      {page==='admin'&&<AdminPage t={t} openAuth={setAuthModal}/>}
+      <Footer t={t} setPage={setPage}/>
+      {authModal&&<AuthModal mode={authModal} onClose={()=>setAuthModal(null)} t={t}/>}
+      {selOffer&&<OfferModal offer={selOffer} onClose={()=>setSelOffer(null)} t={t} lang={lang}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <AuthProvider><ToastProvider><App/></ToastProvider></AuthProvider>
+);
+</script>
+</body>
+</html>
