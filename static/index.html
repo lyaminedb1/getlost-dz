@@ -778,7 +778,7 @@ function DashPage({t,openAuth}){
                       </div></td>
                     </tr>
                   ))}
-                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation reçue pour l'instant.</td></tr>}
+                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation reçue pour l&apos;instant.</td></tr>}
                 </tbody>
               </table>
             </Card>
@@ -1074,7 +1074,10 @@ function Footer({t,setPage}){
           .map(([title,links])=>(
             <div key={title}>
               <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:12,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal)',marginBottom:16}}>{title}</div>
-              {links.map(([lbl,pg,url])=>url?<a key={lbl} href={url} target='_blank' rel='noopener noreferrer' style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,display:'block',textDecoration:'none',transition:'color .18s'}} onMouseEnter={e=>e.target.style.color='rgba(255,255,255,.9)'} onMouseLeave={e=>e.target.style.color='rgba(255,255,255,.5)'}>{lbl}</a>:<div key={lbl} onClick={()=>pg&&setPage(pg)} style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,cursor:pg?'pointer':'default',transition:'color .18s'}} onMouseEnter={e=>{if(pg)e.target.style.color='rgba(255,255,255,.9)'}} onMouseLeave={e=>{if(pg)e.target.style.color='rgba(255,255,255,.5)'}}>{lbl}</div>))}
+              {links.map(([lbl,pg,url])=>{
+                if(url) return(<a key={lbl} href={url} target="_blank" rel="noopener noreferrer" style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,display:'block',textDecoration:'none',transition:'color .18s'}} onMouseEnter={e=>e.target.style.color='rgba(255,255,255,.9)'} onMouseLeave={e=>e.target.style.color='rgba(255,255,255,.5)'}>{lbl}</a>);
+                return(<div key={lbl} onClick={()=>pg&&setPage(pg)} style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,cursor:pg?'pointer':'default',transition:'color .18s'}} onMouseEnter={e=>{if(pg)e.target.style.color='rgba(255,255,255,.9)'}} onMouseLeave={e=>{if(pg)e.target.style.color='rgba(255,255,255,.5)'}}>{lbl}</div>);
+              })}
             </div>
           ))}
         </div>
