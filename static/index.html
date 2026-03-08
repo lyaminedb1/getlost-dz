@@ -124,9 +124,9 @@ const TR={
     approve:'Approuver',reject:'Refuser',suspend:'Suspendre',
     aboutTitle:'Notre histoire',
     ap1:"Get Lost DZ est une plateforme algérienne connectant les voyageurs aux meilleures agences locales pour des expériences authentiques en Algérie et à l'étranger.",
-    ap2:'Avec près de 24 000 abonnés Instagram et plus de 150 voyages organisés, nous sommes devenus la référence du tourisme expérientiel en Algérie.',
+    ap2:'Avec près de 100k abonnés Instagram et plus de 1000 voyages organisés, nous sommes devenus la référence du tourisme expérientiel en Algérie.',
     ap3:'Notre équipe passionnée valide chaque offre pour garantir qualité, sécurité et authenticité à chaque aventure.',
-    vals:[{i:'🎯',t:'Mission',d:'Rendre le voyage accessible et mémorable pour tous.'},{i:'🌿',t:'Authenticité',d:'Chaque expérience est vérifiée et certifiée par notre équipe.'},{i:'🤝',t:'Partenaires',d:'15+ agences certifiées, expertes dans leurs régions.'},{i:'⭐',t:'Excellence',d:'98% de voyageurs satisfaits. La qualité est notre priorité.'}],
+    vals:[{i:'🎯',t:'Mission',d:'Rendre le voyage accessible et mémorable pour tous.'},{i:'🌿',t:'Authenticité',d:'Chaque expérience est vérifiée et certifiée par notre équipe.'},{i:'🤝',t:'Partenaires',d:'15+ agences certifiées, expertes dans leurs régions.'},{i:'⭐',t:'Excellence',d:'99% de voyageurs satisfaits. La qualité est notre priorité.'}],
   },
   en:{
     navHome:'Home',navTrips:'Trips',navAbout:'About',navLogin:'Login',navReg:'Sign Up',navDash:'My Space',navAdmin:'Admin',navLogout:'Logout',
@@ -153,9 +153,9 @@ const TR={
     approve:'Approve',reject:'Reject',suspend:'Suspend',
     aboutTitle:'Our Story',
     ap1:'Get Lost DZ is an Algerian platform connecting travelers to the best local agencies for authentic experiences in Algeria and abroad.',
-    ap2:'With nearly 24,000 Instagram followers and over 150 organized trips, we have become the reference for experiential tourism in Algeria.',
+    ap2:'With nearly 100k Instagram followers and over 1000 organized trips, we have become the reference for experiential tourism in Algeria.',
     ap3:'Our passionate team validates each offer to guarantee quality, safety and authenticity for every adventure.',
-    vals:[{i:'🎯',t:'Mission',d:'Make travel accessible and memorable for everyone.'},{i:'🌿',t:'Authenticity',d:'Every experience is verified and certified by our team.'},{i:'🤝',t:'Partners',d:'15+ certified agencies, experts in their regions.'},{i:'⭐',t:'Excellence',d:'98% satisfied travelers. Quality is our priority.'}],
+    vals:[{i:'🎯',t:'Mission',d:'Make travel accessible and memorable for everyone.'},{i:'🌿',t:'Authenticity',d:'Every experience is verified and certified by our team.'},{i:'🤝',t:'Partners',d:'15+ certified agencies, experts in their regions.'},{i:'⭐',t:'Excellence',d:'99% satisfied travelers. Quality is our priority.'}],
   },
   ar:{
     navHome:'الرئيسية',navTrips:'الرحلات',navAbout:'من نحن',navLogin:'دخول',navReg:'تسجيل',navDash:'مساحتي',navAdmin:'الإدارة',navLogout:'خروج',
@@ -182,9 +182,9 @@ const TR={
     approve:'اعتماد',reject:'رفض',suspend:'تعليق',
     aboutTitle:'قصتنا',
     ap1:'Get Lost DZ منصة جزائرية تربط المسافرين بأفضل الوكالات المحلية لتجارب أصيلة في الجزائر وخارجها.',
-    ap2:'مع ما يقارب 24,000 متابع على إنستغرام وأكثر من 150 رحلة منظمة، أصبحنا المرجع للسياحة التجريبية في الجزائر.',
+    ap2:'مع ما يقارب k100 متابع على إنستغرام وأكثر من 1000 رحلة منظمة، أصبحنا المرجع للسياحة التجريبية في الجزائر.',
     ap3:'فريقنا الشغوف يتحقق من كل عرض لضمان الجودة والأمان والأصالة في كل مغامرة.',
-    vals:[{i:'🎯',t:'مهمتنا',d:'جعل السفر ميسوراً ولا يُنسى للجميع.'},{i:'🌿',t:'الأصالة',d:'كل تجربة يتم التحقق منها وتوثيقها من قبل فريقنا.'},{i:'🤝',t:'شركاؤنا',d:'أكثر من 15 وكالة معتمدة وخبيرة في مناطقها.'},{i:'⭐',t:'التميز',d:'98% من المسافرين راضون. الجودة هي أولويتنا.'}],
+    vals:[{i:'🎯',t:'مهمتنا',d:'جعل السفر ميسوراً ولا يُنسى للجميع.'},{i:'🌿',t:'الأصالة',d:'كل تجربة يتم التحقق منها وتوثيقها من قبل فريقنا.'},{i:'🤝',t:'شركاؤنا',d:'أكثر من 15 وكالة معتمدة وخبيرة في مناطقها.'},{i:'⭐',t:'التميز',d:'99% من المسافرين راضون. الجودة هي أولويتنا.'}],
   }
 };
 
@@ -531,7 +531,7 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
             </div>
             {/* Stats */}
             <div style={{display:'flex',gap:32,marginTop:44,flexWrap:'wrap'}}>
-              {['24K+','150+','40+','98%'].map((n,i)=>(
+              {['100K+','1000+','5+','99%'].map((n,i)=>(
                 <div key={i}>
                   <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal2)',lineHeight:1}}>{n}</div>
                   <div style={{fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:2}}>{t.stats[i]}</div>
@@ -603,7 +603,7 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'#fff',marginBottom:12}}>Pourquoi choisir Get Lost DZ ?</div>
           <p style={{color:'rgba(255,255,255,.65)',maxWidth:540,margin:'0 auto 32px',lineHeight:1.8}}>Chaque offre est validée par notre équipe. Qualité, sécurité et authenticité garanties.</p>
           <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
-            {['✅ Offres validées','⭐ Avis vérifiés','🤝 Agences certifiées','🌍 24K communauté'].map(x=>(
+            {['✅ Offres validées','⭐ Avis vérifiés','🤝 Agences certifiées','🌍 100K communauté'].map(x=>(
               <div key={x} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',borderRadius:50,padding:'10px 20px',fontSize:13,fontWeight:600,color:'rgba(255,255,255,.9)'}}>{x}</div>
             ))}
           </div>
@@ -1014,7 +1014,7 @@ function AboutPage({t}){
             <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15}}>{t.ap3}</p>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-            {['24K+\nInstagram','150+\nVoyages','40+\nDestinations','98%\nSatisfaction'].map((s,i)=>{
+            {['100K+\nInstagram','1000+\nVoyages','3+\nDestinations','99%\nSatisfaction'].map((s,i)=>{
               const [n,l]=s.split('\n');
               return <Card key={i} style={{padding:'24px 20px',textAlign:'center'}}>
                 <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--teal2)'}}>{n}</div>
@@ -1040,12 +1040,11 @@ function AboutPage({t}){
         <Card style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',border:'none',padding:'48px',textAlign:'center'}}>
           <div style={{fontSize:40,marginBottom:14}}>📱</div>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:'#fff',marginBottom:10}}>Suivez-nous sur les réseaux</div>
-          <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>24 000+ voyageurs nous font confiance sur Instagram</p>
+          <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>100k+ voyageurs nous font confiance sur Instagram</p>
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
             {[
                 {ico:'📸',lbl:'Instagram',url:'https://www.instagram.com/get_lost_dz/'},
                 {ico:'🔗',lbl:'Link Tree',url:'https://www.hopp.bio/get-lost'},
-                {ico:'📘',lbl:'Facebook',url:'https://www.facebook.com/getlostdz'},
               ].map(({ico,lbl,url})=>(
               <a key={lbl} href={url} target="_blank" rel="noopener noreferrer" style={{...B.white,fontSize:13,padding:'9px 20px',textDecoration:'none',display:'inline-block'}}>{ico} {lbl}</a>
             ))}
@@ -1067,7 +1066,7 @@ function Footer({t,setPage}){
               onError={e=>e.target.style.display='none'}/>
             <p style={{color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.8,maxWidth:240}}>La référence du tourisme expérientiel en Algérie.</p>
           </div>
-          {[['Navigation',[[t.navHome,'home',null],[t.navTrips,'trips',null],[t.navAbout,'about',null]]],['Contact',[['📧 contact@getlostdz.com',null,null],['📱 +213 XX XX XX XX',null,null],['📍 Alger, Algérie',null,null]]],['Réseaux',[['📸 Instagram',null,'https://www.instagram.com/get_lost_dz/'],['🔗 Linktree',null,'https://www.hopp.bio/get-lost'],['📘 Facebook',null,'https://www.facebook.com/getlostdz']]]]
+          {[['Navigation',[[t.navHome,'home',null],[t.navTrips,'trips',null],[t.navAbout,'about',null]]],['Contact',[['📧 getlost.dz@gmail.com',null,null],['📱 +213 782 8292 46',null,null],['📍 Alger, Algérie',null,null]]],['Réseaux',[['📸 Instagram',null,'https://www.instagram.com/get_lost_dz/'],['🔗 Linktree',null,'https://www.hopp.bio/get-lost'],['📘 Facebook',null,'https://www.facebook.com/getlostdz']]]]
           .map(([title,links])=>(
             <div key={title}>
               <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:12,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal)',marginBottom:16}}>{title}</div>
