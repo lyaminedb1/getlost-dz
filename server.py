@@ -456,7 +456,7 @@ def get_agencies():
         FROM agencies a JOIN users u ON a.user_id=u.id
         LEFT JOIN offers o ON o.agency_id=a.id AND o.status='approved'
         LEFT JOIN bookings b ON b.offer_id IN (SELECT id FROM offers WHERE agency_id=a.id)
-        GROUP BY a.id ORDER BY a.id""")
+        GROUP BY a.id, u.email ORDER BY a.id""")
     return jsonify(rows)
 
 @app.route("/api/agencies/<int:aid>", methods=["PUT"])
@@ -489,7 +489,7 @@ def agency_offers(aid):
         ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
         COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
         FROM offers o LEFT JOIN reviews r ON r.offer_id=o.id
-        WHERE o.agency_id=? GROUP BY o.id, a.name, a.logo ORDER BY o.id DESC""", (aid,))
+        WHERE o.agency_id=? GROUP BY o.id ORDER BY o.id DESC""", (aid,))
     return jsonify([parse_offer(o) for o in rows])
 
 # ─── BOOKINGS ────────────────────────────────────────────────────────────────
@@ -573,7 +573,7 @@ def admin_offers():
         COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
         FROM offers o LEFT JOIN agencies a ON o.agency_id=a.id
         LEFT JOIN reviews r ON r.offer_id=o.id
-        GROUP BY o.id, a.name, a.logo ORDER BY o.id DESC""")
+        GROUP BY o.id, a.name ORDER BY o.id DESC""")
     return jsonify([parse_offer(o) for o in rows])
 
 @app.route("/api/admin/reviews", methods=["GET"])
