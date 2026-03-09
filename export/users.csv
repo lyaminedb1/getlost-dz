@@ -1,0 +1,7 @@
+id,name,email,password,role,created_at
+1,Admin GetLost,admin@getlostdz.com,$2b$12$1az8/bbOR.M0GbSRLNRwo.MINxNhjs4TwONwvuVG4uSxPTH74FoMO,admin,2026-03-06 21:26:09
+2,DZ Horizons Travel,agency1@getlostdz.com,$2b$12$zsExNZ/KWFYlai8dTotlqeuY.WT/HuDmoZB/6o.dXOrYO3lrur1gO,agency,2026-03-06 21:26:10
+3,Sahara Wings,agency2@getlostdz.com,$2b$12$X4hAit5ubdVs8r8/i79zvexcAnLheq8xlCxoablUqC0JpyMN20sA.,agency,2026-03-06 21:26:10
+4,Atlas Adventures,agency3@getlostdz.com,$2b$12$5Cir.5u1PWKIGGE8SThAWelaEikdJ56MOUimbR0Ea9H3vBWzmvtYi,agency,2026-03-06 21:26:10
+5,Sarah Meziane,sarah@test.com,$2b$12$fKSF6cBlTJA1j2iHwUrECeNpaWgC0aG7u6RJ9IH0KJKDWfdJZoQi2,traveler,2026-03-06 21:26:10
+6,Karim Bensalem,karim@test.com,$2b$12$O4JNoV4xbzgphs4U8nZIS.Z3NtoC7SvpDA2KwqJNYQ5vRjx3eamGu,traveler,2026-03-06 21:26:11

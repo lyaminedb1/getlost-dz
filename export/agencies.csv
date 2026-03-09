@@ -1,0 +1,4 @@
+id,user_id,name,description,logo,plan,status,created_at
+1,2,DZ Horizons Travel,Spécialiste voyages internationaux premium,✈️,premium,approved,2026-03-06 21:26:11
+2,3,Sahara Wings,Expert destinations africaines et randonnées,🦅,standard,approved,2026-03-06 21:26:11
+3,4,Atlas Adventures,Aventures et treks en Algérie,⛰️,standard,approved,2026-03-06 21:26:11

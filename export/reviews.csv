@@ -1,0 +1,6 @@
+id,offer_id,user_id,rating,title,comment,status,created_at
+1,1,5,5,Voyage de rêve !,Zanzibar était absolument magnifique. Organisation parfaite.,approved,2026-03-06 21:26:11
+2,1,6,4,Très bonne expérience,"Belles plages, bon hébergement. Quelques retards.",approved,2026-03-06 21:26:11
+3,3,5,5,Sahara magique,"Dormir sous les étoiles au Hoggar, expérience inoubliable.",approved,2026-03-06 21:26:11
+4,5,5,5,Trek parfait,Le Djurdjura est splendide. Guide très compétent.,approved,2026-03-06 21:26:11
+5,2,6,5,Kenya exceptionnel,Les safaris au Masai Mara dépassent toutes les attentes !,approved,2026-03-06 21:26:11

@@ -32,6 +32,28 @@ input,textarea,select{font-family:'Poppins',sans-serif;outline:none}
 @keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
 .fade{animation:fadeUp .5s ease both}
 .toast-in{animation:slideIn .3s ease both}
+
+/* ── MOBILE RESPONSIVE ─────────────────────────────────────────────────── */
+@media(max-width:768px){
+  .nav-links{display:none!important}
+  .nav-right-desktop{display:none!important}
+  .hamburger-btn{display:flex!important}
+  .mobile-menu-open{display:flex!important}
+  .hero-grid{grid-template-columns:1fr!important;gap:32px!important;padding:32px 16px 48px!important}
+  .hero-right{display:none!important}
+  .hero-btns button{padding:11px 22px!important;font-size:13px!important}
+  .hero-stats{gap:16px!important;margin-top:24px!important}
+  .hero-stats .stat-num{font-size:20px!important}
+  .cat-filters{flex-wrap:nowrap!important;overflow-x:auto!important;padding-bottom:6px!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important}
+  .cat-filters::-webkit-scrollbar{display:none!important}
+  .cat-filters button{flex-shrink:0!important;white-space:nowrap!important}
+  .footer-grid{grid-template-columns:1fr!important;gap:24px!important}
+  .about-grid{grid-template-columns:1fr!important;gap:32px!important}
+}
+@media(min-width:769px){
+  .hamburger-btn{display:none!important}
+  .mobile-menu-open{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -235,34 +257,36 @@ const SectionTitle=({children,sub,center=false})=>(
   </div>
 );
 
-/* ── NAVBAR ───────────────────────────────────────────────────────────────── */
+/* ── NAVBAR — with hamburger mobile menu ──────────────────────────────────── */
 function Navbar({page,setPage,lang,setLang,openAuth,t}){
   const {user,logout}=useAuth();
   const {show}=useToast();
   const [scroll,setScroll]=useState(false);
+  const [menuOpen,setMenuOpen]=useState(false);
   useEffect(()=>{const h=()=>setScroll(window.scrollY>30);window.addEventListener('scroll',h);return()=>window.removeEventListener('scroll',h);},[]);
   const nl=(pg)=>({padding:'8px 16px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',border:'none',background:page===pg?'var(--teal3)':'transparent',color:page===pg?'var(--teal2)':'var(--navy)',transition:'all .18s'});
+  const navTo=(pg)=>{setPage(pg);setMenuOpen(false);};
   return(
     <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:300,background:'rgba(255,255,255,.97)',backdropFilter:'blur(20px)',borderBottom:scroll?'1px solid #E8F0F2':'1px solid transparent',boxShadow:scroll?'var(--shadow)':'none',transition:'all .3s'}}>
       <div style={{maxWidth:1280,margin:'0 auto',padding:'0 20px',height:68,display:'flex',alignItems:'center',justifyContent:'space-between',direction:lang==='ar'?'rtl':'ltr'}}>
         {/* LOGO */}
-        <div style={{cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>setPage('home')}>
+        <div style={{cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>navTo('home')}>
           <img src="/logo-1.png" alt="Get Lost DZ" style={{height:44,width:'auto',objectFit:'contain'}}
             onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>
           <div style={{display:'none',alignItems:'center',gap:8}}>
             <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--teal2)'}}>Get Lost DZ</div>
           </div>
         </div>
-        {/* NAV */}
-        <div style={{display:'flex',gap:4,alignItems:'center'}}>
-          <button style={nl('home')} onClick={()=>setPage('home')}>{t.navHome}</button>
-          <button style={nl('trips')} onClick={()=>setPage('trips')}>{t.navTrips}</button>
-          <button style={nl('about')} onClick={()=>setPage('about')}>{t.navAbout}</button>
-          {user&&<button style={nl('dash')} onClick={()=>setPage('dash')}>{t.navDash}</button>}
-          {user?.role==='admin'&&<button style={nl('admin')} onClick={()=>setPage('admin')}>{t.navAdmin}</button>}
+        {/* NAV LINKS — desktop only */}
+        <div className="nav-links" style={{display:'flex',gap:4,alignItems:'center'}}>
+          <button style={nl('home')} onClick={()=>navTo('home')}>{t.navHome}</button>
+          <button style={nl('trips')} onClick={()=>navTo('trips')}>{t.navTrips}</button>
+          <button style={nl('about')} onClick={()=>navTo('about')}>{t.navAbout}</button>
+          {user&&<button style={nl('dash')} onClick={()=>navTo('dash')}>{t.navDash}</button>}
+          {user?.role==='admin'&&<button style={nl('admin')} onClick={()=>navTo('admin')}>{t.navAdmin}</button>}
         </div>
-        {/* RIGHT */}
-        <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        {/* RIGHT — desktop only */}
+        <div className="nav-right-desktop" style={{display:'flex',gap:8,alignItems:'center'}}>
           <div style={{display:'flex',gap:2,background:'#F0F4F5',borderRadius:8,padding:3}}>
             {['fr','en','ar'].map(l=>(
               <button key={l} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
@@ -270,7 +294,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
           </div>
           {user?(
             <>
-              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--teal3)',borderRadius:50,padding:'5px 14px 5px 5px',cursor:'pointer'}} onClick={()=>setPage('dash')}>
+              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--teal3)',borderRadius:50,padding:'5px 14px 5px 5px',cursor:'pointer'}} onClick={()=>navTo('dash')}>
                 <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{user.name[0].toUpperCase()}</div>
                 <span style={{fontSize:13,fontWeight:700,color:'var(--teal2)'}}>{user.name.split(' ')[0]}</span>
               </div>
@@ -283,7 +307,45 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
             </>
           )}
         </div>
+        {/* HAMBURGER — mobile only */}
+        <button className="hamburger-btn" onClick={()=>setMenuOpen(o=>!o)}
+          style={{display:'none',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:'1.5px solid #E2EBF0',background:'#fff',cursor:'pointer',fontSize:20,color:'var(--navy)',flexShrink:0}}>
+          {menuOpen?'✕':'☰'}
+        </button>
       </div>
+      {/* MOBILE DROPDOWN MENU */}
+      {menuOpen&&(
+        <div className="mobile-menu-open" style={{flexDirection:'column',background:'rgba(255,255,255,.98)',backdropFilter:'blur(20px)',borderTop:'1px solid #E8F0F2',padding:'10px 16px 18px',gap:4,boxShadow:'0 12px 32px rgba(11,35,64,.1)'}}>
+          {[
+            ['home',t.navHome,'🏠'],
+            ['trips',t.navTrips,'✈️'],
+            ['about',t.navAbout,'ℹ️'],
+            ...(user?[['dash',t.navDash,'👤']]:[]),
+            ...(user?.role==='admin'?[['admin',t.navAdmin,'🛡️']]:[])
+          ].map(([pg,label,ico])=>(
+            <button key={pg} onClick={()=>navTo(pg)}
+              style={{padding:'11px 14px',borderRadius:10,fontSize:14,fontWeight:600,border:'none',textAlign:'left',cursor:'pointer',background:page===pg?'var(--teal3)':'transparent',color:page===pg?'var(--teal2)':'var(--navy)',transition:'all .15s',width:'100%'}}>
+              {ico} {label}
+            </button>
+          ))}
+          <div style={{height:1,background:'#E8F0F2',margin:'6px 0'}}/>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
+            <div style={{display:'flex',gap:3,background:'#F0F4F5',borderRadius:8,padding:3}}>
+              {['fr','en','ar'].map(l=>(
+                <button key={l} style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
+              ))}
+            </div>
+            {user?(
+              <button style={{...B.ghost,padding:'8px 14px',fontSize:13}} onClick={()=>{logout();setPage('home');setMenuOpen(false);show('À bientôt !')}}>{t.navLogout}</button>
+            ):(
+              <div style={{display:'flex',gap:6}}>
+                <button style={{...B.ghost,padding:'7px 14px',fontSize:12}} onClick={()=>{openAuth('login');setMenuOpen(false);}}>{t.navLogin}</button>
+                <button style={{...B.pri,padding:'7px 14px',fontSize:12}} onClick={()=>{openAuth('register');setMenuOpen(false);}}>{t.navReg}</button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
@@ -513,7 +575,7 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
         {/* BG decorations */}
         <div style={{position:'absolute',top:-80,right:-80,width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(13,185,168,.12) 0%,transparent 70%)'}}/>
         <div style={{position:'absolute',bottom:-100,left:-50,width:400,height:400,borderRadius:'50%',background:'radial-gradient(circle,rgba(13,185,168,.08) 0%,transparent 70%)'}}/>
-        <div style={{maxWidth:1280,margin:'0 auto',padding:'60px 24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',width:'100%'}}>
+        <div className="hero-grid" style={{maxWidth:1280,margin:'0 auto',padding:'60px 24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',width:'100%'}}>
           {/* LEFT */}
           <div className="fade">
             <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'#fff',border:'1px solid var(--teal4)',borderRadius:50,padding:'6px 16px',fontSize:12,fontWeight:600,color:'var(--teal2)',marginBottom:24,boxShadow:'0 2px 12px rgba(13,185,168,.1)'}}>
@@ -525,22 +587,22 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
               {t.heroTitle3}
             </div>
             <p style={{fontSize:16,color:'var(--muted)',lineHeight:1.8,marginBottom:32,maxWidth:440}}>{t.heroSub}</p>
-            <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>
+            <div className="hero-btns" style={{display:'flex',gap:12,flexWrap:'wrap'}}>
               <button style={{...B.pri,fontSize:15,padding:'14px 32px'}} onClick={()=>setPage('trips')}>{t.heroCta}</button>
               <button style={{...B.out,fontSize:15,padding:'13px 32px'}} onClick={()=>setPage('about')}>{t.heroCta2}</button>
             </div>
             {/* Stats */}
-            <div style={{display:'flex',gap:32,marginTop:44,flexWrap:'wrap'}}>
+            <div className="hero-stats" style={{display:'flex',gap:32,marginTop:44,flexWrap:'wrap'}}>
               {['100K+','1000+','5+','99%'].map((n,i)=>(
                 <div key={i}>
-                  <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal2)',lineHeight:1}}>{n}</div>
+                  <div className="stat-num" style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal2)',lineHeight:1}}>{n}</div>
                   <div style={{fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:2}}>{t.stats[i]}</div>
                 </div>
               ))}
             </div>
           </div>
           {/* RIGHT — Logo hero image */}
-          <div style={{display:'flex',justifyContent:'center',alignItems:'center'}} className="fade">
+          <div className="hero-right fade" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
             <div style={{position:'relative'}}>
               <div style={{width:420,height:420,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal3),var(--teal4))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 20px 60px rgba(13,185,168,.2)',animation:'float 5s ease-in-out infinite'}}>
                 <img src="/logo-1.png" alt="Get Lost DZ" style={{width:'75%',height:'75%',objectFit:'contain'}}/>
@@ -648,8 +710,8 @@ function TripsPage({t,filterCat,setFilterCat,onOpen}){
         </div>
       </div>
       <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
-        {/* Category filters */}
-        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
+        {/* Category filters — FIX 2: horizontal scroll on mobile */}
+        <div className="cat-filters" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
           {['all','intl','national','hike','visa'].map(c=>(
             <button key={c} style={{padding:'8px 20px',borderRadius:50,cursor:'pointer',fontSize:13,fontWeight:700,border:'none',background:filterCat===c?'var(--teal)':'#fff',color:filterCat===c?'#fff':'var(--text)',boxShadow:filterCat===c?'0 4px 14px rgba(13,185,168,.3)':'var(--shadow)',transition:'all .2s'}}
               onClick={()=>setFilterCat(c)}>{t.catIco[c]||'🌍'} {t.cats[c]||c}</button>
@@ -726,6 +788,10 @@ function DashPage({t,openAuth}){
       <div style={{color:'var(--muted)',fontSize:12,fontWeight:600,marginTop:4,textTransform:'uppercase',letterSpacing:.8}}>{lbl}</div>
     </Card>
   );
+
+  /* FIX 4: Short date formatter */
+  const fmtDate=(d)=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'';
+
   return(
     <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
@@ -767,7 +833,7 @@ function DashPage({t,openAuth}){
                       <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
                       <td style={{...TD,fontWeight:600,maxWidth:160}}>{b.offer_title}</td>
                       <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()} DZD</td>
-                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{(b.created_at||'').split('T')[0]}</td>
+                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
                       <td style={TD}><Badge status={b.status}/></td>
                       <td style={TD}><div style={{display:'flex',gap:5}}>
                         {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('✅ Réservation confirmée!');load();}catch(e){show(e.message,'err');}}}>✅ Confirmer</button>}
@@ -842,7 +908,11 @@ function DashPage({t,openAuth}){
                 <div style={{padding:'16px 18px'}}>
                   <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
                   <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><Badge status={b.status}/><span style={{fontSize:11,color:'var(--muted)'}}>{(b.created_at||'').split('T')[0]}</span></div>
+                  {/* FIX 4: short date format */}
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <Badge status={b.status}/>
+                    <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
+                  </div>
                 </div>
               </Card>
             ))}
@@ -889,6 +959,8 @@ function AdminPage({t,openAuth}){
       <tbody>{children}</tbody>
     </table></Card>
   );
+  /* FIX 4: date formatter */
+  const fmtDate=(d)=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'';
   return(
     <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
@@ -922,7 +994,7 @@ function AdminPage({t,openAuth}){
                 <td style={{...TD,fontWeight:600,maxWidth:150,fontSize:13}}>{b.offer_title}</td>
                 <td style={{...TD,color:'var(--muted)',fontSize:13}}>{b.agency_name}</td>
                 <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:12}}>{(b.created_at||'').split('T')[0]}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
                 <td style={TD}><Badge status={b.status}/></td>
                 <td style={TD}><div style={{display:'flex',gap:5}}>
                   {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('Confirmée!');load();}catch(e){show(e.message,'err');}}}>✅</button>}
@@ -1007,7 +1079,7 @@ function AboutPage({t}){
       </div>
       <div style={{maxWidth:1100,margin:'0 auto',padding:'60px 24px'}}>
         {/* Story */}
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',marginBottom:72}}>
+        <div className="about-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',marginBottom:72}}>
           <div>
             <SectionTitle>Notre communauté</SectionTitle>
             <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15,marginBottom:16}}>{t.ap2}</p>
@@ -1060,7 +1132,7 @@ function Footer({t,setPage}){
   return(
     <footer style={{background:'var(--navy)',padding:'52px 24px 24px'}}>
       <div style={{maxWidth:1280,margin:'0 auto'}}>
-        <div style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:40,marginBottom:40}}>
+        <div className="footer-grid" style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:40,marginBottom:40}}>
           <div>
             <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:16,filter:'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(140deg)'}}
               onError={e=>e.target.style.display='none'}/>

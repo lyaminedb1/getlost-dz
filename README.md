@@ -1,120 +1,49 @@
-# 🏔️ Get Lost DZ — Full-Stack Travel Platform
+# 🏔️ Get Lost DZ — Travel Platform
 
-**Stack:** Python 3 + Flask + SQLite (backend) · React 18 (frontend)  
-**Zero config** — one command to run, works offline.
+> Algerian travel agency platform connecting travelers with the best local agencies.
 
----
+## 🚀 Deploy for FREE in 3 minutes
 
-## 🚀 Quick Start
+### Option 1: Railway (Recommended — easiest)
+1. Go to [railway.app](https://railway.app) → Sign up free with GitHub
+2. Click **New Project → Deploy from GitHub repo**
+3. Push this folder to a GitHub repo first (see below), then connect it
+4. Railway auto-detects Python → deploys automatically
+5. Click **Generate Domain** → your live URL is ready!
 
+### Option 2: Render.com
+1. Go to [render.com](https://render.com) → Sign up free
+2. Click **New → Web Service → Connect GitHub repo**
+3. Build command: `pip install -r requirements.txt`
+4. Start command: `gunicorn server:app --bind 0.0.0.0:$PORT`
+5. Deploy → free URL in ~2 minutes
+
+### Push to GitHub (required for both):
 ```bash
-# Install Python dependencies once
-pip install flask flask-cors pyjwt bcrypt
-
-# Run
-python3 server.py
-# → http://localhost:5000
+cd getlost2
+git init
+git add .
+git commit -m "Get Lost DZ initial deploy"
+# Create repo on github.com then:
+git remote add origin https://github.com/YOUR_USERNAME/getlost-dz.git
+git push -u origin main
 ```
 
-Or just use the helper script:
+## 💻 Run Locally
 ```bash
-chmod +x start.sh && ./start.sh
+pip install -r requirements.txt
+python server.py
+# Open http://localhost:5000
 ```
 
----
+## 🔑 Demo Accounts
+| Role | Email | Password |
+|------|-------|----------|
+| Admin | admin@getlostdz.com | admin123 |
+| Agency | agency1@getlostdz.com | agency123 |
+| Traveler | sarah@test.com | user123 |
 
-## 👤 Demo Accounts
-
-| Role     | Email                     | Password   |
-|----------|---------------------------|------------|
-| Admin    | admin@getlostdz.com       | admin123   |
-| Agency 1 | agency1@getlostdz.com     | agency123  |
-| Agency 2 | agency2@getlostdz.com     | agency123  |
-| Traveler | sarah@test.com            | user123    |
-
----
-
-## 📁 Project Structure
-
-```
-getlost-dz/
-├── server.py          # Flask API — all routes, JWT auth, SQLite
-├── getlost.db         # SQLite database (auto-created on first run)
-├── static/
-│   └── index.html     # React single-page app (all-in-one)
-├── start.sh           # Helper launch script
-└── README.md
-```
-
----
-
-## 🔌 API Reference
-
-### Auth
-| Method | Endpoint              | Description              |
-|--------|-----------------------|--------------------------|
-| POST   | /api/auth/login       | Login → JWT token        |
-| POST   | /api/auth/register    | Register new user        |
-| GET    | /api/auth/me          | Get current user profile |
-
-### Offers
-| Method | Endpoint                    | Auth       | Description          |
-|--------|-----------------------------|------------|----------------------|
-| GET    | /api/offers                 | Public     | List (filter/search) |
-| GET    | /api/offers/:id             | Public     | Detail + view count  |
-| POST   | /api/offers                 | Agency     | Create offer         |
-| PUT    | /api/offers/:id             | Agency     | Update offer         |
-| DELETE | /api/offers/:id             | Agency     | Delete offer         |
-| PATCH  | /api/offers/:id/status      | Admin      | Approve / reject     |
-
-### Reviews
-| Method | Endpoint                         | Auth       | Description         |
-|--------|----------------------------------|------------|---------------------|
-| GET    | /api/offers/:id/reviews          | Public     | Approved reviews    |
-| POST   | /api/offers/:id/reviews          | Traveler   | Submit review       |
-| PATCH  | /api/reviews/:id/status          | Admin      | Approve / reject    |
-
-### Agencies
-| Method | Endpoint                    | Auth       | Description          |
-|--------|-----------------------------|------------|----------------------|
-| GET    | /api/agencies               | Public     | All agencies + stats |
-| PUT    | /api/agencies/:id           | Agency     | Update profile       |
-| PATCH  | /api/agencies/:id/status    | Admin      | Approve / suspend    |
-| GET    | /api/agencies/:id/offers    | Agency     | Agency's own offers  |
-
-### Bookings
-| Method | Endpoint            | Auth       | Description          |
-|--------|---------------------|------------|----------------------|
-| POST   | /api/bookings       | Auth       | Book an offer        |
-| GET    | /api/bookings/my    | Auth       | My bookings history  |
-
-### Admin
-| Method | Endpoint            | Auth  | Description         |
-|--------|---------------------|-------|---------------------|
-| GET    | /api/admin/stats    | Admin | Platform statistics |
-| GET    | /api/admin/offers   | Admin | All offers          |
-| GET    | /api/admin/reviews  | Admin | All reviews         |
-| GET    | /api/admin/users    | Admin | All users           |
-
----
-
-## ✅ Features Implemented (Cahier des Charges)
-
-- [x] 3 roles: Traveler · Agency · Admin
-- [x] JWT authentication (7-day tokens, bcrypt passwords)
-- [x] Offer validation workflow: pending → approved / rejected
-- [x] Star rating reviews with admin moderation
-- [x] 4 categories: International, Algeria, Hiking, Visas
-- [x] Search, filter, sort (rating / price ↑↓)
-- [x] Booking system with history
-- [x] Agency dashboard — full CRUD on offers
-- [x] Admin panel — offers, agencies, reviews, users
-- [x] Multilingual: 🇫🇷 French · 🇬🇧 English · 🇩🇿 Arabic (RTL)
-- [x] Responsive design, brand-faithful teal/navy palette
-- [x] 8 seeded offers, 5 reviews, 3 agencies
-
-## 🔮 Next Steps (roadmap)
-- [ ] Online payment (Stripe / CIB Algeria)
-- [ ] Agency ↔ traveler messaging
-- [ ] iOS / Android app
-- [ ] Email notifications
+## 🛠 Stack
+- **Backend**: Python/Flask + SQLite + JWT + bcrypt
+- **Frontend**: React (CDN) + single HTML file
+- **Deploy**: Railway / Render (free tier)
