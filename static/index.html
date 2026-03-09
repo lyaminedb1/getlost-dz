@@ -1302,236 +1302,523 @@ function DashPage({t,openAuth,setReviewBookingId=()=>{}}){
 }
 
 
-/* ── ANALYTICS DASHBOARD ─────────────────────────────────────────────────── */
-function MiniBar({data,colorKey,nameKey,valueKey,title,color='var(--teal)'}){
-  const max=Math.max(...data.map(d=>d[valueKey]||0),1);
-  return(
-    <Card style={{padding:'20px 24px'}}>
-      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--navy)',marginBottom:14}}>{title}</div>
-      {data.length===0&&<div style={{color:'var(--muted)',fontSize:12,textAlign:'center',padding:'12px 0'}}>Pas encore de données</div>}
-      {data.slice(0,8).map((d,i)=>(
-        <div key={i} style={{marginBottom:8}}>
-          <div style={{display:'flex',justifyContent:'space-between',fontSize:11,fontWeight:600,color:'var(--text)',marginBottom:3}}>
-            <span>{d[nameKey]||'—'}</span><span style={{color:'var(--muted)'}}>{d[valueKey]}</span>
-          </div>
-          <div style={{background:'#E8F7F6',borderRadius:6,height:7,overflow:'hidden'}}>
-            <div style={{height:'100%',borderRadius:6,background:color,width:`${Math.round((d[valueKey]/max)*100)}%`,transition:'width .5s'}}/>
-          </div>
-        </div>
-      ))}
-    </Card>
-  );
-}
-
-function LineChart({data,title}){
+/* ── SHARED CHART PRIMITIVES ─────────────────────────────────────────────── */
+function SvgLineChart({data,keys,colors,title,subtitle,height=160,formatY=v=>v}){
   if(!data||data.length<2) return(
-    <Card style={{padding:'20px 24px'}}>
-      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--navy)',marginBottom:8}}>{title}</div>
-      <div style={{color:'var(--muted)',fontSize:12,textAlign:'center',padding:'24px 0'}}>Pas encore assez de données</div>
+    <Card style={{padding:'24px'}}>
+      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:4}}>{title}</div>
+      {subtitle&&<div style={{fontSize:11,color:'var(--muted)',marginBottom:16}}>{subtitle}</div>}
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',height:height,gap:8,color:'var(--muted)'}}>
+        <div style={{fontSize:28}}>📭</div><div style={{fontSize:12,fontWeight:600}}>Données insuffisantes</div>
+      </div>
     </Card>
   );
-  const maxV=Math.max(...data.map(d=>d.sessions||d.events||0),1);
-  const W=480,H=120,PAD=32;
-  const pts=data.map((d,i)=>{
+  const W=640,PAD=40,H=height;
+  const maxes=keys.map(k=>Math.max(...data.map(d=>Number(d[k])||0),1));
+  const pts=(k,maxV)=>data.map((d,i)=>{
     const x=PAD+(i/(data.length-1))*(W-2*PAD);
-    const y=H-PAD-((d.sessions||d.events||0)/maxV)*(H-2*PAD);
-    return `${x},${y}`;
-  }).join(' ');
+    const y=H-PAD-((Number(d[k])||0)/maxV)*(H-2*PAD);
+    return{x,y,v:d[k],day:d.day||d.created_at||''};
+  });
   return(
-    <Card style={{padding:'20px 24px',overflow:'hidden'}}>
-      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--navy)',marginBottom:10}}>{title}</div>
+    <Card style={{padding:'24px'}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16,flexWrap:'wrap',gap:8}}>
+        <div>
+          <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)'}}>{title}</div>
+          {subtitle&&<div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{subtitle}</div>}
+        </div>
+        <div style={{display:'flex',gap:16,flexWrap:'wrap'}}>
+          {keys.map((k,i)=>(
+            <span key={k} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,fontWeight:600,color:'var(--muted)'}}>
+              <span style={{width:20,height:3,borderRadius:2,background:colors[i],display:'inline-block'}}/>
+              {k}
+            </span>
+          ))}
+        </div>
+      </div>
       <div style={{overflowX:'auto'}}>
-        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',minWidth:240,height:120}}>
-          <polyline fill="none" stroke="var(--teal)" strokeWidth="2.5" strokeLinejoin="round" points={pts}/>
-          {data.map((d,i)=>{
-            const x=PAD+(i/(data.length-1))*(W-2*PAD);
-            const y=H-PAD-((d.sessions||d.events||0)/maxV)*(H-2*PAD);
-            return <circle key={i} cx={x} cy={y} r="4" fill="var(--teal)"/>;
+        <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',minWidth:280,height:H}}>
+          {[0,.25,.5,.75,1].map(f=>(
+            <line key={f} x1={PAD} y1={PAD+f*(H-2*PAD)} x2={W-PAD} y2={PAD+f*(H-2*PAD)}
+              stroke='#E2E8F0' strokeWidth='1' strokeDasharray={f===0?'0':'4,4'}/>
+          ))}
+          {keys.map((k,ki)=>{
+            const P=pts(k,maxes[ki]);
+            const path=P.map((p,i)=>`${i===0?'M':'L'}${p.x},${p.y}`).join(' ');
+            const area=path+`L${W-PAD},${H-PAD}L${PAD},${H-PAD}Z`;
+            return(
+              <g key={k}>
+                {ki===0&&<path d={area} fill={`${colors[ki]}18`}/>}
+                <path d={path} fill='none' stroke={colors[ki]} strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'/>
+                {P.map((p,i)=>(
+                  <circle key={i} cx={p.x} cy={p.y} r='3.5' fill={colors[ki]} opacity='.9'/>
+                ))}
+              </g>
+            );
           })}
-          {/* X axis labels — show every 5th */}
           {data.map((d,i)=>{
-            if(i%Math.ceil(data.length/6)!==0) return null;
+            const showL=i===0||i===data.length-1||i%Math.ceil(data.length/7)===0;
+            if(!showL)return null;
             const x=PAD+(i/(data.length-1))*(W-2*PAD);
-            const lbl=d.day?d.day.slice(5):'';
-            return <text key={i} x={x} y={H-4} textAnchor="middle" fontSize="9" fill="#94A3B8">{lbl}</text>;
+            const lbl=(d.day||'').slice(5)||'';
+            return<text key={i} x={x} y={H-4} textAnchor='middle' fontSize='9' fill='#94A3B8'>{lbl}</text>;
           })}
+          <text x={PAD-4} y={PAD+4} textAnchor='end' fontSize='9' fill='#94A3B8'>{formatY(maxes[0])}</text>
+          <text x={PAD-4} y={H-PAD+4} textAnchor='end' fontSize='9' fill='#94A3B8'>0</text>
         </svg>
       </div>
-      <div style={{display:'flex',gap:16,marginTop:6}}>
-        <span style={{fontSize:11,color:'var(--muted)'}}>Sessions uniques: <b style={{color:'var(--teal2)'}}>{data.reduce((s,d)=>s+(d.sessions||0),0)}</b></span>
-        <span style={{fontSize:11,color:'var(--muted)'}}>Événements: <b style={{color:'var(--navy)'}}>{data.reduce((s,d)=>s+(d.events||0),0)}</b></span>
-      </div>
     </Card>
   );
 }
 
-function Funnel({funnel}){
-  const steps=[
-    {label:'👁 Vues offres',val:funnel.offer_views,c:'#0DB9A8'},
-    {label:'🖱 Réservations démarrées',val:funnel.booking_started,c:'#3B82F6'},
-    {label:'✅ Réservations confirmées',val:funnel.booking_done,c:'#10B981'},
-  ];
-  const max=steps[0].val||1;
-  return(
-    <Card style={{padding:'20px 24px'}}>
-      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--navy)',marginBottom:16}}>🔽 Funnel de conversion</div>
-      {steps.map((s,i)=>{
-        const pct=Math.round((s.val/max)*100);
-        const conv=i>0&&steps[i-1].val>0?Math.round((s.val/steps[i-1].val)*100):null;
-        return(
-          <div key={i} style={{marginBottom:14}}>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:12,fontWeight:700,color:'var(--text)',marginBottom:4}}>
-              <span>{s.label}</span>
-              <span style={{color:s.c}}>{s.val} {conv!==null&&<span style={{color:'var(--muted)',fontWeight:500}}>({conv}%)</span>}</span>
-            </div>
-            <div style={{background:'#E8F7F6',borderRadius:8,height:18,overflow:'hidden'}}>
-              <div style={{height:'100%',borderRadius:8,background:s.c,width:`${pct}%`,transition:'width .6s',display:'flex',alignItems:'center',paddingLeft:8}}>
-                {pct>15&&<span style={{fontSize:10,color:'#fff',fontWeight:700}}>{pct}%</span>}
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </Card>
-  );
-}
-
-function HeatmapHours({data}){
-  const hours=Array.from({length:24},(_,h)=>{
-    const found=(data||[]).find(d=>parseInt(d.hour)===h);
-    return{h,c:found?found.c:0};
-  });
-  const max=Math.max(...hours.map(h=>h.c),1);
-  return(
-    <Card style={{padding:'20px 24px'}}>
-      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--navy)',marginBottom:14}}>🕐 Activité par heure</div>
-      <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:4}}>
-        {hours.map(({h,c})=>{
-          const intensity=c/max;
-          const bg=c===0?'#F1F5F9':`rgba(13,185,168,${0.15+intensity*0.85})`;
-          return(
-            <div key={h} title={`${h}h: ${c} events`} style={{background:bg,borderRadius:6,padding:'6px 2px',textAlign:'center',cursor:'default',transition:'all .2s'}}>
-              <div style={{fontSize:9,color:intensity>0.5?'#fff':'var(--muted)',fontWeight:700}}>{h}h</div>
-              <div style={{fontSize:9,color:intensity>0.5?'#fff':'var(--text)',fontWeight:600,marginTop:2}}>{c}</div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-}
-
-function DonutChart({data,nameKey,valueKey,title,colors}){
+function DonutSmall({data,nameKey,valueKey,title,colors,size=120}){
+  const COLS=colors||['#0DB9A8','#3B82F6','#F59E0B','#EF4444','#8B5CF6','#EC4899'];
   const total=data.reduce((s,d)=>s+(d[valueKey]||0),0)||1;
-  const COLS=colors||['#0DB9A8','#3B82F6','#F59E0B','#EF4444','#8B5CF6'];
   let angle=0;
-  const slices=data.map((d,i)=>{
-    const pct=(d[valueKey]||0)/total;
-    const start=angle;
-    angle+=pct*360;
-    return{...d,pct,start,end:angle,color:COLS[i%COLS.length]};
-  });
-  const R=48,cx=60,cy=60;
-  function polarToCartesian(ang){
-    const rad=(ang-90)*Math.PI/180;
-    return{x:cx+R*Math.cos(rad),y:cy+R*Math.sin(rad)};
+  const R=46,cx=60,cy=60;
+  function arc(s,e){
+    if(e-s>=360)return`M ${cx} ${cy-R} A ${R} ${R} 0 1 1 ${cx-.01} ${cy-R} Z`;
+    const rad=a=>(a-90)*Math.PI/180;
+    const sx=cx+R*Math.cos(rad(s)),sy=cy+R*Math.sin(rad(s));
+    const ex=cx+R*Math.cos(rad(e)),ey=cy+R*Math.sin(rad(e));
+    return`M${cx} ${cy}L${sx} ${sy}A${R} ${R} 0 ${e-s>180?1:0} 1 ${ex} ${ey}Z`;
   }
-  function arc(start,end){
-    if(end-start>=360) return `M ${cx} ${cy-R} A ${R} ${R} 0 1 1 ${cx-0.01} ${cy-R} Z`;
-    const s=polarToCartesian(start),e=polarToCartesian(end);
-    const large=end-start>180?1:0;
-    return `M ${cx} ${cy} L ${s.x} ${s.y} A ${R} ${R} 0 ${large} 1 ${e.x} ${e.y} Z`;
-  }
+  const slices=data.map((d,i)=>{const pct=(d[valueKey]||0)/total;const s=angle;angle+=pct*360;return{...d,pct,s,e:angle,c:COLS[i%COLS.length]};});
   return(
-    <Card style={{padding:'20px 24px'}}>
-      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--navy)',marginBottom:14}}>{title}</div>
-      {data.length===0?<div style={{color:'var(--muted)',fontSize:12,textAlign:'center',padding:'12px 0'}}>Pas encore de données</div>:(
-        <div style={{display:'flex',gap:20,alignItems:'center',flexWrap:'wrap'}}>
-          <svg viewBox="0 0 120 120" style={{width:100,height:100,flexShrink:0}}>
-            {slices.map((s,i)=><path key={i} d={arc(s.start,s.end)} fill={s.color} opacity={.9}/>)}
-            <circle cx={cx} cy={cy} r={24} fill="#fff"/>
-            <text x={cx} y={cy+4} textAnchor="middle" fontSize="11" fontWeight="700" fill="var(--navy)">{total}</text>
+    <div>
+      <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:13,color:'var(--navy)',marginBottom:10}}>{title}</div>
+      {data.length===0?<div style={{color:'var(--muted)',fontSize:11,textAlign:'center',padding:'8px 0'}}>—</div>:(
+        <div style={{display:'flex',gap:12,alignItems:'center'}}>
+          <svg viewBox='0 0 120 120' style={{width:size,height:size,flexShrink:0}}>
+            {slices.map((s,i)=><path key={i} d={arc(s.s,s.e)} fill={s.c} opacity='.9'/>)}
+            <circle cx={cx} cy={cy} r={22} fill='#fff'/>
+            <text x={cx} y={cy+4} textAnchor='middle' fontSize='11' fontWeight='700' fill='var(--navy)'>{total}</text>
           </svg>
-          <div style={{flex:1,minWidth:100}}>
+          <div style={{flex:1}}>
             {slices.map((s,i)=>(
-              <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
-                <div style={{width:10,height:10,borderRadius:3,background:s.color,flexShrink:0}}/>
-                <span style={{fontSize:12,color:'var(--text)',fontWeight:600,flex:1}}>{s[nameKey]}</span>
-                <span style={{fontSize:11,color:'var(--muted)'}}>{Math.round(s.pct*100)}%</span>
+              <div key={i} style={{display:'flex',alignItems:'center',gap:6,marginBottom:5}}>
+                <div style={{width:8,height:8,borderRadius:2,background:s.c,flexShrink:0}}/>
+                <span style={{fontSize:11,color:'var(--muted)',flex:1,fontWeight:600}}>{s[nameKey]||'—'}</span>
+                <span style={{fontSize:11,color:'var(--navy)',fontWeight:700}}>{Math.round(s.pct*100)}%</span>
               </div>
             ))}
           </div>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
-function AnalyticsDash({agencyId=null}){
+function HeatGrid({data,title}){
+  const hours=Array.from({length:24},(_,h)=>{
+    const f=(data||[]).find(d=>parseInt(d.hour)===h);
+    return{h,c:f?f.c:0};
+  });
+  const max=Math.max(...hours.map(h=>h.c),1);
+  return(
+    <div>
+      <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:13,color:'var(--navy)',marginBottom:10}}>{title}</div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(12,1fr)',gap:3}}>
+        {hours.map(({h,c})=>{
+          const pct=c/max;
+          const bg=c===0?'#F1F5F9':`rgba(13,185,168,${.12+pct*.88})`;
+          return(
+            <div key={h} title={`${h}h: ${c}`} style={{background:bg,borderRadius:5,padding:'5px 2px',textAlign:'center',cursor:'default'}}>
+              <div style={{fontSize:8,color:pct>.5?'#fff':'#94A3B8',fontWeight:700}}>{h}h</div>
+              <div style={{fontSize:8,color:pct>.5?'#fff':'var(--navy)',fontWeight:600}}>{c||''}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function StatRow({label,curr,prev,format=v=>v,color='var(--teal2)'}){
+  const pct=prev>0?Math.round(((curr-prev)/prev)*100):null;
+  const up=pct>0,same=pct===0;
+  return(
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F1F5F9'}}>
+      <span style={{fontSize:13,color:'var(--muted)',fontWeight:600}}>{label}</span>
+      <div style={{display:'flex',alignItems:'center',gap:10}}>
+        <span style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color}}>{format(curr)}</span>
+        {pct!==null&&(
+          <span style={{fontSize:11,fontWeight:700,color:up?'#10B981':same?'#94A3B8':'#EF4444',background:up?'#D1FAE5':same?'#F1F5F9':'#FEE2E2',padding:'2px 8px',borderRadius:20}}>
+            {up?'↑':same?'—':'↓'}{Math.abs(pct)}%
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MiniBarH({data,nameKey,valueKey,title,color='var(--teal)',formatVal=v=>v,maxRows=8}){
+  const max=Math.max(...data.map(d=>Number(d[valueKey])||0),1);
+  return(
+    <div>
+      <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:13,color:'var(--navy)',marginBottom:10}}>{title}</div>
+      {data.length===0&&<div style={{color:'var(--muted)',fontSize:11,textAlign:'center',padding:'8px 0'}}>Aucune donnée</div>}
+      {data.slice(0,maxRows).map((d,i)=>{
+        const w=Math.round((Number(d[valueKey])||0)/max*100);
+        return(
+          <div key={i} style={{marginBottom:7}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,fontWeight:600,color:'var(--muted)',marginBottom:2}}>
+              <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:'70%'}}>{d[nameKey]||'—'}</span>
+              <span style={{color:'var(--navy)',fontWeight:700}}>{formatVal(d[valueKey])}</span>
+            </div>
+            <div style={{background:'#F1F5F9',borderRadius:4,height:6,overflow:'hidden'}}>
+              <div style={{height:'100%',borderRadius:4,background:color,width:`${w}%`,transition:'width .6s'}}/>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ── ADMIN ANALYTICS DASHBOARD ───────────────────────────────────────────── */
+function AnalyticsDash(){
   const [days,setDays]=useState(30);
   const [data,setData]=useState(null);
   const [loading,setLoading]=useState(false);
+  const [section,setSection]=useState('overview'); // overview | agencies | traffic | users
   const {show}=useToast();
+
   const load=useCallback(async()=>{
     setLoading(true);
-    try{
-      const endpoint=agencyId?`/agencies/${agencyId}/analytics?days=${days}`:`/admin/analytics?days=${days}`;
-      const d=await api(endpoint);
-      setData(d);
-    }catch(e){show(e.message,'err');}
+    try{const d=await api(`/admin/analytics?days=${days}`);setData(d);}
+    catch(e){show(e.message,'err');}
     setLoading(false);
-  },[agencyId,days]);
+  },[days]);
   useEffect(()=>{load();},[load]);
-  if(loading||!data) return <Spin/>;
-  const {daily=[],top_offers=[],devices=[],browsers=[],sources=[],searches=[],filters=[],hourly=[],langs=[],funnel={offer_views:0,booking_started:0,booking_done:0},total_events=0,total_sessions=0}=data;
+
+  const fmtDA=v=>v!=null?`${v} DA`:'—';
+  const fmtK=v=>v>=1000?`${(v/1000).toFixed(1)}k`:String(v);
+  const fmtDA2=v=>v>=1000000?`${(v/1000000).toFixed(2)}M DA`:v>=1000?`${(v/1000).toFixed(0)}k DA`:`${v} DA`;
+
+  const C={teal:'#0DB9A8',navy:'#0B2340',blue:'#3B82F6',green:'#10B981',amber:'#F59E0B',red:'#EF4444',purple:'#8B5CF6'};
+
+  const SECTIONS=[['overview','🏠 Vue d\'ensemble'],['agencies','🏢 Agences'],['traffic','📡 Trafic'],['users','👥 Utilisateurs']];
+
+  if(loading||!data)return(
+    <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:400,gap:12}}>
+      <div style={{width:40,height:40,borderRadius:'50%',border:`3px solid ${C.teal}`,borderTopColor:'transparent',animation:'spin 1s linear infinite'}}/>
+      <span style={{color:'var(--muted)',fontWeight:600,fontSize:13}}>Chargement du tableau de bord…</span>
+    </div>
+  );
+
+  const {
+    daily=[],hourly=[],devices=[],browsers=[],sources=[],langs=[],searches=[],filters=[],
+    funnel={offer_views:0,booking_started:0,booking_done:0},
+    total_events=0,total_sessions=0,top_offers=[],
+    agency_leaderboard=[],revenue_daily=[],booking_statuses=[],offer_categories=[],
+    total_revenue=0,period_revenue=0,
+    new_users_curr=0,new_users_prev=0,new_bookings_curr=0,new_bookings_prev=0,
+    user_growth=[],top_cities=[],gender_stats=[]
+  }=data;
+
+  const totalBookings=booking_statuses.reduce((s,x)=>s+(x.c||0),0);
+  const completedCount=(booking_statuses.find(x=>x.status==='completed')||{}).c||0;
+  const pendingCount=(booking_statuses.find(x=>x.status==='pending')||{}).c||0;
+  const convRate=funnel.offer_views>0?((funnel.booking_done/funnel.offer_views)*100).toFixed(1):'0.0';
+
+  const KPI=({icon,label,value,sub,color,trend})=>(
+    <div style={{background:'#fff',borderRadius:18,padding:'20px 22px',boxShadow:'0 2px 16px rgba(11,35,64,.07)',border:'1px solid #E2E8F0',position:'relative',overflow:'hidden',transition:'transform .2s,box-shadow .2s'}}
+      onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 8px 28px rgba(11,35,64,.12)';}}
+      onMouseLeave={e=>{e.currentTarget.style.transform='';e.currentTarget.style.boxShadow='0 2px 16px rgba(11,35,64,.07)';}}>
+      <div style={{position:'absolute',top:-20,right:-20,width:80,height:80,borderRadius:'50%',background:`${color}12`}}/>
+      <div style={{fontSize:24,marginBottom:8}}>{icon}</div>
+      <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color,lineHeight:1,marginBottom:3}}>{value}</div>
+      <div style={{fontWeight:700,fontSize:12,color:'var(--navy)',marginBottom:2}}>{label}</div>
+      <div style={{fontSize:11,color:'var(--muted)'}}>{sub}</div>
+      {trend!=null&&<div style={{position:'absolute',top:16,right:16,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,background:trend>0?'#D1FAE5':trend===0?'#F1F5F9':'#FEE2E2',color:trend>0?'#059669':trend===0?'#94A3B8':'#DC2626'}}>{trend>0?'↑':trend===0?'—':'↓'}{Math.abs(trend)}%</div>}
+    </div>
+  );
+
+  const usrTrend=new_users_prev>0?Math.round(((new_users_curr-new_users_prev)/new_users_prev)*100):null;
+  const bkTrend=new_bookings_prev>0?Math.round(((new_bookings_curr-new_bookings_prev)/new_bookings_prev)*100):null;
+
   return(
     <div>
-      {/* Period selector */}
-      <div style={{display:'flex',gap:8,marginBottom:20,alignItems:'center',flexWrap:'wrap'}}>
-        <span style={{fontSize:13,fontWeight:600,color:'var(--muted)'}}>Période :</span>
-        {[[7,'7 jours'],[30,'30 jours'],[90,'90 jours']].map(([d,l])=>(
-          <button key={d} style={{padding:'6px 16px',borderRadius:50,fontSize:12,fontWeight:700,cursor:'pointer',border:'2px solid',borderColor:days===d?'var(--teal)':'#E2E8F0',background:days===d?'var(--teal)':'#fff',color:days===d?'#fff':'var(--text)',transition:'all .2s'}} onClick={()=>setDays(d)}>{l}</button>
-        ))}
-        <button style={{padding:'6px 12px',borderRadius:50,fontSize:12,fontWeight:700,cursor:'pointer',border:'2px solid #E2E8F0',background:'#fff',color:'var(--muted)',marginLeft:'auto'}} onClick={load}>↻ Actualiser</button>
-      </div>
-      {/* Top KPIs */}
-      {!agencyId&&(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:12,marginBottom:24}}>
-          {[['🖱','Événements',total_events],['👥','Sessions',total_sessions],['👁','Vues offres',funnel.offer_views],['🎫','Réservations',funnel.booking_done]].map(([ico,lbl,val])=>(
-            <Card key={lbl} style={{padding:'16px 20px'}}>
-              <div style={{fontSize:24,marginBottom:6}}>{ico}</div>
-              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal2)',lineHeight:1}}>{val}</div>
-              <div style={{color:'var(--muted)',fontSize:11,fontWeight:600,marginTop:3,textTransform:'uppercase'}}>{lbl}</div>
-            </Card>
+      {/* Header + period + section nav */}
+      <div style={{background:`linear-gradient(135deg,${C.navy},#1a3a5c,#0a4a3a)`,borderRadius:20,padding:'28px 32px',marginBottom:24,position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',top:-60,right:-60,width:220,height:220,borderRadius:'50%',background:'rgba(13,185,168,.1)',pointerEvents:'none'}}/>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
+          <div>
+            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'#fff'}}>📊 Business Intelligence</div>
+            <div style={{color:'rgba(255,255,255,.5)',fontSize:12,marginTop:3}}>Vue complète de la plateforme</div>
+          </div>
+          <div style={{display:'flex',gap:6,background:'rgba(255,255,255,.1)',borderRadius:50,padding:'4px'}}>
+            {[[7,'7j'],[30,'30j'],[90,'90j']].map(([d,l])=>(
+              <button key={d} onClick={()=>setDays(d)} style={{padding:'6px 16px',borderRadius:50,fontSize:11,fontWeight:700,cursor:'pointer',border:'none',background:days===d?C.teal:'transparent',color:days===d?'#fff':'rgba(255,255,255,.6)',transition:'all .2s'}}>{l}</button>
+            ))}
+            <button onClick={load} style={{padding:'6px 12px',borderRadius:50,fontSize:11,fontWeight:700,cursor:'pointer',border:'none',background:'transparent',color:'rgba(255,255,255,.5)'}}>↻</button>
+          </div>
+        </div>
+        {/* Section pills */}
+        <div style={{display:'flex',gap:8,marginTop:20,flexWrap:'wrap'}}>
+          {SECTIONS.map(([k,lbl])=>(
+            <button key={k} onClick={()=>setSection(k)} style={{padding:'7px 18px',borderRadius:50,fontSize:12,fontWeight:700,cursor:'pointer',border:`1px solid ${section===k?C.teal:'rgba(255,255,255,.2)'}`,background:section===k?C.teal:'rgba(255,255,255,.08)',color:section===k?'#fff':'rgba(255,255,255,.7)',transition:'all .2s'}}>{lbl}</button>
           ))}
         </div>
-      )}
-      {/* Row 1: Line chart + Funnel */}
-      <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-        <LineChart data={daily} title="📈 Trafic quotidien"/>
-        <Funnel funnel={funnel}/>
       </div>
-      {/* Row 2: Top offers */}
-      <div style={{marginBottom:16}}>
-        <MiniBar data={top_offers} nameKey="title" valueKey="views" title="🏆 Top offres par vues" color="var(--teal)"/>
-      </div>
-      {/* Row 3: Device/Browser/Sources */}
-      {!agencyId&&(
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16,marginBottom:16}}>
-          <DonutChart data={devices} nameKey="device" valueKey="c" title="📱 Devices" colors={['#0DB9A8','#3B82F6','#F59E0B']}/>
-          <DonutChart data={browsers} nameKey="browser" valueKey="c" title="🌐 Navigateurs" colors={['#EF4444','#8B5CF6','#F59E0B','#3B82F6']}/>
-          <DonutChart data={sources} nameKey="source" valueKey="c" title="🔗 Sources de trafic" colors={['#E4405F','#1877F2','#4285F4','#94A3B8','#10B981']}/>
-          <DonutChart data={langs} nameKey="lang" valueKey="c" title="🌍 Langues" colors={['#0DB9A8','#3B82F6','#F59E0B']}/>
+
+      {/* ── OVERVIEW ─────────────────────────────────────── */}
+      {section==='overview'&&<>
+        {/* KPI row */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14,marginBottom:20}}>
+          <KPI icon='💰' label='Revenu total' value={fmtDA2(total_revenue)} sub='Réservations confirmées + terminées' color={C.green}/>
+          <KPI icon='📈' label={`Revenu sur ${days}j`} value={fmtDA2(period_revenue)} sub={`${days} derniers jours`} color={C.teal}/>
+          <KPI icon='🎫' label='Nouvelles résa.' value={new_bookings_curr} sub={`vs ${new_bookings_prev} période précédente`} color={C.blue} trend={bkTrend}/>
+          <KPI icon='👤' label='Nouveaux inscrits' value={new_users_curr} sub={`vs ${new_users_prev} période précédente`} color={C.purple} trend={usrTrend}/>
+          <KPI icon='🏢' label='Agences actives' value={agency_leaderboard.filter(a=>a.booking_count>0).length} sub={`sur ${agency_leaderboard.length} totales`} color={C.amber}/>
+          <KPI icon='✅' label='Voyages terminés' value={completedCount} sub={`${totalBookings} réservations totales`} color={C.green}/>
+          <KPI icon='📊' label='Taux conversion' value={`${convRate}%`} sub='Vues → Réservations' color={parseFloat(convRate)>3?C.green:C.amber}/>
+          <KPI icon='⏳' label='En attente' value={pendingCount} sub='Réservations non traitées' color={pendingCount>10?C.red:C.amber}/>
         </div>
-      )}
-      {/* Row 4: Searches + Filters + Heatmap */}
-      {!agencyId&&(
+
+        {/* Revenue + Bookings chart */}
+        <div style={{marginBottom:16}}>
+          <SvgLineChart data={revenue_daily} keys={['revenue','bookings']} colors={[C.green,C.blue]}
+            title='💰 Revenus & Réservations' subtitle='Montants confirmés par jour'
+            height={180} formatY={fmtDA2}/>
+        </div>
+
+        {/* Funnel + booking statuses */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
-          <MiniBar data={searches} nameKey="search_query" valueKey="c" title="🔍 Recherches populaires" color="#3B82F6"/>
-          <MiniBar data={filters} nameKey="filter_cat" valueKey="c" title="🏷 Filtres utilisés" color="#F59E0B"/>
+          <Card style={{padding:'24px'}}>
+            <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:4}}>🔽 Funnel de conversion</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:20}}>De la vue à la réservation confirmée</div>
+            {[
+              {label:'👁 Vues offres',val:funnel.offer_views,c:C.teal},
+              {label:'🖱 Résa. démarrées',val:funnel.booking_started,c:C.blue},
+              {label:'✅ Résa. confirmées',val:funnel.booking_done,c:C.green},
+            ].map((s,i,arr)=>{
+              const base=funnel.offer_views||1;
+              const pct=Math.round((s.val/base)*100);
+              const step=i>0&&arr[i-1].val>0?Math.round((s.val/arr[i-1].val)*100):null;
+              return(
+                <div key={i} style={{marginBottom:i<2?18:0}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:5}}>
+                    <span style={{fontSize:12,fontWeight:700,color:'var(--navy)'}}>{s.label}</span>
+                    <div style={{textAlign:'right'}}>
+                      <span style={{fontFamily:'Nunito',fontWeight:900,fontSize:16,color:s.c}}>{s.val}</span>
+                      {step!==null&&<span style={{fontSize:10,color:'var(--muted)',marginLeft:6}}>{step}%</span>}
+                    </div>
+                  </div>
+                  <div style={{background:'#F1F5F9',borderRadius:6,height:10,overflow:'hidden'}}>
+                    <div style={{height:'100%',borderRadius:6,background:s.c,width:`${pct}%`,transition:'width .8s'}}/>
+                  </div>
+                  {i<2&&<div style={{display:'flex',justifyContent:'center',marginTop:6}}><div style={{width:1,height:10,background:'#E2E8F0'}}/></div>}
+                </div>
+              );
+            })}
+            <div style={{marginTop:20,padding:'12px 16px',background:'#F0FDF9',borderRadius:12,border:'1px solid #A7F3D0'}}>
+              <div style={{fontSize:11,color:'var(--muted)',fontWeight:600}}>Taux global</div>
+              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:C.teal}}>{convRate}%</div>
+            </div>
+          </Card>
+
+          <Card style={{padding:'24px'}}>
+            <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:4}}>📋 Statuts réservations</div>
+            <div style={{fontSize:11,color:'var(--muted)',marginBottom:20}}>Distribution sur la période</div>
+            <MiniBarH data={booking_statuses} nameKey='status' valueKey='c' title=''
+              color={C.teal}/>
+            <div style={{marginTop:16,padding:'10px 14px',background:'#F8FAFC',borderRadius:10}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:12}}>
+                <span style={{color:'var(--muted)',fontWeight:600}}>Total réservations</span>
+                <span style={{fontFamily:'Nunito',fontWeight:900,color:'var(--navy)'}}>{totalBookings}</span>
+              </div>
+            </div>
+          </Card>
         </div>
-      )}
-      {!agencyId&&<HeatmapHours data={hourly}/>}
+
+        {/* Categories + top offers */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <Card style={{padding:'24px'}}>
+            <MiniBarH data={offer_categories} nameKey='category' valueKey='views'
+              title='🏷 Catégories — vues cumulées' color={C.purple} maxRows={8}/>
+          </Card>
+          <Card style={{padding:'24px'}}>
+            <MiniBarH data={top_offers} nameKey='title' valueKey='views'
+              title='🏆 Top offres par vues' color={C.teal} maxRows={8}/>
+          </Card>
+        </div>
+      </>}
+
+      {/* ── AGENCIES ─────────────────────────────────────── */}
+      {section==='agencies'&&<>
+        {/* Agency leaderboard */}
+        <Card style={{padding:'24px',marginBottom:16}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20,flexWrap:'wrap',gap:8}}>
+            <div>
+              <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)'}}>🏆 Classement des agences</div>
+              <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>Par revenu généré (réservations confirmées + terminées)</div>
+            </div>
+          </div>
+          {agency_leaderboard.length===0?(
+            <div style={{textAlign:'center',padding:'40px',color:'var(--muted)'}}>
+              <div style={{fontSize:36,marginBottom:8}}>📭</div><div style={{fontWeight:600}}>Aucune agence</div>
+            </div>
+          ):(
+            <div style={{overflowX:'auto'}}>
+              <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+                <thead>
+                  <tr style={{borderBottom:'2px solid #F1F5F9'}}>
+                    {['#','Agence','Plan','Offres','Réservations','Terminées','Annulées','En attente','Revenu','Note','Avis'].map(h=>(
+                      <th key={h} style={{padding:'8px 12px',textAlign:'left',fontWeight:700,color:'var(--muted)',fontSize:11,textTransform:'uppercase',letterSpacing:.6,whiteSpace:'nowrap'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {agency_leaderboard.map((a,i)=>{
+                    const medals=['🥇','🥈','🥉'];
+                    const convA=a.booking_count>0?Math.round((a.completed_count/a.booking_count)*100):0;
+                    return(
+                      <tr key={a.id} style={{borderBottom:'1px solid #F8FAFC',transition:'background .15s'}}
+                        onMouseEnter={e=>e.currentTarget.style.background='#F8FAFC'}
+                        onMouseLeave={e=>e.currentTarget.style.background=''}>
+                        <td style={{padding:'12px',fontFamily:'Nunito',fontWeight:900,fontSize:16,textAlign:'center'}}>
+                          {i<3?medals[i]:<span style={{color:'var(--muted)',fontSize:12}}>#{i+1}</span>}
+                        </td>
+                        <td style={{padding:'12px',whiteSpace:'nowrap'}}>
+                          <div style={{display:'flex',alignItems:'center',gap:8}}>
+                            <span style={{fontSize:18}}>{a.logo||'🏢'}</span>
+                            <div>
+                              <div style={{fontWeight:700,color:'var(--navy)'}}>{a.name}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{padding:'12px'}}>
+                          <span style={{padding:'2px 8px',borderRadius:20,fontSize:10,fontWeight:700,background:a.plan==='premium'?'#FEF3C7':'#F0F4F5',color:a.plan==='premium'?'#92400E':'var(--muted)'}}>
+                            {a.plan==='premium'?'⭐ Premium':'Standard'}
+                          </span>
+                        </td>
+                        <td style={{padding:'12px',textAlign:'center',fontFamily:'Nunito',fontWeight:700,color:'var(--navy)'}}>{a.offer_count||0}</td>
+                        <td style={{padding:'12px',textAlign:'center',fontFamily:'Nunito',fontWeight:700,color:'var(--navy)'}}>{a.booking_count||0}</td>
+                        <td style={{padding:'12px',textAlign:'center'}}>
+                          <span style={{fontFamily:'Nunito',fontWeight:700,color:'#10B981'}}>{a.completed_count||0}</span>
+                          <span style={{fontSize:10,color:'var(--muted)',marginLeft:4}}>({convA}%)</span>
+                        </td>
+                        <td style={{padding:'12px',textAlign:'center',fontFamily:'Nunito',fontWeight:700,color:a.cancelled_count>0?'#EF4444':'var(--muted)'}}>{a.cancelled_count||0}</td>
+                        <td style={{padding:'12px',textAlign:'center',fontFamily:'Nunito',fontWeight:700,color:a.pending_bookings>0?'#F59E0B':'var(--muted)'}}>{a.pending_bookings||0}</td>
+                        <td style={{padding:'12px',whiteSpace:'nowrap'}}>
+                          <span style={{fontFamily:'Nunito',fontWeight:900,color:'#10B981',fontSize:14}}>{fmtDA2(a.revenue||0)}</span>
+                        </td>
+                        <td style={{padding:'12px',textAlign:'center'}}>
+                          {a.avg_rating?<span style={{fontFamily:'Nunito',fontWeight:700,color:'#F59E0B'}}>⭐ {a.avg_rating}</span>:<span style={{color:'var(--muted)'}}>—</span>}
+                        </td>
+                        <td style={{padding:'12px',textAlign:'center',fontFamily:'Nunito',fontWeight:700,color:'var(--navy)'}}>{a.review_count||0}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Card>
+
+        {/* Agency summary cards */}
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14,marginBottom:16}}>
+          {[
+            ['💰','Revenu total agences',fmtDA2(agency_leaderboard.reduce((s,a)=>s+(a.revenue||0),0)),C.green],
+            ['🥇','Meilleure agence',agency_leaderboard[0]?.name||'—',C.amber],
+            ['📦','Total offres',agency_leaderboard.reduce((s,a)=>s+(a.offer_count||0),0),C.teal],
+            ['⭐','Meilleure note',agency_leaderboard.filter(a=>a.avg_rating).sort((a,b)=>b.avg_rating-a.avg_rating)[0]?.avg_rating||'—',C.purple],
+          ].map(([ico,lbl,val,c])=>(
+            <div key={lbl} style={{background:'#fff',borderRadius:16,padding:'18px 20px',boxShadow:'0 2px 14px rgba(11,35,64,.07)',border:'1px solid #E2E8F0'}}>
+              <div style={{fontSize:22,marginBottom:8}}>{ico}</div>
+              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:c,lineHeight:1,marginBottom:3,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{val}</div>
+              <div style={{fontSize:11,color:'var(--muted)',fontWeight:600}}>{lbl}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Revenue per agency bar */}
+        <Card style={{padding:'24px'}}>
+          <MiniBarH
+            data={[...agency_leaderboard].sort((a,b)=>(b.revenue||0)-(a.revenue||0))}
+            nameKey='name' valueKey='revenue' title='💰 Revenu par agence'
+            color={C.green} formatVal={fmtDA2} maxRows={10}/>
+        </Card>
+      </>}
+
+      {/* ── TRAFFIC ──────────────────────────────────────── */}
+      {section==='traffic'&&<>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14,marginBottom:20}}>
+          <KPI icon='🖱' label='Événements' value={fmtK(total_events)} sub={`${days} derniers jours`} color={C.teal}/>
+          <KPI icon='👥' label='Sessions uniques' value={fmtK(total_sessions)} sub='Visiteurs distincts' color={C.blue}/>
+          <KPI icon='🔍' label='Recherches' value={searches.reduce((s,x)=>s+(x.c||0),0)} sub='Termes tapés' color={C.purple}/>
+          <KPI icon='📱' label='% Mobile' value={`${devices.length?Math.round(((devices.find(d=>d.device==='mobile')||{}).c||0)/Math.max(total_events,1)*100):0}%`} sub='vs desktop' color={C.amber}/>
+        </div>
+
+        <div style={{marginBottom:16}}>
+          <SvgLineChart data={daily} keys={['sessions','events']} colors={[C.teal,C.blue]}
+            title='📈 Trafic quotidien' subtitle='Sessions uniques et total événements' height={160}/>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <Card style={{padding:'24px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+              <DonutSmall data={devices} nameKey='device' valueKey='c' title='📱 Devices' colors={[C.teal,C.blue,C.amber]}/>
+              <DonutSmall data={browsers} nameKey='browser' valueKey='c' title='🌐 Navigateurs' colors={[C.red,C.amber,C.purple,C.blue]}/>
+            </div>
+          </Card>
+          <Card style={{padding:'24px'}}>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:24}}>
+              <DonutSmall data={sources} nameKey='source' valueKey='c' title='🔗 Sources' colors={['#E4405F','#1877F2','#4285F4','#94A3B8','#10B981']}/>
+              <DonutSmall data={langs} nameKey='lang' valueKey='c' title='🌍 Langues' colors={[C.teal,C.blue,C.amber]}/>
+            </div>
+          </Card>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <Card style={{padding:'24px'}}>
+            <MiniBarH data={searches} nameKey='search_query' valueKey='c' title='🔍 Recherches populaires' color={C.blue}/>
+          </Card>
+          <Card style={{padding:'24px'}}>
+            <MiniBarH data={filters} nameKey='filter_cat' valueKey='c' title='🏷 Filtres utilisés' color={C.amber}/>
+          </Card>
+        </div>
+
+        <Card style={{padding:'24px'}}>
+          <HeatGrid data={hourly} title='🕐 Activité par heure (24h)' />
+        </Card>
+      </>}
+
+      {/* ── USERS ────────────────────────────────────────── */}
+      {section==='users'&&<>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(200px,1fr))',gap:14,marginBottom:20}}>
+          <KPI icon='👤' label='Nouveaux voyageurs' value={new_users_curr} sub={`vs ${new_users_prev} période préc.`} color={C.teal} trend={usrTrend}/>
+          <KPI icon='🗺' label='Villes représentées' value={top_cities.length} sub='Couverture géographique' color={C.blue}/>
+          <KPI icon='♂' label='Genre dominant' value={gender_stats.length?([...gender_stats].sort((a,b)=>b.c-a.c)[0]?.gender||'—'):'—'} sub='Groupe le plus large' color={C.purple}/>
+          <KPI icon='📬' label='Taux réservation' value={new_users_curr>0?`${Math.round((new_bookings_curr/new_users_curr)*100)}%`:'—'} sub='Inscrits → ont réservé' color={C.green}/>
+        </div>
+
+        <div style={{marginBottom:16}}>
+          <SvgLineChart data={user_growth} keys={['c']} colors={[C.purple]}
+            title='👥 Croissance des inscriptions' subtitle='Nouveaux voyageurs par jour' height={150}/>
+        </div>
+
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16}}>
+          <Card style={{padding:'24px'}}>
+            <MiniBarH data={top_cities} nameKey='city' valueKey='c'
+              title='📍 Top villes' color={C.blue} maxRows={10}/>
+          </Card>
+          <Card style={{padding:'24px'}}>
+            <div style={{marginBottom:24}}>
+              <DonutSmall data={gender_stats} nameKey='gender' valueKey='c'
+                title='👥 Répartition par genre' colors={[C.blue,'#EC4899',C.teal]}/>
+            </div>
+            <div style={{height:1,background:'#F1F5F9',marginBottom:20}}/>
+            <div>
+              <StatRow label='Nouveaux inscrits' curr={new_users_curr} prev={new_users_prev}/>
+              <StatRow label='Nouvelles réservations' curr={new_bookings_curr} prev={new_bookings_prev}/>
+              <StatRow label='Revenu période' curr={period_revenue} prev={0} format={fmtDA2} color={C.green}/>
+            </div>
+          </Card>
+        </div>
+      </>}
     </div>
   );
 }

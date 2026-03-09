@@ -988,74 +988,141 @@ def track_event():
 def admin_analytics():
     days = int(request.args.get("days", 30))
     since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+    def q(sql, args=()): return db_query(sql, args)
+    def cnt(sql, args=()):
+        r = db_query(sql, args, one=True)
+        return r["c"] if r else 0
 
-    def q(sql, args=()):
-        return db_query(sql, args)
-
-    # Daily visitors (unique sessions per day)
+    # ── TRAFFIC ──────────────────────────────────────────────────────────────
     daily = q("""SELECT DATE(created_at) as day, COUNT(*) as events,
         COUNT(DISTINCT session_id) as sessions
         FROM events WHERE created_at >= ? GROUP BY DATE(created_at) ORDER BY day""", (since,))
 
-    # Top offers by views
-    top_offers = q("""SELECT o.title, o.id,
-        COUNT(e.id) as views,
-        COUNT(CASE WHEN e.type='booking_started' THEN 1 END) as bookings_started,
-        COUNT(CASE WHEN e.type='booking_done' THEN 1 END) as bookings_done
-        FROM events e JOIN offers o ON e.offer_id=o.id
-        WHERE e.created_at >= ? AND e.type IN ('offer_view','booking_started','booking_done')
-        GROUP BY o.id, o.title ORDER BY views DESC LIMIT 10""", (since,))
-
-    # Device breakdown
-    devices = q("""SELECT device, COUNT(*) as c FROM events
-        WHERE created_at >= ? GROUP BY device""", (since,))
-
-    # Browser breakdown
-    browsers = q("""SELECT browser, COUNT(*) as c FROM events
-        WHERE created_at >= ? GROUP BY browser""", (since,))
-
-    # Traffic sources
-    sources = q("""SELECT referrer as source, COUNT(*) as c FROM events
-        WHERE created_at >= ? GROUP BY referrer ORDER BY c DESC""", (since,))
-
-    # Top searches
-    searches = q("""SELECT search_query, COUNT(*) as c FROM events
-        WHERE type='search' AND search_query!='' AND created_at >= ?
-        GROUP BY search_query ORDER BY c DESC LIMIT 10""", (since,))
-
-    # Category filters
-    filters = q("""SELECT filter_cat, COUNT(*) as c FROM events
-        WHERE type='filter_used' AND filter_cat!='' AND created_at >= ?
-        GROUP BY filter_cat ORDER BY c DESC""", (since,))
-
-    # Hourly heatmap (hour 0-23)
     hourly = q("""SELECT CAST(strftime('%H', created_at) AS INTEGER) as hour,
         COUNT(*) as c FROM events WHERE created_at >= ?
         GROUP BY hour ORDER BY hour""", (since,)) if not USE_POSTGRES else         q("""SELECT EXTRACT(HOUR FROM created_at)::int as hour,
         COUNT(*) as c FROM events WHERE created_at >= ?
         GROUP BY hour ORDER BY hour""", (since,))
 
-    # Lang breakdown
-    langs = q("""SELECT lang, COUNT(*) as c FROM events
-        WHERE created_at >= ? GROUP BY lang""", (since,))
+    devices  = q("SELECT device, COUNT(*) as c FROM events WHERE created_at >= ? GROUP BY device", (since,))
+    browsers = q("SELECT browser, COUNT(*) as c FROM events WHERE created_at >= ? GROUP BY browser", (since,))
+    sources  = q("SELECT referrer as source, COUNT(*) as c FROM events WHERE created_at >= ? GROUP BY referrer ORDER BY c DESC", (since,))
+    langs    = q("SELECT lang, COUNT(*) as c FROM events WHERE created_at >= ? GROUP BY lang", (since,))
+    searches = q("""SELECT search_query, COUNT(*) as c FROM events
+        WHERE type='search' AND search_query!='' AND created_at >= ?
+        GROUP BY search_query ORDER BY c DESC LIMIT 10""", (since,))
+    filters  = q("""SELECT filter_cat, COUNT(*) as c FROM events
+        WHERE type='filter_used' AND filter_cat!='' AND created_at >= ?
+        GROUP BY filter_cat ORDER BY c DESC""", (since,))
 
-    # Funnel: offer_view -> booking_started -> booking_done
+    # ── FUNNEL ───────────────────────────────────────────────────────────────
     funnel = {
-        "offer_views": q("SELECT COUNT(*) as c FROM events WHERE type='offer_view' AND created_at >= ?", (since,))[0]["c"] if q("SELECT COUNT(*) as c FROM events WHERE type='offer_view' AND created_at >= ?", (since,)) else 0,
-        "booking_started": q("SELECT COUNT(*) as c FROM events WHERE type='booking_started' AND created_at >= ?", (since,))[0]["c"] if q("SELECT COUNT(*) as c FROM events WHERE type='booking_started' AND created_at >= ?", (since,)) else 0,
-        "booking_done": q("SELECT COUNT(*) as c FROM events WHERE type='booking_done' AND created_at >= ?", (since,))[0]["c"] if q("SELECT COUNT(*) as c FROM events WHERE type='booking_done' AND created_at >= ?", (since,)) else 0,
+        "offer_views":     cnt("SELECT COUNT(*) as c FROM events WHERE type='offer_view' AND created_at >= ?", (since,)),
+        "booking_started": cnt("SELECT COUNT(*) as c FROM events WHERE type='booking_started' AND created_at >= ?", (since,)),
+        "booking_done":    cnt("SELECT COUNT(*) as c FROM events WHERE type='booking_done' AND created_at >= ?", (since,)),
     }
+    total_events   = cnt("SELECT COUNT(*) as c FROM events WHERE created_at >= ?", (since,))
+    total_sessions = cnt("SELECT COUNT(DISTINCT session_id) as c FROM events WHERE created_at >= ?", (since,))
 
-    total_events = q("SELECT COUNT(*) as c FROM events WHERE created_at >= ?", (since,))
-    total_sessions = q("SELECT COUNT(DISTINCT session_id) as c FROM events WHERE created_at >= ?", (since,))
+    # ── TOP OFFERS (traffic-based) ────────────────────────────────────────
+    top_offers = q("""SELECT o.title, o.id, a.name agency_name,
+        COUNT(e.id) as views,
+        COUNT(CASE WHEN e.type='booking_started' THEN 1 END) as bookings_started,
+        COUNT(CASE WHEN e.type='booking_done' THEN 1 END) as bookings_done
+        FROM events e JOIN offers o ON e.offer_id=o.id
+        LEFT JOIN agencies ag ON o.agency_id=ag.id
+        LEFT JOIN users a ON ag.user_id=a.id
+        WHERE e.created_at >= ? AND e.type IN ('offer_view','booking_started','booking_done')
+        GROUP BY o.id, o.title, a.name ORDER BY views DESC LIMIT 10""", (since,))
+
+    # ── AGENCY LEADERBOARD ───────────────────────────────────────────────
+    agency_leaderboard = q("""
+        SELECT ag.id, ag.name, ag.logo, ag.plan,
+            COUNT(DISTINCT o.id) as offer_count,
+            COUNT(DISTINCT b.id) as booking_count,
+            COUNT(DISTINCT CASE WHEN b.status='completed' THEN b.id END) as completed_count,
+            COUNT(DISTINCT CASE WHEN b.status='cancelled' THEN b.id END) as cancelled_count,
+            COALESCE(SUM(CASE WHEN b.status IN ('confirmed','completed') THEN o.price END), 0) as revenue,
+            ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END), 1) as avg_rating,
+            COUNT(DISTINCT r.id) as review_count,
+            COUNT(DISTINCT CASE WHEN b.status='pending' THEN b.id END) as pending_bookings
+        FROM agencies ag
+        LEFT JOIN offers o ON o.agency_id=ag.id
+        LEFT JOIN bookings b ON b.offer_id=o.id
+        LEFT JOIN reviews r ON r.offer_id=o.id
+        GROUP BY ag.id, ag.name, ag.logo, ag.plan
+        ORDER BY revenue DESC, booking_count DESC
+    """)
+
+    # ── REVENUE TIMELINE ─────────────────────────────────────────────────
+    revenue_daily = q("""
+        SELECT DATE(b.created_at) as day,
+            COUNT(b.id) as bookings,
+            COALESCE(SUM(CASE WHEN b.status IN ('confirmed','completed') THEN o.price ELSE 0 END), 0) as revenue
+        FROM bookings b JOIN offers o ON b.offer_id=o.id
+        WHERE b.created_at >= ?
+        GROUP BY DATE(b.created_at) ORDER BY day
+    """, (since,))
+
+    # ── PLATFORM HEALTH ──────────────────────────────────────────────────
+    booking_statuses = q("""SELECT status, COUNT(*) as c FROM bookings
+        WHERE created_at >= ? GROUP BY status ORDER BY c DESC""", (since,))
+
+    offer_categories = q("""SELECT category, COUNT(*) as c,
+        COALESCE(SUM(o.views), 0) as views
+        FROM offers o WHERE status='approved'
+        GROUP BY category ORDER BY c DESC""")
+
+    # Growth: new users vs previous period
+    prev_since = (datetime.now(timezone.utc) - timedelta(days=days*2)).strftime("%Y-%m-%d")
+    new_users_curr = cnt("SELECT COUNT(*) as c FROM users WHERE role='traveler' AND created_at >= ?", (since,))
+    new_users_prev = cnt("SELECT COUNT(*) as c FROM users WHERE role='traveler' AND created_at >= ? AND created_at < ?", (prev_since, since))
+    new_bookings_curr = cnt("SELECT COUNT(*) as c FROM bookings WHERE created_at >= ?", (since,))
+    new_bookings_prev = cnt("SELECT COUNT(*) as c FROM bookings WHERE created_at >= ? AND created_at < ?", (prev_since, since))
+
+    total_revenue = cnt("""SELECT COALESCE(SUM(o.price),0) as c FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        WHERE b.status IN ('confirmed','completed')""")
+    period_revenue = cnt("""SELECT COALESCE(SUM(o.price),0) as c FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        WHERE b.status IN ('confirmed','completed') AND b.created_at >= ?""", (since,))
+
+    # User registration timeline
+    user_growth = q("""SELECT DATE(created_at) as day, COUNT(*) as c
+        FROM users WHERE role='traveler' AND created_at >= ?
+        GROUP BY DATE(created_at) ORDER BY day""", (since,))
+
+    # Cities breakdown (from new field)
+    top_cities = q("""SELECT city, COUNT(*) as c FROM users
+        WHERE role='traveler' AND city != '' AND city IS NOT NULL
+        GROUP BY city ORDER BY c DESC LIMIT 10""")
+
+    # Gender breakdown
+    gender_stats = q("""SELECT gender, COUNT(*) as c FROM users
+        WHERE role='traveler' AND gender != '' AND gender IS NOT NULL
+        GROUP BY gender""")
 
     return jsonify({
-        "daily": daily, "top_offers": top_offers, "devices": devices,
-        "browsers": browsers, "sources": sources, "searches": searches,
-        "filters": filters, "hourly": hourly, "langs": langs, "funnel": funnel,
-        "total_events": total_events[0]["c"] if total_events else 0,
-        "total_sessions": total_sessions[0]["c"] if total_sessions else 0,
+        # Traffic
+        "daily": daily, "hourly": hourly, "devices": devices, "browsers": browsers,
+        "sources": sources, "langs": langs, "searches": searches, "filters": filters,
+        "funnel": funnel, "total_events": total_events, "total_sessions": total_sessions,
+        "top_offers": top_offers,
+        # Business
+        "agency_leaderboard": agency_leaderboard,
+        "revenue_daily": revenue_daily,
+        "booking_statuses": booking_statuses,
+        "offer_categories": offer_categories,
+        "total_revenue": total_revenue,
+        "period_revenue": period_revenue,
+        # Growth
+        "new_users_curr": new_users_curr, "new_users_prev": new_users_prev,
+        "new_bookings_curr": new_bookings_curr, "new_bookings_prev": new_bookings_prev,
+        "user_growth": user_growth,
+        # Demographics
+        "top_cities": top_cities, "gender_stats": gender_stats,
     })
+
 
 @app.route("/api/agencies/<int:aid>/analytics", methods=["GET"])
 @token_required
