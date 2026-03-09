@@ -407,26 +407,32 @@ def upload_avatar():
 # ─── EMAIL HELPER ─────────────────────────────────────────────────────────────
 
 def send_email(to, subject, html):
-    if not MAIL_USER or not MAIL_PASS:
-        print(f"[EMAIL] No credentials — skipping email to {to}: {subject}")
+    if not MAIL_PASS:
+        print(f"[EMAIL] No API key — skipping email to {to}: {subject}")
         return False
-    def _send():
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"]    = f"Get Lost DZ <{MAIL_USER}>"
-            msg["To"]      = to
-            msg.attach(MIMEText(html, "html"))
-            with smtplib.SMTP(MAIL_HOST, MAIL_PORT, timeout=15) as s:
-                s.ehlo()
-                s.starttls()
-                s.login(MAIL_USER, MAIL_PASS)
-                s.sendmail(MAIL_USER, to, msg.as_string())
-            print(f"[EMAIL] Sent to {to}: {subject}")
-        except Exception as e:
-            print(f"[EMAIL] Error sending to {to}: {e}")
-    threading.Thread(target=_send, daemon=True).start()
-    return True
+    try:
+        import urllib.request, urllib.error
+        payload = json.dumps({
+            "sender": {"name": "Get Lost DZ", "email": MAIL_FROM or "getlost.dz@gmail.com"},
+            "to": [{"email": to}],
+            "subject": subject,
+            "htmlContent": html
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.brevo.com/v3/smtp/email",
+            data=payload,
+            headers={
+                "Content-Type": "application/json",
+                "api-key": MAIL_PASS
+            },
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            print(f"[EMAIL] Sent to {to}: {resp.status}")
+            return True
+    except Exception as e:
+        print(f"[EMAIL] Error sending to {to}: {e}")
+        return False
 
 # ─── PASSWORD RESET ───────────────────────────────────────────────────────────
 
