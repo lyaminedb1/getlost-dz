@@ -3,7 +3,7 @@ GET LOST DZ — Full Backend API
 Flask + PostgreSQL (prod) / SQLite (dev) + JWT + bcrypt
 Auto-detects DATABASE_URL env var
 """
-import bcrypt, jwt, json, os, secrets, smtplib
+import bcrypt, jwt, json, os, secrets, smtplib, threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, timezone
@@ -410,22 +410,23 @@ def send_email(to, subject, html):
     if not MAIL_USER or not MAIL_PASS:
         print(f"[EMAIL] No credentials — skipping email to {to}: {subject}")
         return False
-    try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"]    = f"Get Lost DZ <{MAIL_USER}>"
-        msg["To"]      = to
-        msg.attach(MIMEText(html, "html"))
-        with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as s:
-            s.ehlo()
-            s.starttls()
-            s.login(MAIL_USER, MAIL_PASS)
-            s.sendmail(MAIL_USER, to, msg.as_string())
-        print(f"[EMAIL] Sent to {to}: {subject}")
-        return True
-    except Exception as e:
-        print(f"[EMAIL] Error sending to {to}: {e}")
-        return False
+    def _send():
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"]    = f"Get Lost DZ <{MAIL_USER}>"
+            msg["To"]      = to
+            msg.attach(MIMEText(html, "html"))
+            with smtplib.SMTP(MAIL_HOST, MAIL_PORT, timeout=15) as s:
+                s.ehlo()
+                s.starttls()
+                s.login(MAIL_USER, MAIL_PASS)
+                s.sendmail(MAIL_USER, to, msg.as_string())
+            print(f"[EMAIL] Sent to {to}: {subject}")
+        except Exception as e:
+            print(f"[EMAIL] Error sending to {to}: {e}")
+    threading.Thread(target=_send, daemon=True).start()
+    return True
 
 # ─── PASSWORD RESET ───────────────────────────────────────────────────────────
 
