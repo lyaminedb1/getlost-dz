@@ -82,13 +82,6 @@ else:
 
 # ─── INIT DB ──────────────────────────────────────────────────────────────────
 
-def _exec(db, sql, args=()):
-    """Execute on either psycopg2 or sqlite3 connection."""
-    if USE_POSTGRES:
-        cur = db.cursor(); cur.execute(sql.replace("?","%s"), args)
-    else:
-        db.execute(sql, args)
-
 def init_db():
     if USE_POSTGRES:
         db = _pg_conn()
@@ -143,10 +136,16 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 offer_id INTEGER NOT NULL REFERENCES offers(id),
                 user_id INTEGER NOT NULL REFERENCES users(id),
+                phone TEXT DEFAULT '',
                 message TEXT DEFAULT '',
                 status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+        """)
+        db.commit()
+        # ── Migration: add phone column if missing ──
+        cur.execute("""
+            ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
         """)
         db.commit()
         # Check if already seeded
@@ -162,8 +161,13 @@ def init_db():
             CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', logo TEXT DEFAULT '🏢', plan TEXT DEFAULT 'standard', status TEXT DEFAULT 'approved', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id));
             CREATE TABLE IF NOT EXISTS offers (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, price INTEGER NOT NULL, duration INTEGER NOT NULL DEFAULT 1, region TEXT NOT NULL, description TEXT DEFAULT '', image_url TEXT DEFAULT '', itinerary TEXT DEFAULT '[]', includes TEXT DEFAULT '[]', available_dates TEXT DEFAULT '[]', status TEXT DEFAULT 'pending', views INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(agency_id) REFERENCES agencies(id));
             CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), title TEXT NOT NULL, comment TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
-            CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, message TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, phone TEXT DEFAULT '', message TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
         """)
+        # ── Migration: add phone column if missing (SQLite) ──
+        cols = [r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()]
+        if 'phone' not in cols:
+            db.execute("ALTER TABLE bookings ADD COLUMN phone TEXT DEFAULT ''")
+            db.commit()
         count = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         if count > 0:
             db.close(); print("✅  DB already seeded"); return
@@ -222,11 +226,11 @@ def init_db():
 # ─── HELPERS ──────────────────────────────────────────────────────────────────
 
 def parse_offer(o):
-    def safe_json(v):
-        if isinstance(v, list): return v
-        try: return json.loads(v or "[]")
-        except: return []
-    return {**o,"itinerary":safe_json(o.get("itinerary")),"includes":safe_json(o.get("includes")),"available_dates":safe_json(o.get("available_dates"))}
+    if not o: return o
+    for f in ["itinerary","includes","available_dates"]:
+        try: o[f] = json.loads(o.get(f) or "[]")
+        except: o[f] = []
+    return o
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
 
@@ -305,13 +309,6 @@ def me():
     return jsonify(u)
 
 # ─── OFFERS ───────────────────────────────────────────────────────────────────
-
-def parse_offer(o):
-    if not o: return o
-    for f in ["itinerary","includes","available_dates"]:
-        try: o[f] = json.loads(o.get(f) or "[]")
-        except: o[f] = []
-    return o
 
 @app.route("/api/offers", methods=["GET"])
 def get_offers():
@@ -499,12 +496,18 @@ def agency_offers(aid):
 def book():
     u = g.user
     d = request.json or {}
-    oid = d.get("offerId")
-    if not oid: return jsonify({"error":"offerId required"}), 400
+    oid   = d.get("offerId")
+    phone = (d.get("phone") or "").strip()
+    if not oid:   return jsonify({"error":"offerId required"}), 400
+    if not phone: return jsonify({"error":"Numéro de téléphone requis"}), 400
+    # Basic phone validation: must contain at least 8 digits
+    digits = ''.join(c for c in phone if c.isdigit())
+    if len(digits) < 8:
+        return jsonify({"error":"Numéro de téléphone invalide (min. 8 chiffres)"}), 400
     if not db_query("SELECT id FROM offers WHERE id=? AND status='approved'", (oid,), one=True):
         return jsonify({"error":"Offer not found"}), 404
-    bid = db_run("INSERT INTO bookings(offer_id,user_id,message) VALUES(?,?,?)",
-        (oid, u["id"], d.get("message","")))
+    bid = db_run("INSERT INTO bookings(offer_id,user_id,phone,message) VALUES(?,?,?,?)",
+        (oid, u["id"], phone, d.get("message","")))
     return jsonify({"id":bid,"message":"Booking confirmed! The agency will contact you within 24h."}), 201
 
 @app.route("/api/bookings/my", methods=["GET"])
@@ -514,7 +517,6 @@ def my_bookings():
         FROM bookings b JOIN offers o ON b.offer_id=o.id
         WHERE b.user_id=? ORDER BY b.created_at DESC""", (g.user["id"],))
     return jsonify(rows)
-
 
 @app.route("/api/agencies/<int:aid>/bookings", methods=["GET"])
 @token_required
@@ -539,7 +541,6 @@ def update_booking_status(bid):
     status = d.get("status")
     if status not in ["pending","confirmed","cancelled"]:
         return jsonify({"error":"Invalid status"}), 400
-    # Check ownership: agency owns the offer, or admin
     booking = db_query("""SELECT b.*, o.agency_id FROM bookings b
         JOIN offers o ON b.offer_id=o.id WHERE b.id=?""", (bid,), one=True)
     if not booking: return jsonify({"error":"Not found"}), 404
@@ -612,12 +613,10 @@ def serve(path):
         return send_from_directory("static", path)
     return send_from_directory("static", "index.html")
 
-# ─── STARTUP (gunicorn + direct) ─────────────────────────────────────────────
+# ─── STARTUP ─────────────────────────────────────────────────────────────────
 if USE_POSTGRES or not os.path.exists("getlost.db"):
     print("🔧  Initialising database …")
     init_db()
-
-# ─── MAIN ────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))

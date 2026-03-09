@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Get Lost DZ — In The Right Direction</title>
+<title>Get Lost DZ \u2014 In The Right Direction</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -33,7 +33,7 @@ input,textarea,select{font-family:'Poppins',sans-serif;outline:none}
 .fade{animation:fadeUp .5s ease both}
 .toast-in{animation:slideIn .3s ease both}
 
-/* ── MOBILE RESPONSIVE ─────────────────────────────────────────────────── */
+/* \u2500\u2500 MOBILE RESPONSIVE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 @media(max-width:768px){
   .nav-links{display:none!important}
   .nav-right-desktop{display:none!important}
@@ -61,7 +61,7 @@ input,textarea,select{font-family:'Poppins',sans-serif;outline:none}
 <script type="text/babel">
 const {useState,useEffect,useCallback,useRef,createContext,useContext}=React;
 
-/* ── API ──────────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 API \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 async function api(path,opts={}){
   const tok=localStorage.getItem('glz_tok');
   const res=await fetch('/api'+path,{
@@ -74,7 +74,7 @@ async function api(path,opts={}){
   return data;
 }
 
-/* ── AUTH CONTEXT ─────────────────────────────────────────────────────────── */
+/* \u2500\u2500 AUTH CONTEXT \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const AuthCtx=createContext(null);
 function AuthProvider({children}){
   const [user,setUser]=useState(null);
@@ -94,7 +94,7 @@ function AuthProvider({children}){
 }
 const useAuth=()=>useContext(AuthCtx);
 
-/* ── TOAST ────────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 TOAST \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const ToastCtx=createContext(null);
 function ToastProvider({children}){
   const [toasts,setToasts]=useState([]);
@@ -110,7 +110,7 @@ function ToastProvider({children}){
       <div style={{position:'fixed',top:76,right:18,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
         {toasts.map(t=>{const c=colors[t.type]||colors.ok;return(
           <div key={t.id} className="toast-in" style={{padding:'12px 20px',borderRadius:12,fontSize:14,fontWeight:600,maxWidth:340,background:c.bg,color:c.text,boxShadow:'0 8px 24px rgba(0,0,0,.15)'}}>
-            {t.type==='ok'?'✅':t.type==='err'?'❌':'⚠️'} {t.msg}
+            {t.type==='ok'?'\u2705':t.type==='err'?'\u274c':'\u26a0\ufe0f'} {t.msg}
           </div>
         );})}
       </div>
@@ -119,50 +119,52 @@ function ToastProvider({children}){
 }
 const useToast=()=>useContext(ToastCtx);
 
-/* ── TRANSLATIONS ─────────────────────────────────────────────────────────── */
+/* \u2500\u2500 TRANSLATIONS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const TR={
   fr:{
-    navHome:'Accueil',navTrips:'Voyages',navAbout:'À Propos',navLogin:'Connexion',navReg:"S'inscrire",navDash:'Mon espace',navAdmin:'Admin',navLogout:'Déconnexion',
-    heroTag:'🌍 Agence de voyage algérienne',heroTitle1:'Découvrez',heroTitle2:"l'Algérie",heroTitle3:'& le monde',heroSub:"Zanzibar, Sahara, Kabylie… Des voyages inoubliables organisés par les meilleures agences d'Algérie.",heroCta:'Voir les voyages',heroCta2:'En savoir plus',
-    stats:['Abonnés Instagram','Voyages organisés','Destinations','Satisfaction'],
-    catTitle:'Que recherchez-vous ?',cats:{all:'Tout voir',intl:'International',national:'Algérie',hike:'Randonnées',visa:'Visas'},
-    catIco:{intl:'✈️',national:'🇩🇿',hike:'🥾',visa:'📋'},
+    navHome:'Accueil',navTrips:'Voyages',navAbout:'\u00c0 Propos',navLogin:'Connexion',navReg:"S'inscrire",navDash:'Mon espace',navAdmin:'Admin',navLogout:'D\u00e9connexion',
+    heroTag:'\ud83c\udf0d Agence de voyage alg\u00e9rienne',heroTitle1:'D\u00e9couvrez',heroTitle2:"l'Alg\u00e9rie",heroTitle3:'& le monde',heroSub:"Zanzibar, Sahara, Kabylie\u2026 Des voyages inoubliables organis\u00e9s par les meilleures agences d'Alg\u00e9rie.",heroCta:'Voir les voyages',heroCta2:'En savoir plus',
+    stats:['Abonn\u00e9s Instagram','Voyages organis\u00e9s','Destinations','Satisfaction'],
+    catTitle:'Que recherchez-vous ?',cats:{all:'Tout voir',intl:'International',national:'Alg\u00e9rie',hike:'Randonn\u00e9es',visa:'Visas'},
+    catIco:{intl:'\u2708\ufe0f',national:'\ud83c\udde9\ud83c\uddff',hike:'\ud83e\udd7e',visa:'\ud83d\udccb'},
     catDesc:{intl:'Afrique, Asie, Europe',national:'Sahara, Kabylie, Hoggar',hike:'Trek & bivouac',visa:'Express 48h'},
     featTitle:'Voyages populaires',seeAll:'Voir tous les voyages',
-    from:'À partir de',per:'/pers.',days:'j',revs:'avis',details:'Voir l\'offre',
-    srchPh:'Rechercher une destination…',sortBy:'Trier :',sorts:[['rating','Mieux notés'],['price_asc','Prix ↑'],['price_desc','Prix ↓']],
+    from:'\u00c0 partir de',per:'/pers.',days:'j',revs:'avis',details:'Voir l\'offre',
+    srchPh:'Rechercher une destination\u2026',sortBy:'Trier :',sorts:[['rating','Mieux not\u00e9s'],['price_asc','Prix \u2191'],['price_desc','Prix \u2193']],
     itin:'Programme',incl:'Ce qui est inclus',dates:'Dates disponibles',
-    revTitle:'Avis voyageurs',leaveRev:'Laisser un avis',yourRating:'Votre note',revPlaceholder:'Partagez votre expérience…',submitRev:'Publier mon avis',noRevs:'Aucun avis pour l\'instant. Soyez le premier !',
-    book:'🎫 Réserver ce voyage',booked:'Réservation envoyée !',bookMsg:"L'agence vous contactera sous 24h.",
-    loginTitle:'Connexion',regTitle:'Créer un compte',emailLbl:'Email',passLbl:'Mot de passe',nameLbl:'Votre nom',agNameLbl:'Nom de l\'agence',descLbl:'Description',
-    noAcc:'Pas de compte ?',hasAcc:'Déjà un compte ?',roleT:'Je suis voyageur',roleA:'Je suis une agence',
+    revTitle:'Avis voyageurs',leaveRev:'Laisser un avis',yourRating:'Votre note',revPlaceholder:'Partagez votre exp\u00e9rience\u2026',submitRev:'Publier mon avis',noRevs:'Aucun avis pour l\'instant. Soyez le premier !',
+    book:'\ud83c\udfab R\u00e9server ce voyage',booked:'R\u00e9servation envoy\u00e9e !',bookMsg:"L'agence vous contactera sous 24h.",
+    phoneLbl:'Téléphone',
+    loginTitle:'Connexion',regTitle:'Cr\u00e9er un compte',emailLbl:'Email',passLbl:'Mot de passe',nameLbl:'Votre nom',agNameLbl:'Nom de l\'agence',descLbl:'Description',
+    noAcc:'Pas de compte ?',hasAcc:'D\u00e9j\u00e0 un compte ?',roleT:'Je suis voyageur',roleA:'Je suis une agence',
     dashWelcome:'Bonjour',myOffers:'Mes offres',addOffer:'+ Nouvelle offre',stats2:'Statistiques',
-    totOff:'Offres',approved:'Validées',pending:'En attente',views:'Vues totales',
-    status:{approved:'Validée',pending:'En attente',rejected:'Refusée'},
-    fTitle:'Titre *',fCat:'Catégorie',fPrice:'Prix (DZD) *',fDur:'Durée (jours)',fRegion:'Région *',fDesc:'Description',fImg:'URL image',fItin:'Programme (1 étape/ligne)',fIncl:'Inclus (1 item/ligne)',fDates:'Dates dispo (1/ligne)',
+    totOff:'Offres',approved:'Valid\u00e9es',pending:'En attente',views:'Vues totales',
+    status:{approved:'Valid\u00e9e',pending:'En attente',rejected:'Refus\u00e9e'},
+    fTitle:'Titre *',fCat:'Cat\u00e9gorie',fPrice:'Prix (DZD) *',fDur:'Dur\u00e9e (jours)',fRegion:'R\u00e9gion *',fDesc:'Description',fImg:'URL image',fItin:'Programme (1 \u00e9tape/ligne)',fIncl:'Inclus (1 item/ligne)',fDates:'Dates dispo (1/ligne)',
     submit:'Soumettre pour validation',save:'Sauvegarder',cancel:'Annuler',confirmDel:'Supprimer cette offre ?',
-    myBook:'Mes réservations',noBook:'Aucune réservation. Explorez nos voyages !',
+    myBook:'Mes r\u00e9servations',noBook:'Aucune r\u00e9servation. Explorez nos voyages !',
     adminTitle:'Administration',aOffers:'Offres',aAgencies:'Agences',aUsers:'Utilisateurs',aRevs:'Avis',
     approve:'Approuver',reject:'Refuser',suspend:'Suspendre',
     aboutTitle:'Notre histoire',
-    ap1:"Get Lost DZ est une plateforme algérienne connectant les voyageurs aux meilleures agences locales pour des expériences authentiques en Algérie et à l'étranger.",
-    ap2:'Avec près de 100k abonnés Instagram et plus de 1000 voyages organisés, nous sommes devenus la référence du tourisme expérientiel en Algérie.',
-    ap3:'Notre équipe passionnée valide chaque offre pour garantir qualité, sécurité et authenticité à chaque aventure.',
-    vals:[{i:'🎯',t:'Mission',d:'Rendre le voyage accessible et mémorable pour tous.'},{i:'🌿',t:'Authenticité',d:'Chaque expérience est vérifiée et certifiée par notre équipe.'},{i:'🤝',t:'Partenaires',d:'15+ agences certifiées, expertes dans leurs régions.'},{i:'⭐',t:'Excellence',d:'99% de voyageurs satisfaits. La qualité est notre priorité.'}],
+    ap1:"Get Lost DZ est une plateforme alg\u00e9rienne connectant les voyageurs aux meilleures agences locales pour des exp\u00e9riences authentiques en Alg\u00e9rie et \u00e0 l'\u00e9tranger.",
+    ap2:'Avec pr\u00e8s de 100k abonn\u00e9s Instagram et plus de 1000 voyages organis\u00e9s, nous sommes devenus la r\u00e9f\u00e9rence du tourisme exp\u00e9rientiel en Alg\u00e9rie.',
+    ap3:'Notre \u00e9quipe passionn\u00e9e valide chaque offre pour garantir qualit\u00e9, s\u00e9curit\u00e9 et authenticit\u00e9 \u00e0 chaque aventure.',
+    vals:[{i:'\ud83c\udfaf',t:'Mission',d:'Rendre le voyage accessible et m\u00e9morable pour tous.'},{i:'\ud83c\udf3f',t:'Authenticit\u00e9',d:'Chaque exp\u00e9rience est v\u00e9rifi\u00e9e et certifi\u00e9e par notre \u00e9quipe.'},{i:'\ud83e\udd1d',t:'Partenaires',d:'15+ agences certifi\u00e9es, expertes dans leurs r\u00e9gions.'},{i:'\u2b50',t:'Excellence',d:'99% de voyageurs satisfaits. La qualit\u00e9 est notre priorit\u00e9.'}],
   },
   en:{
     navHome:'Home',navTrips:'Trips',navAbout:'About',navLogin:'Login',navReg:'Sign Up',navDash:'My Space',navAdmin:'Admin',navLogout:'Logout',
-    heroTag:'🌍 Algerian travel agency',heroTitle1:'Discover',heroTitle2:'Algeria',heroTitle3:'& the world',heroSub:'Zanzibar, Sahara, Kabylie… Unforgettable trips organized by Algeria\'s best agencies.',heroCta:'Explore Trips',heroCta2:'Learn More',
+    heroTag:'\ud83c\udf0d Algerian travel agency',heroTitle1:'Discover',heroTitle2:'Algeria',heroTitle3:'& the world',heroSub:'Zanzibar, Sahara, Kabylie\u2026 Unforgettable trips organized by Algeria\'s best agencies.',heroCta:'Explore Trips',heroCta2:'Learn More',
     stats:['Instagram Followers','Organized Trips','Destinations','Satisfaction'],
     catTitle:'What are you looking for?',cats:{all:'See all',intl:'International',national:'Algeria',hike:'Hiking',visa:'Visas'},
-    catIco:{intl:'✈️',national:'🇩🇿',hike:'🥾',visa:'📋'},
+    catIco:{intl:'\u2708\ufe0f',national:'\ud83c\udde9\ud83c\uddff',hike:'\ud83e\udd7e',visa:'\ud83d\udccb'},
     catDesc:{intl:'Africa, Asia, Europe',national:'Sahara, Kabylie, Hoggar',hike:'Trek & bivouac',visa:'Express 48h'},
     featTitle:'Popular Trips',seeAll:'See all trips',
     from:'From',per:'/person',days:'d',revs:'reviews',details:'View offer',
-    srchPh:'Search a destination…',sortBy:'Sort:',sorts:[['rating','Top Rated'],['price_asc','Price ↑'],['price_desc','Price ↓']],
+    srchPh:'Search a destination\u2026',sortBy:'Sort:',sorts:[['rating','Top Rated'],['price_asc','Price \u2191'],['price_desc','Price \u2193']],
     itin:'Itinerary',incl:'What\'s included',dates:'Available Dates',
-    revTitle:'Traveler Reviews',leaveRev:'Leave a Review',yourRating:'Your Rating',revPlaceholder:'Share your experience…',submitRev:'Post Review',noRevs:'No reviews yet. Be the first!',
-    book:'🎫 Book This Trip',booked:'Booking Sent!',bookMsg:'The agency will contact you within 24h.',
+    revTitle:'Traveler Reviews',leaveRev:'Leave a Review',yourRating:'Your Rating',revPlaceholder:'Share your experience\u2026',submitRev:'Post Review',noRevs:'No reviews yet. Be the first!',
+    book:'\ud83c\udfab Book This Trip',booked:'Booking Sent!',bookMsg:'The agency will contact you within 24h.',
+    phoneLbl:'Phone',
     loginTitle:'Login',regTitle:'Create Account',emailLbl:'Email',passLbl:'Password',nameLbl:'Your name',agNameLbl:'Agency Name',descLbl:'Description',
     noAcc:'No account?',hasAcc:'Already have an account?',roleT:'I\'m a traveler',roleA:'I\'m an agency',
     dashWelcome:'Hello',myOffers:'My Offers',addOffer:'+ New Offer',stats2:'Statistics',
@@ -177,40 +179,40 @@ const TR={
     ap1:'Get Lost DZ is an Algerian platform connecting travelers to the best local agencies for authentic experiences in Algeria and abroad.',
     ap2:'With nearly 100k Instagram followers and over 1000 organized trips, we have become the reference for experiential tourism in Algeria.',
     ap3:'Our passionate team validates each offer to guarantee quality, safety and authenticity for every adventure.',
-    vals:[{i:'🎯',t:'Mission',d:'Make travel accessible and memorable for everyone.'},{i:'🌿',t:'Authenticity',d:'Every experience is verified and certified by our team.'},{i:'🤝',t:'Partners',d:'15+ certified agencies, experts in their regions.'},{i:'⭐',t:'Excellence',d:'99% satisfied travelers. Quality is our priority.'}],
+    vals:[{i:'\ud83c\udfaf',t:'Mission',d:'Make travel accessible and memorable for everyone.'},{i:'\ud83c\udf3f',t:'Authenticity',d:'Every experience is verified and certified by our team.'},{i:'\ud83e\udd1d',t:'Partners',d:'15+ certified agencies, experts in their regions.'},{i:'\u2b50',t:'Excellence',d:'99% satisfied travelers. Quality is our priority.'}],
   },
   ar:{
-    navHome:'الرئيسية',navTrips:'الرحلات',navAbout:'من نحن',navLogin:'دخول',navReg:'تسجيل',navDash:'مساحتي',navAdmin:'الإدارة',navLogout:'خروج',
-    heroTag:'🌍 وكالة سفر جزائرية',heroTitle1:'اكتشف',heroTitle2:'الجزائر',heroTitle3:'والعالم',heroSub:'زنجبار، الصحراء، القبائل… رحلات لا تُنسى مع أفضل وكالات الجزائر.',heroCta:'استكشف الرحلات',heroCta2:'اعرف أكثر',
-    stats:['متابع على إنستغرام','رحلة منظمة','وجهة','رضا العملاء'],
-    catTitle:'ماذا تبحث عن؟',cats:{all:'الكل',intl:'دولي',national:'الجزائر',hike:'مشي وتخييم',visa:'تأشيرات'},
-    catIco:{intl:'✈️',national:'🇩🇿',hike:'🥾',visa:'📋'},
-    catDesc:{intl:'أفريقيا، آسيا، أوروبا',national:'الصحراء، القبائل، الهقار',hike:'ترك وبيواك',visa:'سريع 48 ساعة'},
-    featTitle:'رحلات شعبية',seeAll:'عرض كل الرحلات',
-    from:'من',per:'/شخص',days:'أيام',revs:'تقييم',details:'عرض التفاصيل',
-    srchPh:'ابحث عن وجهة…',sortBy:'ترتيب:',sorts:[['rating','الأعلى تقييماً'],['price_asc','السعر تصاعدي'],['price_desc','السعر تنازلي']],
-    itin:'البرنامج',incl:'ما يشمله العرض',dates:'التواريخ المتاحة',
-    revTitle:'تقييمات المسافرين',leaveRev:'اترك تقييماً',yourRating:'تقييمك',revPlaceholder:'شاركنا تجربتك…',submitRev:'نشر التقييم',noRevs:'لا توجد تقييمات بعد. كن الأول!',
-    book:'🎫 احجز هذه الرحلة',booked:'تم إرسال الحجز!',bookMsg:'ستتواصل معك الوكالة خلال 24 ساعة.',
-    loginTitle:'تسجيل الدخول',regTitle:'إنشاء حساب',emailLbl:'البريد الإلكتروني',passLbl:'كلمة المرور',nameLbl:'اسمك',agNameLbl:'اسم الوكالة',descLbl:'الوصف',
-    noAcc:'ليس لديك حساب؟',hasAcc:'لديك حساب بالفعل؟',roleT:'أنا مسافر',roleA:'أنا وكالة',
-    dashWelcome:'مرحباً',myOffers:'عروضي',addOffer:'+ عرض جديد',stats2:'إحصائيات',
-    totOff:'العروض',approved:'معتمدة',pending:'في الانتظار',views:'إجمالي المشاهدات',
-    status:{approved:'معتمد',pending:'في الانتظار',rejected:'مرفوض'},
-    fTitle:'العنوان *',fCat:'الفئة',fPrice:'السعر (دج) *',fDur:'المدة (أيام)',fRegion:'المنطقة *',fDesc:'الوصف',fImg:'رابط الصورة',fItin:'البرنامج (سطر لكل مرحلة)',fIncl:'يشمل (سطر لكل بند)',fDates:'التواريخ المتاحة (سطر/تاريخ)',
-    submit:'إرسال للمراجعة',save:'حفظ',cancel:'إلغاء',confirmDel:'حذف هذا العرض؟',
-    myBook:'حجوزاتي',noBook:'لا توجد حجوزات بعد. استكشف رحلاتنا!',
-    adminTitle:'الإدارة',aOffers:'العروض',aAgencies:'الوكالات',aUsers:'المستخدمون',aRevs:'التقييمات',
-    approve:'اعتماد',reject:'رفض',suspend:'تعليق',
-    aboutTitle:'قصتنا',
-    ap1:'Get Lost DZ منصة جزائرية تربط المسافرين بأفضل الوكالات المحلية لتجارب أصيلة في الجزائر وخارجها.',
-    ap2:'مع ما يقارب k100 متابع على إنستغرام وأكثر من 1000 رحلة منظمة، أصبحنا المرجع للسياحة التجريبية في الجزائر.',
-    ap3:'فريقنا الشغوف يتحقق من كل عرض لضمان الجودة والأمان والأصالة في كل مغامرة.',
-    vals:[{i:'🎯',t:'مهمتنا',d:'جعل السفر ميسوراً ولا يُنسى للجميع.'},{i:'🌿',t:'الأصالة',d:'كل تجربة يتم التحقق منها وتوثيقها من قبل فريقنا.'},{i:'🤝',t:'شركاؤنا',d:'أكثر من 15 وكالة معتمدة وخبيرة في مناطقها.'},{i:'⭐',t:'التميز',d:'99% من المسافرين راضون. الجودة هي أولويتنا.'}],
+    navHome:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629',navTrips:'\u0627\u0644\u0631\u062d\u0644\u0627\u062a',navAbout:'\u0645\u0646 \u0646\u062d\u0646',navLogin:'\u062f\u062e\u0648\u0644',navReg:'\u062a\u0633\u062c\u064a\u0644',navDash:'\u0645\u0633\u0627\u062d\u062a\u064a',navAdmin:'\u0627\u0644\u0625\u062f\u0627\u0631\u0629',navLogout:'\u062e\u0631\u0648\u062c',
+    heroTag:'\ud83c\udf0d \u0648\u0643\u0627\u0644\u0629 \u0633\u0641\u0631 \u062c\u0632\u0627\u0626\u0631\u064a\u0629',heroTitle1:'\u0627\u0643\u062a\u0634\u0641',heroTitle2:'\u0627\u0644\u062c\u0632\u0627\u0626\u0631',heroTitle3:'\u0648\u0627\u0644\u0639\u0627\u0644\u0645',heroSub:'\u0632\u0646\u062c\u0628\u0627\u0631\u060c \u0627\u0644\u0635\u062d\u0631\u0627\u0621\u060c \u0627\u0644\u0642\u0628\u0627\u0626\u0644\u2026 \u0631\u062d\u0644\u0627\u062a \u0644\u0627 \u062a\u064f\u0646\u0633\u0649 \u0645\u0639 \u0623\u0641\u0636\u0644 \u0648\u0643\u0627\u0644\u0627\u062a \u0627\u0644\u062c\u0632\u0627\u0626\u0631.',heroCta:'\u0627\u0633\u062a\u0643\u0634\u0641 \u0627\u0644\u0631\u062d\u0644\u0627\u062a',heroCta2:'\u0627\u0639\u0631\u0641 \u0623\u0643\u062b\u0631',
+    stats:['\u0645\u062a\u0627\u0628\u0639 \u0639\u0644\u0649 \u0625\u0646\u0633\u062a\u063a\u0631\u0627\u0645','\u0631\u062d\u0644\u0629 \u0645\u0646\u0638\u0645\u0629','\u0648\u062c\u0647\u0629','\u0631\u0636\u0627 \u0627\u0644\u0639\u0645\u0644\u0627\u0621'],
+    catTitle:'\u0645\u0627\u0630\u0627 \u062a\u0628\u062d\u062b \u0639\u0646\u061f',cats:{all:'\u0627\u0644\u0643\u0644',intl:'\u062f\u0648\u0644\u064a',national:'\u0627\u0644\u062c\u0632\u0627\u0626\u0631',hike:'\u0645\u0634\u064a \u0648\u062a\u062e\u064a\u064a\u0645',visa:'\u062a\u0623\u0634\u064a\u0631\u0627\u062a'},
+    catIco:{intl:'\u2708\ufe0f',national:'\ud83c\udde9\ud83c\uddff',hike:'\ud83e\udd7e',visa:'\ud83d\udccb'},
+    catDesc:{intl:'\u0623\u0641\u0631\u064a\u0642\u064a\u0627\u060c \u0622\u0633\u064a\u0627\u060c \u0623\u0648\u0631\u0648\u0628\u0627',national:'\u0627\u0644\u0635\u062d\u0631\u0627\u0621\u060c \u0627\u0644\u0642\u0628\u0627\u0626\u0644\u060c \u0627\u0644\u0647\u0642\u0627\u0631',hike:'\u062a\u0631\u0643 \u0648\u0628\u064a\u0648\u0627\u0643',visa:'\u0633\u0631\u064a\u0639 48 \u0633\u0627\u0639\u0629'},
+    featTitle:'\u0631\u062d\u0644\u0627\u062a \u0634\u0639\u0628\u064a\u0629',seeAll:'\u0639\u0631\u0636 \u0643\u0644 \u0627\u0644\u0631\u062d\u0644\u0627\u062a',
+    from:'\u0645\u0646',per:'/\u0634\u062e\u0635',days:'\u0623\u064a\u0627\u0645',revs:'\u062a\u0642\u064a\u064a\u0645',details:'\u0639\u0631\u0636 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644',
+    srchPh:'\u0627\u0628\u062d\u062b \u0639\u0646 \u0648\u062c\u0647\u0629\u2026',sortBy:'\u062a\u0631\u062a\u064a\u0628:',sorts:[['rating','\u0627\u0644\u0623\u0639\u0644\u0649 \u062a\u0642\u064a\u064a\u0645\u0627\u064b'],['price_asc','\u0627\u0644\u0633\u0639\u0631 \u062a\u0635\u0627\u0639\u062f\u064a'],['price_desc','\u0627\u0644\u0633\u0639\u0631 \u062a\u0646\u0627\u0632\u0644\u064a']],
+    itin:'\u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c',incl:'\u0645\u0627 \u064a\u0634\u0645\u0644\u0647 \u0627\u0644\u0639\u0631\u0636',dates:'\u0627\u0644\u062a\u0648\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u062a\u0627\u062d\u0629',
+    revTitle:'\u062a\u0642\u064a\u064a\u0645\u0627\u062a \u0627\u0644\u0645\u0633\u0627\u0641\u0631\u064a\u0646',leaveRev:'\u0627\u062a\u0631\u0643 \u062a\u0642\u064a\u064a\u0645\u0627\u064b',yourRating:'\u062a\u0642\u064a\u064a\u0645\u0643',revPlaceholder:'\u0634\u0627\u0631\u0643\u0646\u0627 \u062a\u062c\u0631\u0628\u062a\u0643\u2026',submitRev:'\u0646\u0634\u0631 \u0627\u0644\u062a\u0642\u064a\u064a\u0645',noRevs:'\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0642\u064a\u064a\u0645\u0627\u062a \u0628\u0639\u062f. \u0643\u0646 \u0627\u0644\u0623\u0648\u0644!',
+    book:'\ud83c\udfab \u0627\u062d\u062c\u0632 \u0647\u0630\u0647 \u0627\u0644\u0631\u062d\u0644\u0629',booked:'\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u062d\u062c\u0632!',bookMsg:'\u0633\u062a\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0643 \u0627\u0644\u0648\u0643\u0627\u0644\u0629 \u062e\u0644\u0627\u0644 24 \u0633\u0627\u0639\u0629.',
+    loginTitle:'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644',regTitle:'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628',emailLbl:'\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a',passLbl:'\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631',nameLbl:'\u0627\u0633\u0645\u0643',agNameLbl:'\u0627\u0633\u0645 \u0627\u0644\u0648\u0643\u0627\u0644\u0629',descLbl:'\u0627\u0644\u0648\u0635\u0641',
+    noAcc:'\u0644\u064a\u0633 \u0644\u062f\u064a\u0643 \u062d\u0633\u0627\u0628\u061f',hasAcc:'\u0644\u062f\u064a\u0643 \u062d\u0633\u0627\u0628 \u0628\u0627\u0644\u0641\u0639\u0644\u061f',roleT:'\u0623\u0646\u0627 \u0645\u0633\u0627\u0641\u0631',roleA:'\u0623\u0646\u0627 \u0648\u0643\u0627\u0644\u0629',
+    dashWelcome:'\u0645\u0631\u062d\u0628\u0627\u064b',myOffers:'\u0639\u0631\u0648\u0636\u064a',addOffer:'+ \u0639\u0631\u0636 \u062c\u062f\u064a\u062f',stats2:'\u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a',
+    totOff:'\u0627\u0644\u0639\u0631\u0648\u0636',approved:'\u0645\u0639\u062a\u0645\u062f\u0629',pending:'\u0641\u064a \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631',views:'\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0627\u062a',
+    status:{approved:'\u0645\u0639\u062a\u0645\u062f',pending:'\u0641\u064a \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631',rejected:'\u0645\u0631\u0641\u0648\u0636'},
+    fTitle:'\u0627\u0644\u0639\u0646\u0648\u0627\u0646 *',fCat:'\u0627\u0644\u0641\u0626\u0629',fPrice:'\u0627\u0644\u0633\u0639\u0631 (\u062f\u062c) *',fDur:'\u0627\u0644\u0645\u062f\u0629 (\u0623\u064a\u0627\u0645)',fRegion:'\u0627\u0644\u0645\u0646\u0637\u0642\u0629 *',fDesc:'\u0627\u0644\u0648\u0635\u0641',fImg:'\u0631\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631\u0629',fItin:'\u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c (\u0633\u0637\u0631 \u0644\u0643\u0644 \u0645\u0631\u062d\u0644\u0629)',fIncl:'\u064a\u0634\u0645\u0644 (\u0633\u0637\u0631 \u0644\u0643\u0644 \u0628\u0646\u062f)',fDates:'\u0627\u0644\u062a\u0648\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u062a\u0627\u062d\u0629 (\u0633\u0637\u0631/\u062a\u0627\u0631\u064a\u062e)',
+    submit:'\u0625\u0631\u0633\u0627\u0644 \u0644\u0644\u0645\u0631\u0627\u062c\u0639\u0629',save:'\u062d\u0641\u0638',cancel:'\u0625\u0644\u063a\u0627\u0621',confirmDel:'\u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0639\u0631\u0636\u061f',
+    myBook:'\u062d\u062c\u0648\u0632\u0627\u062a\u064a',noBook:'\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u062c\u0648\u0632\u0627\u062a \u0628\u0639\u062f. \u0627\u0633\u062a\u0643\u0634\u0641 \u0631\u062d\u0644\u0627\u062a\u0646\u0627!',
+    adminTitle:'\u0627\u0644\u0625\u062f\u0627\u0631\u0629',aOffers:'\u0627\u0644\u0639\u0631\u0648\u0636',aAgencies:'\u0627\u0644\u0648\u0643\u0627\u0644\u0627\u062a',aUsers:'\u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0648\u0646',aRevs:'\u0627\u0644\u062a\u0642\u064a\u064a\u0645\u0627\u062a',
+    approve:'\u0627\u0639\u062a\u0645\u0627\u062f',reject:'\u0631\u0641\u0636',suspend:'\u062a\u0639\u0644\u064a\u0642',
+    aboutTitle:'\u0642\u0635\u062a\u0646\u0627',
+    ap1:'Get Lost DZ \u0645\u0646\u0635\u0629 \u062c\u0632\u0627\u0626\u0631\u064a\u0629 \u062a\u0631\u0628\u0637 \u0627\u0644\u0645\u0633\u0627\u0641\u0631\u064a\u0646 \u0628\u0623\u0641\u0636\u0644 \u0627\u0644\u0648\u0643\u0627\u0644\u0627\u062a \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u0644\u062a\u062c\u0627\u0631\u0628 \u0623\u0635\u064a\u0644\u0629 \u0641\u064a \u0627\u0644\u062c\u0632\u0627\u0626\u0631 \u0648\u062e\u0627\u0631\u062c\u0647\u0627.',
+    ap2:'\u0645\u0639 \u0645\u0627 \u064a\u0642\u0627\u0631\u0628 k100 \u0645\u062a\u0627\u0628\u0639 \u0639\u0644\u0649 \u0625\u0646\u0633\u062a\u063a\u0631\u0627\u0645 \u0648\u0623\u0643\u062b\u0631 \u0645\u0646 1000 \u0631\u062d\u0644\u0629 \u0645\u0646\u0638\u0645\u0629\u060c \u0623\u0635\u0628\u062d\u0646\u0627 \u0627\u0644\u0645\u0631\u062c\u0639 \u0644\u0644\u0633\u064a\u0627\u062d\u0629 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629 \u0641\u064a \u0627\u0644\u062c\u0632\u0627\u0626\u0631.',
+    ap3:'\u0641\u0631\u064a\u0642\u0646\u0627 \u0627\u0644\u0634\u063a\u0648\u0641 \u064a\u062a\u062d\u0642\u0642 \u0645\u0646 \u0643\u0644 \u0639\u0631\u0636 \u0644\u0636\u0645\u0627\u0646 \u0627\u0644\u062c\u0648\u062f\u0629 \u0648\u0627\u0644\u0623\u0645\u0627\u0646 \u0648\u0627\u0644\u0623\u0635\u0627\u0644\u0629 \u0641\u064a \u0643\u0644 \u0645\u063a\u0627\u0645\u0631\u0629.',
+    vals:[{i:'\ud83c\udfaf',t:'\u0645\u0647\u0645\u062a\u0646\u0627',d:'\u062c\u0639\u0644 \u0627\u0644\u0633\u0641\u0631 \u0645\u064a\u0633\u0648\u0631\u0627\u064b \u0648\u0644\u0627 \u064a\u064f\u0646\u0633\u0649 \u0644\u0644\u062c\u0645\u064a\u0639.'},{i:'\ud83c\udf3f',t:'\u0627\u0644\u0623\u0635\u0627\u0644\u0629',d:'\u0643\u0644 \u062a\u062c\u0631\u0628\u0629 \u064a\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647\u0627 \u0648\u062a\u0648\u062b\u064a\u0642\u0647\u0627 \u0645\u0646 \u0642\u0628\u0644 \u0641\u0631\u064a\u0642\u0646\u0627.'},{i:'\ud83e\udd1d',t:'\u0634\u0631\u0643\u0627\u0624\u0646\u0627',d:'\u0623\u0643\u062b\u0631 \u0645\u0646 15 \u0648\u0643\u0627\u0644\u0629 \u0645\u0639\u062a\u0645\u062f\u0629 \u0648\u062e\u0628\u064a\u0631\u0629 \u0641\u064a \u0645\u0646\u0627\u0637\u0642\u0647\u0627.'},{i:'\u2b50',t:'\u0627\u0644\u062a\u0645\u064a\u0632',d:'99% \u0645\u0646 \u0627\u0644\u0645\u0633\u0627\u0641\u0631\u064a\u0646 \u0631\u0627\u0636\u0648\u0646. \u0627\u0644\u062c\u0648\u062f\u0629 \u0647\u064a \u0623\u0648\u0644\u0648\u064a\u062a\u0646\u0627.'}],
   }
 };
 
-/* ── SHARED STYLES ────────────────────────────────────────────────────────── */
+/* \u2500\u2500 SHARED STYLES \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const B={
   pri:{background:'linear-gradient(135deg,#0DB9A8,#09907F)',color:'#fff',border:'none',borderRadius:50,padding:'12px 28px',fontWeight:700,fontSize:14,boxShadow:'0 4px 20px rgba(13,185,168,.35)',cursor:'pointer',transition:'all .2s'},
   out:{background:'transparent',color:'var(--teal)',border:'2px solid var(--teal)',borderRadius:50,padding:'11px 28px',fontWeight:700,fontSize:14,cursor:'pointer',transition:'all .2s'},
@@ -224,12 +226,12 @@ const TA=(h=80)=>({...INP,height:h,resize:'vertical'});
 const TH={textAlign:'left',padding:'11px 16px',fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1.2,borderBottom:'2px solid #F0F4F5',background:'#FAFCFC'};
 const TD={padding:'13px 16px',borderBottom:'1px solid #F0F4F5',fontSize:14,color:'var(--text)'};
 
-/* ── HELPERS ──────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 HELPERS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 const Stars=({v=0,size=14,interactive=false,onRate})=>{
   const [h,setH]=useState(0);
   return <span style={{display:'inline-flex',gap:2}}>{[1,2,3,4,5].map(i=>(
     <span key={i} style={{fontSize:size,cursor:interactive?'pointer':'default',color:i<=(h||v)?'#F59E0B':'#DDE5E8',lineHeight:1}}
-      onClick={()=>interactive&&onRate?.(i)} onMouseEnter={()=>interactive&&setH(i)} onMouseLeave={()=>interactive&&setH(0)}>★</span>
+      onClick={()=>interactive&&onRate?.(i)} onMouseEnter={()=>interactive&&setH(i)} onMouseLeave={()=>interactive&&setH(0)}>\u2605</span>
   ))}</span>;
 };
 
@@ -257,7 +259,7 @@ const SectionTitle=({children,sub,center=false})=>(
   </div>
 );
 
-/* ── NAVBAR — with hamburger mobile menu ──────────────────────────────────── */
+/* \u2500\u2500 NAVBAR \u2014 with hamburger mobile menu \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function Navbar({page,setPage,lang,setLang,openAuth,t}){
   const {user,logout}=useAuth();
   const {show}=useToast();
@@ -277,7 +279,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
             <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--teal2)'}}>Get Lost DZ</div>
           </div>
         </div>
-        {/* NAV LINKS — desktop only */}
+        {/* NAV LINKS \u2014 desktop only */}
         <div className="nav-links" style={{display:'flex',gap:4,alignItems:'center'}}>
           <button style={nl('home')} onClick={()=>navTo('home')}>{t.navHome}</button>
           <button style={nl('trips')} onClick={()=>navTo('trips')}>{t.navTrips}</button>
@@ -285,7 +287,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
           {user&&<button style={nl('dash')} onClick={()=>navTo('dash')}>{t.navDash}</button>}
           {user?.role==='admin'&&<button style={nl('admin')} onClick={()=>navTo('admin')}>{t.navAdmin}</button>}
         </div>
-        {/* RIGHT — desktop only */}
+        {/* RIGHT \u2014 desktop only */}
         <div className="nav-right-desktop" style={{display:'flex',gap:8,alignItems:'center'}}>
           <div style={{display:'flex',gap:2,background:'#F0F4F5',borderRadius:8,padding:3}}>
             {['fr','en','ar'].map(l=>(
@@ -298,7 +300,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
                 <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{user.name[0].toUpperCase()}</div>
                 <span style={{fontSize:13,fontWeight:700,color:'var(--teal2)'}}>{user.name.split(' ')[0]}</span>
               </div>
-              <button style={{...B.ghost,padding:'8px 16px',fontSize:13}} onClick={()=>{logout();setPage('home');show('À bientôt !')}}>{t.navLogout}</button>
+              <button style={{...B.ghost,padding:'8px 16px',fontSize:13}} onClick={()=>{logout();setPage('home');show('\u00c0 bient\u00f4t !')}}>{t.navLogout}</button>
             </>
           ):(
             <>
@@ -307,21 +309,21 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
             </>
           )}
         </div>
-        {/* HAMBURGER — mobile only */}
+        {/* HAMBURGER \u2014 mobile only */}
         <button className="hamburger-btn" onClick={()=>setMenuOpen(o=>!o)}
           style={{display:'none',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:'1.5px solid #E2EBF0',background:'#fff',cursor:'pointer',fontSize:20,color:'var(--navy)',flexShrink:0}}>
-          {menuOpen?'✕':'☰'}
+          {menuOpen?'\u2715':'\u2630'}
         </button>
       </div>
       {/* MOBILE DROPDOWN MENU */}
       {menuOpen&&(
         <div className="mobile-menu-open" style={{flexDirection:'column',background:'rgba(255,255,255,.98)',backdropFilter:'blur(20px)',borderTop:'1px solid #E8F0F2',padding:'10px 16px 18px',gap:4,boxShadow:'0 12px 32px rgba(11,35,64,.1)'}}>
           {[
-            ['home',t.navHome,'🏠'],
-            ['trips',t.navTrips,'✈️'],
-            ['about',t.navAbout,'ℹ️'],
-            ...(user?[['dash',t.navDash,'👤']]:[]),
-            ...(user?.role==='admin'?[['admin',t.navAdmin,'🛡️']]:[])
+            ['home',t.navHome,'\ud83c\udfe0'],
+            ['trips',t.navTrips,'\u2708\ufe0f'],
+            ['about',t.navAbout,'\u2139\ufe0f'],
+            ...(user?[['dash',t.navDash,'\ud83d\udc64']]:[]),
+            ...(user?.role==='admin'?[['admin',t.navAdmin,'\ud83d\udee1\ufe0f']]:[])
           ].map(([pg,label,ico])=>(
             <button key={pg} onClick={()=>navTo(pg)}
               style={{padding:'11px 14px',borderRadius:10,fontSize:14,fontWeight:600,border:'none',textAlign:'left',cursor:'pointer',background:page===pg?'var(--teal3)':'transparent',color:page===pg?'var(--teal2)':'var(--navy)',transition:'all .15s',width:'100%'}}>
@@ -336,7 +338,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
               ))}
             </div>
             {user?(
-              <button style={{...B.ghost,padding:'8px 14px',fontSize:13}} onClick={()=>{logout();setPage('home');setMenuOpen(false);show('À bientôt !')}}>{t.navLogout}</button>
+              <button style={{...B.ghost,padding:'8px 14px',fontSize:13}} onClick={()=>{logout();setPage('home');setMenuOpen(false);show('\u00c0 bient\u00f4t !')}}>{t.navLogout}</button>
             ):(
               <div style={{display:'flex',gap:6}}>
                 <button style={{...B.ghost,padding:'7px 14px',fontSize:12}} onClick={()=>{openAuth('login');setMenuOpen(false);}}>{t.navLogin}</button>
@@ -350,7 +352,7 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
   );
 }
 
-/* ── OFFER CARD ───────────────────────────────────────────────────────────── */
+/* \u2500\u2500 OFFER CARD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function OfferCard({offer,t,onOpen}){
   const [hov,setHov]=useState(false);
   const avg=offer.avg_rating;
@@ -366,16 +368,16 @@ function OfferCard({offer,t,onOpen}){
           {t.catIco[offer.category]} {t.cats[offer.category]||offer.category}
         </div>
         {avg&&<div style={{position:'absolute',bottom:12,right:12,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 10px',display:'flex',alignItems:'center',gap:4}}>
-          <span style={{color:'#F59E0B',fontSize:13}}>★</span>
+          <span style={{color:'#F59E0B',fontSize:13}}>\u2605</span>
           <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>{avg}</span>
         </div>}
       </div>
       <div style={{padding:'16px 20px 20px'}}>
         <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:6,lineHeight:1.3}}>{offer.title}</div>
         <div style={{display:'flex',gap:14,color:'var(--muted)',fontSize:12,fontWeight:500,marginBottom:14,flexWrap:'wrap'}}>
-          <span>📍 {offer.region}</span>
-          <span>⏱ {offer.duration}{t.days}</span>
-          <span>💬 {offer.review_count||0} {t.revs}</span>
+          <span>\ud83d\udccd {offer.region}</span>
+          <span>\u23f1 {offer.duration}{t.days}</span>
+          <span>\ud83d\udcac {offer.review_count||0} {t.revs}</span>
         </div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
           <div>
@@ -391,7 +393,7 @@ function OfferCard({offer,t,onOpen}){
   );
 }
 
-/* ── OFFER MODAL ──────────────────────────────────────────────────────────── */
+/* \u2500\u2500 OFFER MODAL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function OfferModal({offer,onClose,t,lang}){
   const {user}=useAuth();
   const {show}=useToast();
@@ -404,10 +406,14 @@ function OfferModal({offer,onClose,t,lang}){
   if(!offer)return null;
   const avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):(offer.avg_rating||null);
   const SL=({children})=><div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal2)',marginBottom:10}}>{children}</div>;
+  const [phone,setPhone]=useState('');
   const handleBook=async()=>{
-    if(!user){onClose();show('Connectez-vous pour réserver','warn');return;}
+    if(!user){onClose();show('Connectez-vous pour r\u00e9server','warn');return;}
+    if(!phone.trim()){show('Num\u00e9ro de t\u00e9l\u00e9phone requis','err');return;}
+    const digits=(phone.match(/\\d/g)||[]).length;
+    if(digits<8){show('Num\u00e9ro invalide (min. 8 chiffres)','err');return;}
     setBooking(true);
-    try{await api('/bookings',{method:'POST',body:{offerId:offer.id}});show(t.bookMsg);}
+    try{await api('/bookings',{method:'POST',body:{offerId:offer.id,phone:phone.trim()}});show(t.bookMsg);setPhone('');}
     catch(e){show(e.message,'err');}
     setBooking(false);
   };
@@ -415,7 +421,7 @@ function OfferModal({offer,onClose,t,lang}){
     if(!user){show('Connectez-vous pour laisser un avis','warn');return;}
     if(!rf.rating||!rf.title.trim()){show('Note et titre requis','err');return;}
     setSubmitting(true);
-    try{await api(`/offers/${offer.id}/reviews`,{method:'POST',body:rf});show('Avis soumis, il sera publié après modération.');setRf({rating:0,title:'',comment:''});}
+    try{await api(`/offers/${offer.id}/reviews`,{method:'POST',body:rf});show('Avis soumis, il sera publi\u00e9 apr\u00e8s mod\u00e9ration.');setRf({rating:0,title:'',comment:''});}
     catch(e){show(e.message,'err');}
     setSubmitting(false);
   };
@@ -426,7 +432,7 @@ function OfferModal({offer,onClose,t,lang}){
           <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'} alt={offer.title}
             onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'}
             style={{width:'100%',height:240,objectFit:'cover',display:'block'}}/>
-          <button onClick={onClose} style={{position:'absolute',top:14,right:14,background:'rgba(255,255,255,.95)',border:'none',borderRadius:'50%',width:36,height:36,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.15)'}}>×</button>
+          <button onClick={onClose} style={{position:'absolute',top:14,right:14,background:'rgba(255,255,255,.95)',border:'none',borderRadius:'50%',width:36,height:36,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.15)'}}>\u00d7</button>
           <div style={{position:'absolute',bottom:14,left:14,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 14px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>{t.catIco[offer.category]} {t.cats[offer.category]}</div>
         </div>
         <div style={{padding:'24px 28px 30px'}}>
@@ -437,7 +443,7 @@ function OfferModal({offer,onClose,t,lang}){
             <span style={{color:'var(--muted)',fontSize:13}}>({reviews.length} {t.revs})</span>
           </div>
           <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:18}}>
-            {[['📍',offer.region],['⏱',`${offer.duration} ${t.days}`],['💰',`${(offer.price||0).toLocaleString()} DZD${t.per}`],offer.agency_name&&['🏢',offer.agency_name]].filter(Boolean).filter(([,v])=>v).map(([i,v])=>(
+            {[['\ud83d\udccd',offer.region],['\u23f1',`${offer.duration} ${t.days}`],['\ud83d\udcb0',`${(offer.price||0).toLocaleString()} DZD${t.per}`],offer.agency_name&&['\ud83c\udfe2',offer.agency_name]].filter(Boolean).filter(([,v])=>v).map(([i,v])=>(
               <span key={v} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:13,fontWeight:500,color:'var(--text)'}}>{i} {v}</span>
             ))}
           </div>
@@ -452,18 +458,18 @@ function OfferModal({offer,onClose,t,lang}){
           {offer.includes?.length>0&&<div style={{marginBottom:18}}>
             <SL>{t.incl}</SL>
             <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-              {offer.includes.map((x,i)=><span key={i} style={{padding:'6px 14px',background:'var(--teal3)',borderRadius:20,fontSize:12,fontWeight:600,color:'var(--teal2)'}}>✓ {x}</span>)}
+              {offer.includes.map((x,i)=><span key={i} style={{padding:'6px 14px',background:'var(--teal3)',borderRadius:20,fontSize:12,fontWeight:600,color:'var(--teal2)'}}>\u2713 {x}</span>)}
             </div>
           </div>}
           {offer.available_dates?.length>0&&<div style={{marginBottom:22}}>
             <SL>{t.dates}</SL>
             <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-              {offer.available_dates.map((d,i)=><span key={i} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:12,border:'1px solid #E2EBF0'}}>📅 {d}</span>)}
+              {offer.available_dates.map((d,i)=><span key={i} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:12,border:'1px solid #E2EBF0'}}>\ud83d\udcc5 {d}</span>)}
             </div>
           </div>}
           {/* Reviews */}
           <div style={{borderTop:'2px solid #F0F4F5',paddingTop:20,marginBottom:16}}>
-            <SL>💬 {t.revTitle}</SL>
+            <SL>\ud83d\udcac {t.revTitle}</SL>
             {reviews.length===0?<p style={{color:'var(--muted)',fontSize:14}}>{t.noRevs}</p>
             :reviews.map(r=>(
               <div key={r.id} style={{background:'#FAFCFC',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid #EEF3F5'}}>
@@ -481,24 +487,35 @@ function OfferModal({offer,onClose,t,lang}){
             ))}
           </div>
           {user?.role==='traveler'&&<div style={{background:'var(--teal3)',borderRadius:16,padding:20,marginBottom:20}}>
-            <SL>✏️ {t.leaveRev}</SL>
+            <SL>\u270f\ufe0f {t.leaveRev}</SL>
             <div style={{marginBottom:12}}>
               <div style={{fontSize:12,color:'var(--muted)',marginBottom:6,fontWeight:600}}>{t.yourRating}</div>
               <Stars v={rf.rating} size={28} interactive onRate={v=>setRf(p=>({...p,rating:v}))}/>
             </div>
-            <input style={INP} placeholder={t.revTitle+'…'} value={rf.title} onChange={e=>setRf(p=>({...p,title:e.target.value}))}/>
+            <input style={INP} placeholder={t.revTitle+'\u2026'} value={rf.title} onChange={e=>setRf(p=>({...p,title:e.target.value}))}/>
             <textarea style={TA(70)} placeholder={t.revPlaceholder} value={rf.comment} onChange={e=>setRf(p=>({...p,comment:e.target.value}))}/>
-            <button style={B.pri} onClick={handleReview} disabled={submitting}>{submitting?'…':t.submitRev}</button>
+            <button style={B.pri} onClick={handleReview} disabled={submitting}>{submitting?'\u2026':t.submitRev}</button>
           </div>}
           {/* Book CTA */}
-          <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',borderRadius:16,padding:'20px 24px',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-            <div>
-              <div style={{fontSize:11,color:'rgba(255,255,255,.6)',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{t.from}</div>
-              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal)',lineHeight:1}}>
-                {(offer.price||0).toLocaleString()} <span style={{fontSize:12,color:'rgba(255,255,255,.5)',fontWeight:400}}>DZD{t.per}</span>
+          <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',borderRadius:16,padding:'20px 24px'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+              <div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,.6)',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{t.from}</div>
+                <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal)',lineHeight:1}}>
+                  {(offer.price||0).toLocaleString()} <span style={{fontSize:12,color:'rgba(255,255,255,.5)',fontWeight:400}}>DZD{t.per}</span>
+                </div>
               </div>
             </div>
-            <button style={{...B.white,fontSize:14,padding:'12px 24px'}} onClick={handleBook} disabled={booking}>{booking?'…':t.book}</button>
+            <div style={{display:'flex',gap:10,alignItems:'center'}}>
+              <input
+                style={{flex:1,background:'rgba(255,255,255,.12)',border:'1.5px solid rgba(255,255,255,.25)',borderRadius:10,padding:'11px 14px',fontSize:14,color:'#fff'}}
+                placeholder={'\ud83d\udcde '+t.phoneLbl+' \u2014 ex: 0770 123 456'}
+                value={phone}
+                onChange={e=>setPhone(e.target.value)}
+                onKeyDown={e=>e.key==='Enter'&&handleBook()}
+              />
+              <button style={{...B.white,fontSize:13,padding:'11px 20px',flexShrink:0}} onClick={handleBook} disabled={booking}>{booking?'\u2026':t.book}</button>
+            </div>
           </div>
         </div>
       </div>
@@ -506,7 +523,7 @@ function OfferModal({offer,onClose,t,lang}){
   );
 }
 
-/* ── AUTH MODAL ───────────────────────────────────────────────────────────── */
+/* \u2500\u2500 AUTH MODAL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function AuthModal({mode,onClose,t}){
   const {login,register}=useAuth();
   const {show}=useToast();
@@ -520,7 +537,7 @@ function AuthModal({mode,onClose,t}){
     setLoading(true);
     try{
       if(isLogin){const u=await login(f.email,f.password);show(`Bienvenue, ${u.name}!`);}
-      else{if(!f.name){show('Nom requis','err');setLoading(false);return;}await register({...f,role});show('Compte créé !');}
+      else{if(!f.name){show('Nom requis','err');setLoading(false);return;}await register({...f,role});show('Compte cr\u00e9\u00e9 !');}
       onClose();
     }catch(e){show(e.message,'err');}
     setLoading(false);
@@ -537,7 +554,7 @@ function AuthModal({mode,onClose,t}){
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
             {['traveler','agency'].map(r=>(
               <button key={r} style={{padding:'11px 0',borderRadius:12,fontWeight:700,fontSize:13,border:`2px solid ${role===r?'var(--teal)':'#E2EBF0'}`,background:role===r?'var(--teal3)':'#fff',color:role===r?'var(--teal2)':'var(--muted)',cursor:'pointer',transition:'all .18s'}}
-                onClick={()=>setRole(r)}>{r==='traveler'?`🧳 ${t.roleT}`:`🏢 ${t.roleA}`}</button>
+                onClick={()=>setRole(r)}>{r==='traveler'?`\ud83e\uddf3 ${t.roleT}`:`\ud83c\udfe2 ${t.roleA}`}</button>
             ))}
           </div>
         )}
@@ -547,7 +564,7 @@ function AuthModal({mode,onClose,t}){
           <input style={INP} placeholder={role==='agency'?t.agNameLbl:t.nameLbl} value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
           {role==='agency'&&<textarea style={TA(66)} placeholder={t.descLbl} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))}/>}
         </>}
-        <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'…':isLogin?t.loginTitle:t.regTitle}</button>
+        <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'\u2026':isLogin?t.loginTitle:t.regTitle}</button>
         <div style={{textAlign:'center',marginTop:14,fontSize:13,color:'var(--muted)'}}>
           {isLogin?<>{t.noAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(false)}>{t.regTitle}</span></>
           :<>{t.hasAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(true)}>{t.loginTitle}</span></>}
@@ -558,7 +575,7 @@ function AuthModal({mode,onClose,t}){
   );
 }
 
-/* ── HOME PAGE ────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 HOME PAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function HomePage({t,setPage,setFilterCat,onOpen}){
   const [feat,setFeat]=useState([]);
   useEffect(()=>{api('/offers?sort=rating').then(d=>setFeat(d.slice(0,3))).catch(()=>{});},[]);
@@ -601,14 +618,14 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
               ))}
             </div>
           </div>
-          {/* RIGHT — Logo hero image */}
+          {/* RIGHT \u2014 Logo hero image */}
           <div className="hero-right fade" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
             <div style={{position:'relative'}}>
               <div style={{width:420,height:420,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal3),var(--teal4))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 20px 60px rgba(13,185,168,.2)',animation:'float 5s ease-in-out infinite'}}>
                 <img src="/logo-1.png" alt="Get Lost DZ" style={{width:'75%',height:'75%',objectFit:'contain'}}/>
               </div>
               {/* Floating badges */}
-              {[{top:-10,right:20,ico:'✈️',txt:'International'},{bottom:30,left:-20,ico:'🏔️',txt:'Aventures'},{top:'45%',right:-30,ico:'⭐',txt:'4.9/5'}].map((b,i)=>(
+              {[{top:-10,right:20,ico:'\u2708\ufe0f',txt:'International'},{bottom:30,left:-20,ico:'\ud83c\udfd4\ufe0f',txt:'Aventures'},{top:'45%',right:-30,ico:'\u2b50',txt:'4.9/5'}].map((b,i)=>(
                 <div key={i} style={{position:'absolute',top:b.top,bottom:b.bottom,left:b.left,right:b.right,background:'#fff',borderRadius:14,padding:'10px 16px',boxShadow:'0 8px 24px rgba(11,35,64,.12)',display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}}>
                   <span style={{fontSize:18}}>{b.ico}</span>
                   <span style={{fontWeight:700,fontSize:13,color:'var(--navy)'}}>{b.txt}</span>
@@ -646,8 +663,8 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
       <div style={{background:'var(--offwhite)',padding:'80px 24px'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:40,flexWrap:'wrap',gap:16}}>
-            <SectionTitle sub="Nos voyages les mieux notés par la communauté">{t.featTitle}</SectionTitle>
-            <button style={{...B.out,marginTop:8}} onClick={()=>setPage('trips')}>{t.seeAll} →</button>
+            <SectionTitle sub="Nos voyages les mieux not\u00e9s par la communaut\u00e9">{t.featTitle}</SectionTitle>
+            <button style={{...B.out,marginTop:8}} onClick={()=>setPage('trips')}>{t.seeAll} \u2192</button>
           </div>
           {feat.length===0?<Spin/>:(
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
@@ -663,9 +680,9 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
           <img src="/logo-1.png" alt="Get Lost DZ" style={{height:80,marginBottom:20,filter:'brightness(0) invert(1) sepia(1) saturate(3) hue-rotate(140deg)'}}
             onError={e=>e.target.style.display='none'}/>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'#fff',marginBottom:12}}>Pourquoi choisir Get Lost DZ ?</div>
-          <p style={{color:'rgba(255,255,255,.65)',maxWidth:540,margin:'0 auto 32px',lineHeight:1.8}}>Chaque offre est validée par notre équipe. Qualité, sécurité et authenticité garanties.</p>
+          <p style={{color:'rgba(255,255,255,.65)',maxWidth:540,margin:'0 auto 32px',lineHeight:1.8}}>Chaque offre est valid\u00e9e par notre \u00e9quipe. Qualit\u00e9, s\u00e9curit\u00e9 et authenticit\u00e9 garanties.</p>
           <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
-            {['✅ Offres validées','⭐ Avis vérifiés','🤝 Agences certifiées','🌍 100K communauté'].map(x=>(
+            {['\u2705 Offres valid\u00e9es','\u2b50 Avis v\u00e9rifi\u00e9s','\ud83e\udd1d Agences certifi\u00e9es','\ud83c\udf0d 100K communaut\u00e9'].map(x=>(
               <div key={x} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',borderRadius:50,padding:'10px 20px',fontSize:13,fontWeight:600,color:'rgba(255,255,255,.9)'}}>{x}</div>
             ))}
           </div>
@@ -675,7 +692,7 @@ function HomePage({t,setPage,setFilterCat,onOpen}){
   );
 }
 
-/* ── TRIPS PAGE ───────────────────────────────────────────────────────────── */
+/* \u2500\u2500 TRIPS PAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function TripsPage({t,filterCat,setFilterCat,onOpen}){
   const [offers,setOffers]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -696,11 +713,11 @@ function TripsPage({t,filterCat,setFilterCat,onOpen}){
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'48px 24px 36px'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(24px,4vw,38px)',color:'var(--navy)',marginBottom:6}}>Nos Voyages</div>
-          <p style={{color:'var(--muted)',fontSize:15}}>Découvrez toutes nos offres — Algérie, Afrique, Asie et plus.</p>
+          <p style={{color:'var(--muted)',fontSize:15}}>D\u00e9couvrez toutes nos offres \u2014 Alg\u00e9rie, Afrique, Asie et plus.</p>
           {/* Search + Sort */}
           <div style={{display:'flex',gap:10,marginTop:24,flexWrap:'wrap'}}>
             <div style={{position:'relative',flex:1,minWidth:240}}>
-              <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16}}>🔍</span>
+              <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16}}>\ud83d\udd0d</span>
               <input style={{...INP,paddingLeft:42,marginBottom:0,borderRadius:50,boxShadow:'var(--shadow)'}} placeholder={t.srchPh} value={search} onChange={e=>setSearch(e.target.value)}/>
             </div>
             <select style={{...INP,width:'auto',marginBottom:0,borderRadius:50,paddingLeft:16,background:'#fff',cursor:'pointer',boxShadow:'var(--shadow)'}} value={sort} onChange={e=>setSort(e.target.value)}>
@@ -710,17 +727,17 @@ function TripsPage({t,filterCat,setFilterCat,onOpen}){
         </div>
       </div>
       <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
-        {/* Category filters — FIX 2: horizontal scroll on mobile */}
+        {/* Category filters \u2014 FIX 2: horizontal scroll on mobile */}
         <div className="cat-filters" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
           {['all','intl','national','hike','visa'].map(c=>(
             <button key={c} style={{padding:'8px 20px',borderRadius:50,cursor:'pointer',fontSize:13,fontWeight:700,border:'none',background:filterCat===c?'var(--teal)':'#fff',color:filterCat===c?'#fff':'var(--text)',boxShadow:filterCat===c?'0 4px 14px rgba(13,185,168,.3)':'var(--shadow)',transition:'all .2s'}}
-              onClick={()=>setFilterCat(c)}>{t.catIco[c]||'🌍'} {t.cats[c]||c}</button>
+              onClick={()=>setFilterCat(c)}>{t.catIco[c]||'\ud83c\udf0d'} {t.cats[c]||c}</button>
           ))}
         </div>
         {loading?<Spin/>:offers.length===0
           ?<div style={{textAlign:'center',padding:'60px 0',color:'var(--muted)'}}>
-            <div style={{fontSize:48,marginBottom:12}}>🔍</div>
-            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,marginBottom:6}}>Aucune offre trouvée</div>
+            <div style={{fontSize:48,marginBottom:12}}>\ud83d\udd0d</div>
+            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,marginBottom:6}}>Aucune offre trouv\u00e9e</div>
             <div style={{fontSize:14}}>Essayez une autre recherche</div>
           </div>
           :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
@@ -732,7 +749,7 @@ function TripsPage({t,filterCat,setFilterCat,onOpen}){
   );
 }
 
-/* ── DASHBOARD ────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 DASHBOARD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function DashPage({t,openAuth}){
   const {user}=useAuth();
   const {show}=useToast();
@@ -755,29 +772,35 @@ function DashPage({t,openAuth}){
   if(!user)return(
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--offwhite)',paddingTop:68}}>
       <Card style={{padding:'48px 40px',textAlign:'center',maxWidth:380}}>
-        <div style={{fontSize:48,marginBottom:16}}>🔐</div>
-        <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Accès réservé</div>
-        <p style={{color:'var(--muted)',marginBottom:24,fontSize:14}}>Connectez-vous pour accéder à votre espace personnel.</p>
+        <div style={{fontSize:48,marginBottom:16}}>\ud83d\udd10</div>
+        <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Acc\u00e8s r\u00e9serv\u00e9</div>
+        <p style={{color:'var(--muted)',marginBottom:24,fontSize:14}}>Connectez-vous pour acc\u00e9der \u00e0 votre espace personnel.</p>
         <button style={{...B.pri,width:'100%'}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
       </Card>
     </div>
   );
   const submitOffer=async()=>{
-    if(!form.title||!form.price||!form.region){show('Titre, prix et région requis','err');return;}
+    if(!form.title||!form.price||!form.region){show('Titre, prix et r\u00e9gion requis','err');return;}
     try{
       const body={title:form.title,category:form.category,price:parseInt(form.price),duration:parseInt(form.duration)||1,region:form.region,description:form.description,imageUrl:form.imageUrl,
-        itinerary:form.itinerary.split('\n').filter(Boolean),includes:form.includes.split('\n').filter(Boolean),dates:form.dates.split('\n').filter(Boolean)};
-      if(editTarget){await api(`/offers/${editTarget.id}`,{method:'PUT',body});show('Offre mise à jour!');}
+        itinerary:form.itinerary.split('\
+').filter(Boolean),includes:form.includes.split('\
+').filter(Boolean),dates:form.dates.split('\
+').filter(Boolean)};
+      if(editTarget){await api(`/offers/${editTarget.id}`,{method:'PUT',body});show('Offre mise \u00e0 jour!');}
       else{await api('/offers',{method:'POST',body});show('Offre soumise pour validation!');}
       setForm(EF);setEditTarget(null);setTab('offers');load();
     }catch(e){show(e.message,'err');}
   };
   const delOffer=async(id)=>{
     if(!window.confirm(t.confirmDel))return;
-    try{await api(`/offers/${id}`,{method:'DELETE'});show('Offre supprimée');load();}
+    try{await api(`/offers/${id}`,{method:'DELETE'});show('Offre supprim\u00e9e');load();}
     catch(e){show(e.message,'err');}
   };
-  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',imageUrl:o.image_url||'',itinerary:(o.itinerary||[]).join('\n'),includes:(o.includes||[]).join('\n'),dates:(o.available_dates||[]).join('\n')});setTab('add');};
+  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',imageUrl:o.image_url||'',itinerary:(o.itinerary||[]).join('\
+'),includes:(o.includes||[]).join('\
+'),dates:(o.available_dates||[]).join('\
+')});setTab('add');};
   const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
   const FI=({label,fk,type='text'})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><input style={INP} type={type} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
   const FTA=({label,fk,h=88})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><textarea style={TA(h)} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
@@ -799,7 +822,7 @@ function DashPage({t,openAuth}){
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
             <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:900,color:'#fff'}}>{user.name[0]}</div>
             <div>
-              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)'}}>{t.dashWelcome}, {user.name} 👋</div>
+              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)'}}>{t.dashWelcome}, {user.name} \ud83d\udc4b</div>
               <div style={{color:'var(--muted)',fontSize:13}}>{user.role==='agency'?'Compte Agence':user.role==='admin'?'Administrateur':'Compte Voyageur'}</div>
             </div>
           </div>
@@ -816,16 +839,16 @@ function DashPage({t,openAuth}){
         {user.role==='agency'&&<>
           {tab==='stats'&&!loading&&(
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:16}}>
-              {SC('📦',t.totOff,offers.length)}
-              {SC('✅',t.approved,offers.filter(o=>o.status==='approved').length)}
-              {SC('⏳',t.pending,offers.filter(o=>o.status==='pending').length,'#D97706')}
-              {SC('👁',t.views,offers.reduce((s,o)=>s+(o.views||0),0))}
+              {SC('\ud83d\udce6',t.totOff,offers.length)}
+              {SC('\u2705',t.approved,offers.filter(o=>o.status==='approved').length)}
+              {SC('\u23f3',t.pending,offers.filter(o=>o.status==='pending').length,'#D97706')}
+              {SC('\ud83d\udc41',t.views,offers.reduce((s,o)=>s+(o.views||0),0))}
             </div>
           )}
           {tab==='bookings'&&(loading?<Spin/>:(
             <Card>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr>{['Voyageur','Email','Offre','Prix','Date','Statut','Action'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Voyageur','Email','Offre','Prix','T\u00e9l\u00e9phone','Date','Statut','Action'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
                   {bookings.map(b=>(
                     <tr key={b.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
@@ -833,15 +856,16 @@ function DashPage({t,openAuth}){
                       <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
                       <td style={{...TD,fontWeight:600,maxWidth:160}}>{b.offer_title}</td>
                       <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()} DZD</td>
+                      <td style={{...TD,fontSize:13}}>{b.phone||<span style={{color:'var(--muted)'}}>\u2014</span>}</td>
                       <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
                       <td style={TD}><Badge status={b.status}/></td>
                       <td style={TD}><div style={{display:'flex',gap:5}}>
-                        {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('✅ Réservation confirmée!');load();}catch(e){show(e.message,'err');}}}>✅ Confirmer</button>}
-                        {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annulée');load();}catch(e){show(e.message,'err');}}}>✕ Annuler</button>}
+                        {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('\u2705 R\u00e9servation confirm\u00e9e!');load();}catch(e){show(e.message,'err');}}}>\u2705 Confirmer</button>}
+                        {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annul\u00e9e');load();}catch(e){show(e.message,'err');}}}>\u2715 Annuler</button>}
                       </div></td>
                     </tr>
                   ))}
-                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation reçue pour l&apos;instant.</td></tr>}
+                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune r\u00e9servation re\u00e7ue pour l&apos;instant.</td></tr>}
                 </tbody>
               </table>
             </Card>
@@ -849,7 +873,7 @@ function DashPage({t,openAuth}){
           {tab==='offers'&&(loading?<Spin/>:(
             <Card>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr>{['Titre','Cat.','Prix','Durée','Note','Statut','Actions'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
+                <thead><tr>{['Titre','Cat.','Prix','Dur\u00e9e','Note','Statut','Actions'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
                 <tbody>
                   {offers.map(o=>(
                     <tr key={o.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
@@ -857,19 +881,19 @@ function DashPage({t,openAuth}){
                       <td style={{...TD,color:'var(--muted)'}}>{t.cats[o.category]||o.category}</td>
                       <td style={{...TD,fontWeight:700,color:'var(--teal2)',fontFamily:'Nunito'}}>{(o.price||0).toLocaleString()}</td>
                       <td style={{...TD,color:'var(--muted)'}}>{o.duration}j</td>
-                      <td style={TD}>{o.avg_rating?<><Stars v={parseFloat(o.avg_rating)} size={12}/> <span style={{color:'#F59E0B',fontSize:12,fontWeight:700}}>{o.avg_rating}</span></>:'—'}</td>
+                      <td style={TD}>{o.avg_rating?<><Stars v={parseFloat(o.avg_rating)} size={12}/> <span style={{color:'#F59E0B',fontSize:12,fontWeight:700}}>{o.avg_rating}</span></>:'\u2014'}</td>
                       <td style={TD}><Badge status={o.status}/></td>
-                      <td style={TD}><div style={{display:'flex',gap:6}}><button style={B.sm} onClick={()=>startEdit(o)}>✏️</button><button style={B.danger} onClick={()=>delOffer(o.id)}>🗑️</button></div></td>
+                      <td style={TD}><div style={{display:'flex',gap:6}}><button style={B.sm} onClick={()=>startEdit(o)}>\u270f\ufe0f</button><button style={B.danger} onClick={()=>delOffer(o.id)}>\ud83d\uddd1\ufe0f</button></div></td>
                     </tr>
                   ))}
-                  {!offers.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune offre. Créez votre première offre!</td></tr>}
+                  {!offers.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune offre. Cr\u00e9ez votre premi\u00e8re offre!</td></tr>}
                 </tbody>
               </table>
             </Card>
           ))}
           {tab==='add'&&(
             <Card style={{padding:28}}>
-              {editTarget&&<div style={{marginBottom:18,padding:'11px 16px',background:'#FEF3C7',border:'1px solid #F59E0B',borderRadius:10,color:'#92400E',fontSize:13,fontWeight:600}}>✏️ Modification : {editTarget.title}</div>}
+              {editTarget&&<div style={{marginBottom:18,padding:'11px 16px',background:'#FEF3C7',border:'1px solid #F59E0B',borderRadius:10,color:'#92400E',fontSize:13,fontWeight:600}}>\u270f\ufe0f Modification : {editTarget.title}</div>}
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:4}}>
                 <FI label={t.fTitle} fk="title"/>
                 <div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{t.fCat}</label>
@@ -897,7 +921,7 @@ function DashPage({t,openAuth}){
         </>}
         {user.role==='traveler'&&(loading?<Spin/>:bookings.length===0
           ?<div style={{textAlign:'center',padding:'60px 0'}}>
-            <div style={{fontSize:48,marginBottom:12}}>🎫</div>
+            <div style={{fontSize:48,marginBottom:12}}>\ud83c\udfab</div>
             <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>{t.myBook}</div>
             <p style={{color:'var(--muted)',fontSize:14}}>{t.noBook}</p>
           </div>
@@ -923,7 +947,7 @@ function DashPage({t,openAuth}){
   );
 }
 
-/* ── ADMIN ────────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 ADMIN \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function AdminPage({t,openAuth}){
   const {user}=useAuth();
   const {show}=useToast();
@@ -942,7 +966,7 @@ function AdminPage({t,openAuth}){
   if(!user||user.role!=='admin')return(
     <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--offwhite)',paddingTop:68}}>
       <Card style={{padding:'48px 40px',textAlign:'center',maxWidth:380}}>
-        <div style={{fontSize:48,marginBottom:16}}>🛡️</div>
+        <div style={{fontSize:48,marginBottom:16}}>\ud83d\udee1\ufe0f</div>
         <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Admin uniquement</div>
         <button style={{...B.pri,width:'100%',marginTop:16}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
       </Card>
@@ -965,9 +989,9 @@ function AdminPage({t,openAuth}){
     <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--navy)',marginBottom:20}}>🛡️ {t.adminTitle}</div>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--navy)',marginBottom:20}}>\ud83d\udee1\ufe0f {t.adminTitle}</div>
           {stats&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12,marginBottom:24}}>
-            {[['📦','Offres',stats.total_offers,'var(--teal2)'],['⏳','En attente',stats.pending_offers,'#D97706'],['✅','Validées',stats.approved_offers,'#059669'],['🏢','Agences',stats.total_agencies,'var(--teal2)'],['👤','Voyageurs',stats.total_travelers,'var(--teal2)'],['💬','Avis',stats.total_reviews,'var(--teal2)'],['🔔','Avis pend.',stats.pending_reviews,'#D97706'],['🎫','Réservations',stats.total_bookings,'var(--teal2)']].map(([ico,lbl,val,c])=>(
+            {[['\ud83d\udce6','Offres',stats.total_offers,'var(--teal2)'],['\u23f3','En attente',stats.pending_offers,'#D97706'],['\u2705','Valid\u00e9es',stats.approved_offers,'#059669'],['\ud83c\udfe2','Agences',stats.total_agencies,'var(--teal2)'],['\ud83d\udc64','Voyageurs',stats.total_travelers,'var(--teal2)'],['\ud83d\udcac','Avis',stats.total_reviews,'var(--teal2)'],['\ud83d\udd14','Avis pend.',stats.pending_reviews,'#D97706'],['\ud83c\udfab','R\u00e9servations',stats.total_bookings,'var(--teal2)']].map(([ico,lbl,val,c])=>(
               <div key={lbl} style={{background:'rgba(255,255,255,.8)',borderRadius:12,padding:'14px 16px',backdropFilter:'blur(4px)'}}>
                 <div style={{fontSize:20,marginBottom:6}}>{ico}</div>
                 <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:c,lineHeight:1}}>{val}</div>
@@ -976,7 +1000,7 @@ function AdminPage({t,openAuth}){
             ))}
           </div>}
           <div style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
-            {[['offers',t.aOffers,pendO],['bookings','Réservations',0],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR]].map(([tk,lbl,badge])=>(
+            {[['offers',t.aOffers,pendO],['bookings','R\u00e9servations',0],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR]].map(([tk,lbl,badge])=>(
               <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>
                 {lbl}{badge>0&&<span style={{marginLeft:6,padding:'1px 7px',background:'#F59E0B',color:'#fff',borderRadius:10,fontSize:10,fontWeight:800}}>{badge}</span>}
               </button>
@@ -986,7 +1010,7 @@ function AdminPage({t,openAuth}){
       </div>
       <div style={{maxWidth:1280,margin:'0 auto',padding:'24px 24px 60px'}}>
         {loading?<Spin/>:<>
-          {tab==='bookings'&&<Tbl cols={['Voyageur','Email','Offre','Agence','Prix','Date','Statut','Action']}>
+          {tab==='bookings'&&<Tbl cols={['Voyageur','Email','Offre','Agence','Prix','T\u00e9l\u00e9phone','Date','Statut','Action']}>
             {bookings.map(b=>(
               <tr key={b.id}>
                 <td style={{...TD,fontWeight:700}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>{b.traveler_name}</div></td>
@@ -994,27 +1018,28 @@ function AdminPage({t,openAuth}){
                 <td style={{...TD,fontWeight:600,maxWidth:150,fontSize:13}}>{b.offer_title}</td>
                 <td style={{...TD,color:'var(--muted)',fontSize:13}}>{b.agency_name}</td>
                 <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()}</td>
+                <td style={{...TD,fontSize:13}}>{b.phone||<span style={{color:'var(--muted)'}}>\u2014</span>}</td>
                 <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
                 <td style={TD}><Badge status={b.status}/></td>
                 <td style={TD}><div style={{display:'flex',gap:5}}>
-                  {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('Confirmée!');load();}catch(e){show(e.message,'err');}}}>✅</button>}
-                  {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annulée');load();}catch(e){show(e.message,'err');}}}>✕</button>}
+                  {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('Confirm\u00e9e!');load();}catch(e){show(e.message,'err');}}}>\u2705</button>}
+                  {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annul\u00e9e');load();}catch(e){show(e.message,'err');}}}>\u2715</button>}
                 </div></td>
               </tr>
             ))}
-            {!bookings.length&&<tr><td colSpan={8} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation.</td></tr>}
+            {!bookings.length&&<tr><td colSpan={8} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune r\u00e9servation.</td></tr>}
           </Tbl>}
           {tab==='offers'&&<Tbl cols={['Titre','Agence','Cat.','Prix','Statut','Actions']}>
             {offers.map(o=>(
               <tr key={o.id} style={{background:o.status==='pending'?'#FFFBEB':''}}>
                 <td style={{...TD,fontWeight:700,color:'var(--navy)'}}>{o.title}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{o.agency_name||'—'}</td>
+                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{o.agency_name||'\u2014'}</td>
                 <td style={{...TD,color:'var(--muted)',fontSize:13}}>{t.cats[o.category]||o.category}</td>
                 <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(o.price||0).toLocaleString()}</td>
                 <td style={TD}><Badge status={o.status}/></td>
                 <td style={TD}><div style={{display:'flex',gap:6}}>
-                  {o.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/offers/${o.id}/status`,{status:'approved'},'✅ Approuvé')}>{t.approve}</button>}
-                  {o.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/offers/${o.id}/status`,{status:'rejected'},'Refusé')}>{t.reject}</button>}
+                  {o.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/offers/${o.id}/status`,{status:'approved'},'\u2705 Approuv\u00e9')}>{t.approve}</button>}
+                  {o.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/offers/${o.id}/status`,{status:'rejected'},'Refus\u00e9')}>{t.reject}</button>}
                 </div></td>
               </tr>
             ))}
@@ -1028,13 +1053,13 @@ function AdminPage({t,openAuth}){
                 <td style={TD}>{a.offer_count||0}</td>
                 <td style={TD}><Badge status={a.status}/></td>
                 <td style={TD}><div style={{display:'flex',gap:6}}>
-                  {a.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'approved'},'Activée')}>{t.approve}</button>}
+                  {a.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'approved'},'Activ\u00e9e')}>{t.approve}</button>}
                   {a.status==='approved'&&<button style={B.danger} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'suspended'},'Suspendue')}>{t.suspend}</button>}
                 </div></td>
               </tr>
             ))}
           </Tbl>}
-          {tab==='users'&&<Tbl cols={['Nom','Email','Rôle','Inscrit le']}>
+          {tab==='users'&&<Tbl cols={['Nom','Email','R\u00f4le','Inscrit le']}>
             {users.map(u=>(
               <tr key={u.id}>
                 <td style={{...TD,fontWeight:700}}>{u.name}</td>
@@ -1053,8 +1078,8 @@ function AdminPage({t,openAuth}){
                 <td style={{...TD,fontWeight:600}}>{r.title}</td>
                 <td style={TD}><Badge status={r.status}/></td>
                 <td style={TD}><div style={{display:'flex',gap:6}}>
-                  {r.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'approved'},'Approuvé')}>{t.approve}</button>}
-                  {r.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'rejected'},'Refusé')}>{t.reject}</button>}
+                  {r.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'approved'},'Approuv\u00e9')}>{t.approve}</button>}
+                  {r.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'rejected'},'Refus\u00e9')}>{t.reject}</button>}
                 </div></td>
               </tr>
             ))}
@@ -1065,7 +1090,7 @@ function AdminPage({t,openAuth}){
   );
 }
 
-/* ── ABOUT PAGE ───────────────────────────────────────────────────────────── */
+/* \u2500\u2500 ABOUT PAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function AboutPage({t}){
   return(
     <div style={{background:'#fff',paddingTop:68}}>
@@ -1081,13 +1106,18 @@ function AboutPage({t}){
         {/* Story */}
         <div className="about-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',marginBottom:72}}>
           <div>
-            <SectionTitle>Notre communauté</SectionTitle>
+            <SectionTitle>Notre communaut\u00e9</SectionTitle>
             <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15,marginBottom:16}}>{t.ap2}</p>
             <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15}}>{t.ap3}</p>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-            {['100K+\nInstagram','1000+\nVoyages','3+\nDestinations','99%\nSatisfaction'].map((s,i)=>{
-              const [n,l]=s.split('\n');
+            {['100K+\
+Instagram','1000+\
+Voyages','3+\
+Destinations','99%\
+Satisfaction'].map((s,i)=>{
+              const [n,l]=s.split('\
+');
               return <Card key={i} style={{padding:'24px 20px',textAlign:'center'}}>
                 <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--teal2)'}}>{n}</div>
                 <div style={{color:'var(--muted)',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:4}}>{l}</div>
@@ -1096,7 +1126,7 @@ function AboutPage({t}){
           </div>
         </div>
         {/* Values */}
-        <SectionTitle center sub="Ce qui nous différencie">Nos valeurs</SectionTitle>
+        <SectionTitle center sub="Ce qui nous diff\u00e9rencie">Nos valeurs</SectionTitle>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:20,marginBottom:60}}>
           {t.vals.map(({i,t:title,d})=>(
             <Card key={title} style={{padding:'28px 24px',transition:'all .25s'}}
@@ -1110,13 +1140,13 @@ function AboutPage({t}){
         </div>
         {/* Social CTA */}
         <Card style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',border:'none',padding:'48px',textAlign:'center'}}>
-          <div style={{fontSize:40,marginBottom:14}}>📱</div>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:'#fff',marginBottom:10}}>Suivez-nous sur les réseaux</div>
+          <div style={{fontSize:40,marginBottom:14}}>\ud83d\udcf1</div>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:'#fff',marginBottom:10}}>Suivez-nous sur les r\u00e9seaux</div>
           <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>100k+ voyageurs nous font confiance sur Instagram</p>
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
             {[
-                {ico:'📸',lbl:'Instagram',url:'https://www.instagram.com/get_lost_dz/'},
-                {ico:'🔗',lbl:'Link Tree',url:'https://www.hopp.bio/get-lost'},
+                {ico:'\ud83d\udcf8',lbl:'Instagram',url:'https://www.instagram.com/get_lost_dz/'},
+                {ico:'\ud83d\udd17',lbl:'Link Tree',url:'https://www.hopp.bio/get-lost'},
               ].map(({ico,lbl,url})=>(
               <a key={lbl} href={url} target="_blank" rel="noopener noreferrer" style={{...B.white,fontSize:13,padding:'9px 20px',textDecoration:'none',display:'inline-block'}}>{ico} {lbl}</a>
             ))}
@@ -1127,7 +1157,7 @@ function AboutPage({t}){
   );
 }
 
-/* ── FOOTER ───────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 FOOTER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function Footer({t,setPage}){
   return(
     <footer style={{background:'var(--navy)',padding:'52px 24px 24px'}}>
@@ -1136,9 +1166,9 @@ function Footer({t,setPage}){
           <div>
             <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:16,filter:'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(140deg)'}}
               onError={e=>e.target.style.display='none'}/>
-            <p style={{color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.8,maxWidth:240}}>La référence du tourisme expérientiel en Algérie.</p>
+            <p style={{color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.8,maxWidth:240}}>La r\u00e9f\u00e9rence du tourisme exp\u00e9rientiel en Alg\u00e9rie.</p>
           </div>
-          {[['Navigation',[[t.navHome,'home',null],[t.navTrips,'trips',null],[t.navAbout,'about',null]]],['Contact',[['📧 getlost.dz@gmail.com',null,null],['📱 +213 782 8292 46',null,null],['📍 Alger, Algérie',null,null]]],['Réseaux',[['📸 Instagram',null,'https://www.instagram.com/get_lost_dz/'],['🔗 Linktree',null,'https://www.hopp.bio/get-lost'],['📘 Facebook',null,'https://www.facebook.com/getlostdz']]]]
+          {[['Navigation',[[t.navHome,'home',null],[t.navTrips,'trips',null],[t.navAbout,'about',null]]],['Contact',[['\ud83d\udce7 getlost.dz@gmail.com',null,null],['\ud83d\udcf1 +213 782 8292 46',null,null],['\ud83d\udccd Alger, Alg\u00e9rie',null,null]]],['R\u00e9seaux',[['\ud83d\udcf8 Instagram',null,'https://www.instagram.com/get_lost_dz/'],['\ud83d\udd17 Linktree',null,'https://www.hopp.bio/get-lost'],['\ud83d\udcd8 Facebook',null,'https://www.facebook.com/getlostdz']]]]
           .map(([title,links])=>(
             <div key={title}>
               <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:12,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal)',marginBottom:16}}>{title}</div>
@@ -1150,15 +1180,15 @@ function Footer({t,setPage}){
           ))}
         </div>
         <div style={{borderTop:'1px solid rgba(255,255,255,.08)',paddingTop:20,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-          <span style={{color:'rgba(255,255,255,.3)',fontSize:12}}>© {new Date().getFullYear()} Get Lost DZ — Tous droits réservés</span>
-          <div style={{display:'flex',gap:16}}>{['Mentions légales','CGU','FAQ'].map(l=><span key={l} style={{color:'rgba(255,255,255,.3)',fontSize:12,cursor:'pointer'}}>{l}</span>)}</div>
+          <span style={{color:'rgba(255,255,255,.3)',fontSize:12}}>\u00a9 {new Date().getFullYear()} Get Lost DZ \u2014 Tous droits r\u00e9serv\u00e9s</span>
+          <div style={{display:'flex',gap:16}}>{['Mentions l\u00e9gales','CGU','FAQ'].map(l=><span key={l} style={{color:'rgba(255,255,255,.3)',fontSize:12,cursor:'pointer'}}>{l}</span>)}</div>
         </div>
       </div>
     </footer>
   );
 }
 
-/* ── APP ──────────────────────────────────────────────────────────────────── */
+/* \u2500\u2500 APP \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
 function App(){
   const [lang,setLang]=useState('fr');
   const [page,setPage]=useState('home');
