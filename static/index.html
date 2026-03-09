@@ -243,10 +243,26 @@ const Stars=({v=0,size=14,interactive=false,onRate})=>{
   ))}</span>;
 };
 
+const BOOKING_STATUSES=[
+  {v:'pending',     label:'En attente',      bg:'#FEF3C7',c:'#92400E'},
+  {v:'contacted',   label:'Contacté',        bg:'#DBEAFE',c:'#1E40AF'},
+  {v:'didnt_answer',label:'Pas de réponse',  bg:'#FEE2E2',c:'#991B1B'},
+  {v:'pre_reserved',label:'Pré-réservé',     bg:'#EDE9FE',c:'#5B21B6'},
+  {v:'confirmed',   label:'Confirmé ✅',     bg:'#D1FAE5',c:'#065F46'},
+  {v:'cancelled',   label:'Annulé',          bg:'#F3F4F6',c:'#6B7280'},
+];
+const BSTATUS_MAP=Object.fromEntries(BOOKING_STATUSES.map(s=>[s.v,s]));
+
 const Badge=({status})=>{
-  const m={approved:{bg:'#D1FAE5',c:'#065F46'},pending:{bg:'#FEF3C7',c:'#92400E'},rejected:{bg:'#FEE2E2',c:'#991B1B'},suspended:{bg:'#FEE2E2',c:'#991B1B'}};
+  const m={approved:{bg:'#D1FAE5',c:'#065F46'},pending:{bg:'#FEF3C7',c:'#92400E'},
+    rejected:{bg:'#FEE2E2',c:'#991B1B'},suspended:{bg:'#FEE2E2',c:'#991B1B'},
+    contacted:{bg:'#DBEAFE',c:'#1E40AF'},didnt_answer:{bg:'#FEE2E2',c:'#991B1B'},
+    pre_reserved:{bg:'#EDE9FE',c:'#5B21B6'},confirmed:{bg:'#D1FAE5',c:'#065F46'},
+    cancelled:{bg:'#F3F4F6',c:'#6B7280'}};
+  const bs=BSTATUS_MAP[status];
+  const label=bs?bs.label:status;
   const s=m[status]||m.pending;
-  return <span style={{padding:'3px 11px',borderRadius:20,fontSize:11,fontWeight:700,background:s.bg,color:s.c,letterSpacing:.3}}>{status}</span>;
+  return <span style={{padding:'3px 11px',borderRadius:20,fontSize:11,fontWeight:700,background:s.bg,color:s.c,letterSpacing:.3,whiteSpace:'nowrap'}}>{label}</span>;
 };
 
 const Spin=()=>(
@@ -481,30 +497,11 @@ function OfferModal({offer,onClose,t,lang}){
           <div style={{borderTop:'2px solid #F0F4F5',paddingTop:20,marginBottom:16}}>
             <SL>💬 {t.revTitle}</SL>
             {reviews.length===0?<p style={{color:'var(--muted)',fontSize:14}}>{t.noRevs}</p>
-            :reviews.map(r=>(
-              <div key={r.id} style={{background:'#FAFCFC',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid #EEF3F5'}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff'}}>{r.user_name?.[0]?.toUpperCase()}</div>
-                    <span style={{fontWeight:700,fontSize:14,color:'var(--navy)'}}>{r.user_name}</span>
-                    <Stars v={r.rating} size={12}/>
-                  </div>
-                  <span style={{fontSize:11,color:'var(--muted)'}}>{(r.created_at||'').split('T')[0]}</span>
-                </div>
-                <div style={{fontWeight:600,fontSize:14,marginBottom:3,color:'var(--navy)'}}>{r.title}</div>
-                {r.comment&&<div style={{color:'var(--muted)',fontSize:13}}>{r.comment}</div>}
-              </div>
-            ))}
+            :reviews.map(r=><ReviewCard key={r.id} r={r} isAgency={false}/>)}
           </div>
-          {user?.role==='traveler'&&<div style={{background:'var(--teal3)',borderRadius:16,padding:20,marginBottom:20}}>
-            <SL>✏️ {t.leaveRev}</SL>
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:12,color:'var(--muted)',marginBottom:6,fontWeight:600}}>{t.yourRating}</div>
-              <Stars v={rf.rating} size={28} interactive onRate={v=>setRf(p=>({...p,rating:v}))}/>
-            </div>
-            <input style={INP} placeholder={t.revTitle+'…'} value={rf.title} onChange={e=>setRf(p=>({...p,title:e.target.value}))}/>
-            <textarea style={TA(70)} placeholder={t.revPlaceholder} value={rf.comment} onChange={e=>setRf(p=>({...p,comment:e.target.value}))}/>
-            <button style={B.pri} onClick={handleReview} disabled={submitting}>{submitting?'…':t.submitRev}</button>
+          {user?.role==='traveler'&&<div style={{background:'var(--teal3)',borderRadius:16,padding:'14px 18px',marginBottom:20,display:'flex',alignItems:'center',gap:10,fontSize:13,color:'var(--teal2)'}}>
+            <span style={{fontSize:20}}>💡</span>
+            <span>Vous pourrez laisser un avis après confirmation de votre réservation.</span>
           </div>}
           {/* Book CTA */}
           <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',borderRadius:16,padding:'20px 24px'}}>
@@ -958,12 +955,13 @@ function ProfileTab({t}){
 }
 
 /* ── DASHBOARD ────────────────────────────────────────────────────────────── */
-function DashPage({t,openAuth}){
+function DashPage({t,openAuth,setReviewBookingId=()=>{}}){
   const {user}=useAuth();
   const {show}=useToast();
   const [tab,setTab]=useState('stats');
   const [offers,setOffers]=useState([]);
   const [bookings,setBookings]=useState([]);
+  const [agencyReviews,setAgencyReviews]=useState([]);
   const [loading,setLoading]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
   const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',imageUrl:'',itinerary:'',includes:'',dates:''};
@@ -971,7 +969,15 @@ function DashPage({t,openAuth}){
   const load=useCallback(async()=>{
     if(!user)return;setLoading(true);
     try{
-      if(user.role==='agency'&&user.agencyId){setOffers(await api(`/agencies/${user.agencyId}/offers`));setBookings(await api(`/agencies/${user.agencyId}/bookings`));}
+      if(user.role==='agency'&&user.agencyId){
+        setOffers(await api(`/agencies/${user.agencyId}/offers`));
+        setBookings(await api(`/agencies/${user.agencyId}/bookings`));
+        // Load all reviews for agency offers
+        const offData=await api(`/agencies/${user.agencyId}/offers`);
+        const revPromises=offData.map(o=>api(`/offers/${o.id}/reviews`).then(rs=>rs.map(r=>({...r,offer_title:o.title}))).catch(()=>[]));
+        const revArrays=await Promise.all(revPromises);
+        setAgencyReviews(revArrays.flat());
+      }
       else if(user.role==='traveler'){setBookings(await api('/bookings/my'));}
     }catch(e){show(e.message,'err');}
     setLoading(false);
@@ -1032,7 +1038,7 @@ function DashPage({t,openAuth}){
           </div>
           {user.role==='agency'&&(
             <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer],['profile',t.profileTab]].map(([tk,lbl])=>(
+              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer],['reviews','⭐ Avis'],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
               ))}
             </div>
@@ -1070,10 +1076,17 @@ function DashPage({t,openAuth}){
                       <td style={{...TD,fontSize:13}}>{b.phone||<span style={{color:'var(--muted)'}}>—</span>}</td>
                       <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
                       <td style={TD}><Badge status={b.status}/></td>
-                      <td style={TD}><div style={{display:'flex',gap:5}}>
-                        {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('✅ Réservation confirmée!');load();}catch(e){show(e.message,'err');}}}>✅ Confirmer</button>}
-                        {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annulée');load();}catch(e){show(e.message,'err');}}}>✕ Annuler</button>}
-                      </div></td>
+                      <td style={TD}>
+                        <select value={b.status} onChange={async e=>{
+                          const ns=e.target.value;
+                          try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:ns}});
+                          const bs=BSTATUS_MAP[ns];
+                          show(bs?`Statut → ${bs.label}`:`Statut mis à jour`);load();}
+                          catch(er){show(er.message,'err');}
+                        }} style={{padding:'6px 10px',borderRadius:10,border:'1.5px solid #E2EBF0',fontSize:12,fontWeight:600,cursor:'pointer',background:'#F8FAFC'}}>
+                          {BOOKING_STATUSES.map(s=><option key={s.v} value={s.v}>{s.label}</option>)}
+                        </select>
+                      </td>
                     </tr>
                   ))}
                   {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation reçue pour l&apos;instant.</td></tr>}
@@ -1130,6 +1143,25 @@ function DashPage({t,openAuth}){
             </Card>
           )}
           {tab==='profile'&&<ProfileTab t={t}/>}
+          {tab==='reviews'&&(loading?<Spin/>:(
+            agencyReviews.length===0
+            ?<div style={{textAlign:'center',padding:'60px 0'}}>
+              <div style={{fontSize:48,marginBottom:12}}>⭐</div>
+              <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>Aucun avis pour l&apos;instant</div>
+              <p style={{color:'var(--muted)',fontSize:14}}>Les avis apparaîtront après confirmation des réservations.</p>
+            </div>
+            :<div>
+              <div style={{marginBottom:16,fontFamily:'Nunito',fontWeight:700,fontSize:16,color:'var(--navy)'}}>
+                {agencyReviews.length} avis · Moyenne {agencyReviews.length?(agencyReviews.reduce((s,r)=>s+r.rating,0)/agencyReviews.length).toFixed(1):'—'} ⭐
+              </div>
+              {agencyReviews.map(r=>(
+                <div key={r.id} style={{marginBottom:8}}>
+                  {r.offer_title&&<div style={{fontSize:11,color:'var(--muted)',marginBottom:4,fontWeight:600}}>📦 {r.offer_title}</div>}
+                  <ReviewCard r={r} isAgency={true} onReply={load}/>
+                </div>
+              ))}
+            </div>
+          ))}
         </>}
         {user.role==='traveler'&&(loading?<Spin/>:
           tab==='profile'?<ProfileTab t={t}/>:
@@ -1147,10 +1179,11 @@ function DashPage({t,openAuth}){
                   <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
                   <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
                   {/* FIX 4: short date format */}
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:b.status==='confirmed'?10:0}}>
                     <Badge status={b.status}/>
                     <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
                   </div>
+                  {b.status==='confirmed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}
                 </div>
               </Card>
             ))}
@@ -1398,6 +1431,162 @@ function Footer({t,setPage}){
 }
 
 /* ── APP ──────────────────────────────────────────────────────────────────── */
+/* ── REVIEW MODAL ─────────────────────────────────────────────────────────── */
+function ReviewModal({bookingId,onClose,t,onDone}){
+  const {show}=useToast();
+  const [bk,setBk]=useState(null);
+  const [already,setAlready]=useState(false);
+  const [loading,setLoading]=useState(true);
+  const [submitting,setSubmitting]=useState(false);
+  const [rating,setRating]=useState(0);
+  const [hover,setHover]=useState(0);
+  const [title,setTitle]=useState('');
+  const [comment,setComment]=useState('');
+  const [photo,setPhoto]=useState('');
+  const [done,setDone]=useState(false);
+
+  useEffect(()=>{
+    api(`/bookings/${bookingId}/review-check`).then(d=>{
+      setBk(d.booking);setAlready(d.already_reviewed);setLoading(false);
+    }).catch(()=>{setLoading(false);});
+  },[bookingId]);
+
+  const handlePhoto=e=>{
+    const file=e.target.files[0];
+    if(!file)return;
+    if(file.size>2*1024*1024){show('Photo max 2MB','err');return;}
+    const r=new FileReader();
+    r.onload=ev=>setPhoto(ev.target.result);
+    r.readAsDataURL(file);
+  };
+
+  const submit=async()=>{
+    if(!rating){show('Choisissez une note','err');return;}
+    if(!title.trim()){show('Titre requis','err');return;}
+    setSubmitting(true);
+    try{
+      await api(`/offers/${bk.offer_id}/reviews`,{method:'POST',body:{
+        rating,title:title.trim(),comment:comment.trim(),photo,booking_id:parseInt(bookingId)
+      }});
+      setDone(true);
+      if(onDone)onDone();
+    }catch(e){show(e.message,'err');}
+    setSubmitting(false);
+  };
+
+  const OL={position:'fixed',inset:0,background:'rgba(11,35,64,.55)',zIndex:1000,display:'flex',alignItems:'center',justifyContent:'center',padding:16};
+  const BOX={background:'#fff',borderRadius:24,padding:'32px 28px',width:'100%',maxWidth:480,maxHeight:'90vh',overflowY:'auto',position:'relative'};
+
+  return(
+    <div style={OL} onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
+      <div style={BOX}>
+        <button onClick={onClose} style={{position:'absolute',top:16,right:18,background:'none',border:'none',fontSize:22,cursor:'pointer',color:'var(--muted)'}}>✕</button>
+        {loading?<Spin/>:already?(
+          <div style={{textAlign:'center',padding:'20px 0'}}>
+            <div style={{fontSize:48,marginBottom:12}}>✅</div>
+            <h3 style={{color:'var(--navy)'}}>Vous avez déjà laissé un avis</h3>
+            <button style={{...B.pri,marginTop:16}} onClick={onClose}>Fermer</button>
+          </div>
+        ):done?(
+          <div style={{textAlign:'center',padding:'20px 0'}}>
+            <div style={{fontSize:48,marginBottom:12}}>🎉</div>
+            <h3 style={{color:'var(--navy)'}}>Merci pour votre avis !</h3>
+            <p style={{color:'var(--muted)'}}>Votre expérience aidera d&apos;autres voyageurs.</p>
+            <button style={{...B.pri,marginTop:16}} onClick={onClose}>Fermer</button>
+          </div>
+        ):(
+          <>
+            <div style={{textAlign:'center',marginBottom:20}}>
+              <div style={{fontSize:36,marginBottom:6}}>⭐</div>
+              <h3 style={{color:'var(--navy)',margin:0}}>Laissez votre avis</h3>
+              {bk&&<p style={{color:'var(--muted)',fontSize:13,marginTop:4}}>{bk.offer_title||'Votre voyage'}</p>}
+            </div>
+            {/* Stars */}
+            <div style={{display:'flex',justifyContent:'center',gap:8,marginBottom:20}}>
+              {[1,2,3,4,5].map(s=>(
+                <span key={s} onClick={()=>setRating(s)} onMouseEnter={()=>setHover(s)} onMouseLeave={()=>setHover(0)}
+                  style={{fontSize:36,cursor:'pointer',color:(hover||rating)>=s?'#F59E0B':'#E2EBF0',transition:'color .15s'}}>★</span>
+              ))}
+            </div>
+            <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Titre de votre avis *"
+              style={{width:'100%',padding:'10px 14px',borderRadius:12,border:'1.5px solid #E2EBF0',fontSize:14,marginBottom:10,boxSizing:'border-box'}}/>
+            <textarea value={comment} onChange={e=>setComment(e.target.value)} placeholder="Décrivez votre expérience…" rows={4}
+              style={{width:'100%',padding:'10px 14px',borderRadius:12,border:'1.5px solid #E2EBF0',fontSize:14,marginBottom:10,resize:'vertical',boxSizing:'border-box'}}/>
+            {/* Photo upload */}
+            <label style={{display:'block',marginBottom:16}}>
+              <div style={{border:'1.5px dashed #0DB9A8',borderRadius:12,padding:'10px 14px',fontSize:13,color:'var(--teal2)',cursor:'pointer',textAlign:'center'}}>
+                {photo?'✅ Photo ajoutée — cliquer pour changer':'📷 Ajouter une photo (optionnel)'}
+              </div>
+              <input type="file" accept="image/*" style={{display:'none'}} onChange={handlePhoto}/>
+            </label>
+            {photo&&<img src={photo} style={{width:'100%',borderRadius:12,marginBottom:12,maxHeight:160,objectFit:'cover'}} alt="preview"/>}
+            <button style={{...B.pri,width:'100%',padding:'13px'}} onClick={submit} disabled={submitting}>
+              {submitting?'Publication…':'Publier mon avis ⭐'}
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── AGENCY REVIEW REPLY ──────────────────────────────────────────────────── */
+function ReviewCard({r,isAgency=false,onReply}){
+  const [replyMode,setReplyMode]=useState(false);
+  const [replyText,setReplyText]=useState(r.agency_reply||'');
+  const [saving,setSaving]=useState(false);
+  const {show}=useToast();
+
+  const saveReply=async()=>{
+    setSaving(true);
+    try{await api(`/reviews/${r.id}/reply`,{method:'PATCH',body:{reply:replyText}});
+      show('Réponse publiée !');setReplyMode(false);if(onReply)onReply();}
+    catch(e){show(e.message,'err');}
+    setSaving(false);
+  };
+
+  return(
+    <div style={{background:'#F8FAFC',borderRadius:14,padding:'16px 18px',marginBottom:12}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+        <div>
+          <div style={{display:'flex',gap:2,marginBottom:4}}>
+            {[1,2,3,4,5].map(s=><span key={s} style={{color:r.rating>=s?'#F59E0B':'#E2EBF0',fontSize:15}}>★</span>)}
+          </div>
+          <div style={{fontWeight:700,fontSize:14,color:'var(--navy)'}}>{r.title}</div>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontSize:11,color:'var(--muted)'}}>{r.user_name||'Voyageur'}</div>
+          <div style={{fontSize:11,color:'var(--muted)'}}>{r.created_at?new Date(r.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</div>
+        </div>
+      </div>
+      {r.comment&&<p style={{fontSize:13,color:'#374151',margin:'4px 0 8px'}}>{r.comment}</p>}
+      {r.photo&&<img src={r.photo} style={{width:'100%',maxHeight:180,objectFit:'cover',borderRadius:10,marginBottom:8}} alt=""/>}
+      {r.agency_reply&&!replyMode&&(
+        <div style={{background:'#EFF6FF',borderRadius:10,padding:'10px 14px',marginTop:8,borderLeft:'3px solid #0DB9A8'}}>
+          <div style={{fontSize:11,fontWeight:700,color:'var(--teal2)',marginBottom:4}}>Réponse de l&apos;agence</div>
+          <p style={{fontSize:13,color:'#374151',margin:0}}>{r.agency_reply}</p>
+        </div>
+      )}
+      {isAgency&&!replyMode&&(
+        <button onClick={()=>setReplyMode(true)} style={{...B.ghost,fontSize:12,padding:'5px 12px',marginTop:8}}>
+          {r.agency_reply?'Modifier la réponse':'Répondre'}
+        </button>
+      )}
+      {isAgency&&replyMode&&(
+        <div style={{marginTop:8}}>
+          <textarea value={replyText} onChange={e=>setReplyText(e.target.value)} rows={3}
+            placeholder="Votre réponse publique…"
+            style={{width:'100%',padding:'8px 12px',borderRadius:10,border:'1.5px solid #E2EBF0',fontSize:13,resize:'vertical',boxSizing:'border-box',marginBottom:6}}/>
+          <div style={{display:'flex',gap:8}}>
+            <button style={{...B.pri,fontSize:12,padding:'6px 14px'}} onClick={saveReply} disabled={saving}>{saving?'…':'Publier'}</button>
+            <button style={{...B.ghost,fontSize:12,padding:'6px 14px'}} onClick={()=>setReplyMode(false)}>Annuler</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function App(){
   const [lang,setLang]=useState('fr');
   const [page,setPage]=useState('home');
@@ -1406,14 +1595,15 @@ function App(){
   const [selOffer,setSelOffer]=useState(null);
   const [forgotModal,setForgotModal]=useState(false);
   const [resetToken,setResetToken]=useState(null);
+  const [reviewBookingId,setReviewBookingId]=useState(null);
   const t=TR[lang];
 
   useEffect(()=>{
-    // Check for reset token in URL
     const params=new URLSearchParams(window.location.search);
     const tok=params.get('reset_token');
+    const rbid=params.get('review_booking');
     if(tok){setResetToken(tok);window.history.replaceState({},'',window.location.pathname);}
-    // Listen for forgot password event from AuthModal
+    if(rbid){setReviewBookingId(rbid);window.history.replaceState({},'',window.location.pathname);}
     const handler=()=>setForgotModal(true);
     document.addEventListener('openForgot',handler);
     return()=>document.removeEventListener('openForgot',handler);
@@ -1425,13 +1615,14 @@ function App(){
       {page==='home'&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
       {page==='trips'&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
       {page==='about'&&<AboutPage t={t}/>}
-      {page==='dash'&&<DashPage t={t} openAuth={setAuthModal}/>}
+      {page==='dash'&&<DashPage t={t} openAuth={setAuthModal} setReviewBookingId={setReviewBookingId}/>}
       {page==='admin'&&<AdminPage t={t} openAuth={setAuthModal}/>}
       <Footer t={t} setPage={setPage}/>
       {authModal&&<AuthModal mode={authModal} onClose={()=>setAuthModal(null)} t={t}/>}
       {selOffer&&<OfferModal offer={selOffer} onClose={()=>setSelOffer(null)} t={t} lang={lang}/>}
       {forgotModal&&<ForgotPasswordModal onClose={()=>setForgotModal(false)} t={t} openAuth={setAuthModal}/>}
       {resetToken&&<ResetPasswordModal token={resetToken} onClose={()=>setResetToken(null)} t={t} openAuth={setAuthModal}/>}
+      {reviewBookingId&&<ReviewModal bookingId={reviewBookingId} onClose={()=>setReviewBookingId(null)} t={t}/>}
     </div>
   );
 }

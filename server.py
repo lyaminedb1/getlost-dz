@@ -137,10 +137,13 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 offer_id INTEGER NOT NULL REFERENCES offers(id),
                 user_id INTEGER NOT NULL REFERENCES users(id),
+                booking_id INTEGER REFERENCES bookings(id),
                 rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
                 title TEXT NOT NULL,
                 comment TEXT DEFAULT '',
-                status TEXT DEFAULT 'pending',
+                photo TEXT DEFAULT '',
+                agency_reply TEXT DEFAULT '',
+                status TEXT DEFAULT 'approved',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS bookings (
@@ -166,6 +169,10 @@ def init_db():
         cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS booking_id INTEGER;")
+        cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS photo TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS agency_reply TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'approved';")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS password_resets (
                 id SERIAL PRIMARY KEY,
@@ -635,15 +642,25 @@ def get_reviews(oid):
 def create_review(oid):
     u = g.user
     d = request.json or {}
-    rating = int(d.get("rating",0))
-    title  = (d.get("title") or "").strip()
-    if not rating or not title: return jsonify({"error":"Rating and title required"}), 400
-    if not (1 <= rating <= 5):  return jsonify({"error":"Rating must be 1-5"}), 400
-    if db_query("SELECT id FROM reviews WHERE offer_id=? AND user_id=?", (oid,u["id"]), one=True):
-        return jsonify({"error":"You already reviewed this offer"}), 409
-    rid = db_run("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(?,?,?,?,?,?)",
-        (oid, u["id"], rating, title, d.get("comment",""), "pending"))
-    return jsonify({"id":rid,"message":"Review submitted – will appear after moderation"}), 201
+    rating  = int(d.get("rating",0))
+    title   = (d.get("title") or "").strip()
+    comment = (d.get("comment") or "").strip()
+    photo   = (d.get("photo") or "")
+    bid     = d.get("booking_id")
+    if not rating or not title: return jsonify({"error":"Note et titre requis"}), 400
+    if not (1 <= rating <= 5):  return jsonify({"error":"Note entre 1 et 5"}), 400
+    # Check booking belongs to user and is confirmed
+    if bid:
+        bk = db_query("SELECT id FROM bookings WHERE id=? AND user_id=? AND status='confirmed'", (bid, u["id"]), one=True)
+        if not bk: return jsonify({"error":"R\u00e9servation non trouv\u00e9e ou non confirm\u00e9e"}), 403
+    # Check not already reviewed this booking
+    if bid and db_query("SELECT id FROM reviews WHERE booking_id=?", (bid,), one=True):
+        return jsonify({"error":"Vous avez d\u00e9j\u00e0 laiss\u00e9 un avis pour cette r\u00e9servation"}), 409
+    rid = db_run("INSERT INTO reviews(offer_id,user_id,booking_id,rating,title,comment,photo,status) VALUES(?,?,?,?,?,?,?,?)",
+        (oid, u["id"], bid, rating, title, comment, photo, "approved"))
+    # Update offer avg_rating
+    db_run("""UPDATE offers SET views=views WHERE id=?""", (oid,))
+    return jsonify({"id":rid,"message":"Avis publi\u00e9 !"}), 201
 
 @app.route("/api/reviews/<int:rid>/status", methods=["PATCH"])
 @admin_required
@@ -652,6 +669,30 @@ def set_review_status(rid):
     if status not in ["approved","rejected"]: return jsonify({"error":"Invalid"}), 400
     db_run("UPDATE reviews SET status=? WHERE id=?", (status,rid))
     return jsonify({"message":f"Review {status}"})
+
+@app.route("/api/reviews/<int:rid>/reply", methods=["PATCH"])
+@token_required
+def reply_review(rid):
+    u = g.user
+    if u["role"] != "agency": return jsonify({"error":"Forbidden"}), 403
+    reply = (request.json or {}).get("reply","").strip()
+    # Check review belongs to agency's offer
+    review = db_query("""SELECT r.* FROM reviews r
+        JOIN offers o ON r.offer_id=o.id
+        JOIN agencies a ON o.agency_id=a.id
+        WHERE r.id=? AND a.user_id=?""", (rid, u["id"]), one=True)
+    if not review: return jsonify({"error":"Not found"}), 404
+    db_run("UPDATE reviews SET agency_reply=? WHERE id=?", (reply, rid))
+    return jsonify({"message":"R\u00e9ponse publi\u00e9e"})
+
+@app.route("/api/bookings/<int:bid>/review-check", methods=["GET"])
+@token_required
+def review_check(bid):
+    u = g.user
+    bk = db_query("SELECT * FROM bookings WHERE id=? AND user_id=?", (bid, u["id"]), one=True)
+    if not bk: return jsonify({"error":"Not found"}), 404
+    existing = db_query("SELECT id FROM reviews WHERE booking_id=?", (bid,), one=True)
+    return jsonify({"booking": bk, "already_reviewed": bool(existing)})
 
 # ─── AGENCIES ────────────────────────────────────────────────────────────────
 
@@ -749,14 +790,39 @@ def update_booking_status(bid):
     u = g.user
     d = request.json or {}
     status = d.get("status")
-    if status not in ["pending","confirmed","cancelled"]:
+    VALID = ["pending","contacted","didnt_answer","pre_reserved","confirmed","cancelled"]
+    if status not in VALID:
         return jsonify({"error":"Invalid status"}), 400
-    booking = db_query("""SELECT b.*, o.agency_id FROM bookings b
-        JOIN offers o ON b.offer_id=o.id WHERE b.id=?""", (bid,), one=True)
+    booking = db_query("""SELECT b.*, o.agency_id, o.title offer_title,
+        u2.email traveler_email, u2.name traveler_name
+        FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        JOIN users u2 ON b.user_id=u2.id
+        WHERE b.id=?""", (bid,), one=True)
     if not booking: return jsonify({"error":"Not found"}), 404
     if u["role"] == "agency" and booking["agency_id"] != u.get("agencyId"):
         return jsonify({"error":"Forbidden"}), 403
     db_run("UPDATE bookings SET status=? WHERE id=?", (status, bid))
+    if status == "confirmed":
+        review_url = f"{APP_URL}/?review_booking={bid}"
+        html = f"""
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
+          <div style="text-align:center;margin-bottom:24px">
+            <span style="font-size:48px">\U0001f30d</span>
+            <h2 style="color:#0B2340;margin:8px 0">Get Lost DZ</h2>
+          </div>
+          <div style="background:#f0fdf4;border-radius:16px;padding:24px;text-align:center">
+            <h3 style="color:#0B2340">Votre voyage est confirm\u00e9 ! \U0001f389</h3>
+            <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
+            <p>Votre r\u00e9servation pour <strong>{booking['offer_title']}</strong> est confirm\u00e9e.</p>
+            <p>Partagez votre exp\u00e9rience en laissant un avis !</p>
+            <a href="{review_url}" style="display:inline-block;margin-top:16px;padding:14px 32px;background:#0DB9A8;color:white;border-radius:50px;text-decoration:none;font-weight:700">
+              \u2b50 Laisser un avis
+            </a>
+          </div>
+          <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Get Lost DZ</p>
+        </div>"""
+        send_email(booking["traveler_email"], "\U0001f389 Votre voyage est confirm\u00e9 — Laissez un avis !", html)
     return jsonify({"message":f"Booking {status}"})
 
 # ─── ADMIN ────────────────────────────────────────────────────────────────────
@@ -834,6 +900,10 @@ def run_migrations():
         cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS booking_id INTEGER;")
+        cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS photo TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS agency_reply TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'approved';")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS password_resets (
                 id SERIAL PRIMARY KEY,
