@@ -249,6 +249,7 @@ const BOOKING_STATUSES=[
   {v:'didnt_answer',label:'Pas de réponse',  bg:'#FEE2E2',c:'#991B1B'},
   {v:'pre_reserved',label:'Pré-réservé',     bg:'#EDE9FE',c:'#5B21B6'},
   {v:'confirmed',   label:'Confirmé ✅',     bg:'#D1FAE5',c:'#065F46'},
+  {v:'completed',   label:'Voyage terminé 🎉',bg:'#A7F3D0',c:'#065F46'},
   {v:'cancelled',   label:'Annulé',          bg:'#F3F4F6',c:'#6B7280'},
 ];
 const BSTATUS_MAP=Object.fromEntries(BOOKING_STATUSES.map(s=>[s.v,s]));
@@ -258,7 +259,7 @@ const Badge=({status})=>{
     rejected:{bg:'#FEE2E2',c:'#991B1B'},suspended:{bg:'#FEE2E2',c:'#991B1B'},
     contacted:{bg:'#DBEAFE',c:'#1E40AF'},didnt_answer:{bg:'#FEE2E2',c:'#991B1B'},
     pre_reserved:{bg:'#EDE9FE',c:'#5B21B6'},confirmed:{bg:'#D1FAE5',c:'#065F46'},
-    cancelled:{bg:'#F3F4F6',c:'#6B7280'}};
+    completed:{bg:'#A7F3D0',c:'#065F46'},cancelled:{bg:'#F3F4F6',c:'#6B7280'}};
   const bs=BSTATUS_MAP[status];
   const label=bs?bs.label:status;
   const s=m[status]||m.pending;
@@ -1183,7 +1184,7 @@ function DashPage({t,openAuth,setReviewBookingId=()=>{}}){
                     <Badge status={b.status}/>
                     <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
                   </div>
-                  {b.status==='confirmed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}
+                  {b.status==='completed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}
                 </div>
               </Card>
             ))}
