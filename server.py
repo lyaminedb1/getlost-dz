@@ -331,7 +331,7 @@ def get_offers():
         sql += " AND o.category=?"; args.append(cat)
     if search:
         sql += " AND (o.title LIKE ? OR o.region LIKE ?)"; args += [f"%{search}%",f"%{search}%"]
-    sql += " GROUP BY o.id"
+    sql += " GROUP BY o.id, a.name, a.logo"
     sql += {
         "price_asc":  " ORDER BY o.price ASC",
         "price_desc": " ORDER BY o.price DESC",
@@ -345,7 +345,7 @@ def get_offer(oid):
              COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
              FROM offers o LEFT JOIN agencies a ON o.agency_id=a.id
              LEFT JOIN reviews r ON r.offer_id=o.id
-             WHERE o.id=? GROUP BY o.id""", (oid,), one=True)
+             WHERE o.id=? GROUP BY o.id, a.name, a.logo, a.description""", (oid,), one=True)
     if not o: return jsonify({"error":"Not found"}), 404
     db_run("UPDATE offers SET views=views+1 WHERE id=?", (oid,))
     return jsonify(parse_offer(o))
@@ -489,7 +489,7 @@ def agency_offers(aid):
         ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
         COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
         FROM offers o LEFT JOIN reviews r ON r.offer_id=o.id
-        WHERE o.agency_id=? GROUP BY o.id ORDER BY o.id DESC""", (aid,))
+        WHERE o.agency_id=? GROUP BY o.id, a.name, a.logo ORDER BY o.id DESC""", (aid,))
     return jsonify([parse_offer(o) for o in rows])
 
 # ─── BOOKINGS ────────────────────────────────────────────────────────────────
@@ -573,7 +573,7 @@ def admin_offers():
         COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
         FROM offers o LEFT JOIN agencies a ON o.agency_id=a.id
         LEFT JOIN reviews r ON r.offer_id=o.id
-        GROUP BY o.id ORDER BY (o.status='pending') DESC, o.id DESC""")
+        GROUP BY o.id, a.name, a.logo ORDER BY o.id DESC""")
     return jsonify([parse_offer(o) for o in rows])
 
 @app.route("/api/admin/reviews", methods=["GET"])
