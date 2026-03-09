@@ -99,6 +99,10 @@ def init_db():
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 name TEXT NOT NULL,
+                family_name TEXT DEFAULT '',
+                birth_date TEXT DEFAULT '',
+                gender TEXT DEFAULT '',
+                city TEXT DEFAULT '',
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'traveler',
@@ -185,6 +189,10 @@ def init_db():
         cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_name TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT DEFAULT '';")
         cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS booking_id INTEGER;")
         cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS photo TEXT DEFAULT '';")
         cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS agency_reply TEXT DEFAULT '';")
@@ -344,13 +352,16 @@ def admin_required(f):
 @app.route("/api/auth/register", methods=["POST"])
 def register():
     d = request.json or {}
-    name = (d.get("name") or "").strip()
-    email = (d.get("email") or "").strip().lower()
-    password = d.get("password") or ""
-    role = d.get("role","traveler")
-    phone = (d.get("phone") or "").strip()
-    if not name or not email or not password:
-        return jsonify({"error":"Tous les champs sont requis"}), 400
+    name        = (d.get("name") or "").strip()
+    family_name = (d.get("familyName") or "").strip()
+    birth_date  = (d.get("birthDate") or "").strip()
+    gender      = (d.get("gender") or "").strip()
+    city        = (d.get("city") or "").strip()
+    email       = (d.get("email") or "").strip().lower()
+    password    = d.get("password") or ""
+    phone       = (d.get("phone") or "").strip()
+    if not name or not family_name or not email or not password:
+        return jsonify({"error":"Tous les champs obligatoires sont requis"}), 400
     if len(password) < 6:
         return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
     if not phone:
@@ -361,10 +372,12 @@ def register():
     if db_query("SELECT id FROM users WHERE email=?", (email,), one=True):
         return jsonify({"error":"Email déjà utilisé"}), 409
     # Public registration is traveler-only; agencies are created by admin
-    role = "traveler"
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    uid = db_run("INSERT INTO users(name,email,password,role,phone) VALUES(?,?,?,?,?)",(name,email,hashed,role,phone))
-    user = {"id":uid,"name":name,"email":email,"role":role,"phone":phone}
+    uid = db_run(
+        "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone) VALUES(?,?,?,?,?,?,?,?,?)",
+        (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone)
+    )
+    user = {"id":uid,"name":name,"family_name":family_name,"email":email,"role":"traveler","phone":phone}
     return jsonify({"token": make_token(user, None), "user": {**user, "agencyId": None}}), 201
 
 @app.route("/api/admin/create-agency", methods=["POST"])
@@ -412,7 +425,7 @@ def login():
 @app.route("/api/auth/me", methods=["GET"])
 @token_required
 def me():
-    u = db_query("SELECT id,name,email,role,phone,avatar,created_at FROM users WHERE id=?", (g.user["id"],), one=True)
+    u = db_query("SELECT id,name,family_name,birth_date,gender,city,email,role,phone,avatar,created_at FROM users WHERE id=?", (g.user["id"],), one=True)
     return jsonify(u)
 
 @app.route("/api/auth/profile", methods=["PUT"])
@@ -420,9 +433,13 @@ def me():
 def update_profile():
     d = request.json or {}
     uid = g.user["id"]
-    name = (d.get("name") or "").strip()
-    email = (d.get("email") or "").strip().lower()
-    phone = (d.get("phone") or "").strip()
+    name        = (d.get("name") or "").strip()
+    family_name = (d.get("familyName") or "").strip()
+    birth_date  = (d.get("birthDate") or "").strip()
+    gender      = (d.get("gender") or "").strip()
+    city        = (d.get("city") or "").strip()
+    email       = (d.get("email") or "").strip().lower()
+    phone       = (d.get("phone") or "").strip()
     if not name or not email:
         return jsonify({"error":"Nom et email requis"}), 400
     if phone:
@@ -439,9 +456,11 @@ def update_profile():
         if len(new_pass) < 6:
             return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
         hashed = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt()).decode()
-        db_run("UPDATE users SET name=?,email=?,phone=?,password=? WHERE id=?", (name,email,phone,hashed,uid))
+        db_run("UPDATE users SET name=?,family_name=?,birth_date=?,gender=?,city=?,email=?,phone=?,password=? WHERE id=?",
+               (name,family_name,birth_date,gender,city,email,phone,hashed,uid))
     else:
-        db_run("UPDATE users SET name=?,email=?,phone=? WHERE id=?", (name,email,phone,uid))
+        db_run("UPDATE users SET name=?,family_name=?,birth_date=?,gender=?,city=?,email=?,phone=? WHERE id=?",
+               (name,family_name,birth_date,gender,city,email,phone,uid))
     # Update agency info if agency
     if g.user.get("role") == "agency":
         ag_name = (d.get("agencyName") or "").strip()
@@ -449,7 +468,7 @@ def update_profile():
         ag_logo = (d.get("agencyLogo") or "🏢").strip()
         if ag_name:
             db_run("UPDATE agencies SET name=?,description=?,logo=? WHERE user_id=?", (ag_name,ag_desc,ag_logo,uid))
-    user = db_query("SELECT id,name,email,role,phone,avatar FROM users WHERE id=?", (uid,), one=True)
+    user = db_query("SELECT id,name,family_name,birth_date,gender,city,email,role,phone,avatar FROM users WHERE id=?", (uid,), one=True)
     return jsonify({"message":"Profil mis à jour", "user": user})
 
 @app.route("/api/auth/avatar", methods=["POST"])
@@ -1101,6 +1120,10 @@ def run_migrations():
         cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS family_name TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS birth_date TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS gender TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT DEFAULT '';")
         cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS booking_id INTEGER;")
         cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS photo TEXT DEFAULT '';")
         cur.execute("ALTER TABLE reviews ADD COLUMN IF NOT EXISTS agency_reply TEXT DEFAULT '';")
@@ -1144,6 +1167,14 @@ def run_migrations():
             db.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''")
         if 'avatar' not in ucols:
             db.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''")
+        if 'family_name' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN family_name TEXT DEFAULT ''")
+        if 'birth_date' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN birth_date TEXT DEFAULT ''")
+        if 'gender' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''")
+        if 'city' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''")
         db.execute("""CREATE TABLE IF NOT EXISTS password_resets (
             id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
             token TEXT NOT NULL UNIQUE, expires_at DATETIME NOT NULL,

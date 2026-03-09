@@ -558,46 +558,120 @@ function AuthModal({mode,onClose,t}){
   const {login,register}=useAuth();
   const {show}=useToast();
   const [isLogin,setIsLogin]=useState(mode==='login');
-  const [f,setF]=useState({email:'',password:'',name:'',agencyName:'',description:'',phone:''});
+  const EF={email:'',password:'',confirmPassword:'',name:'',familyName:'',phone:'',birthDate:'',gender:'',city:''};
+  const [f,setF]=useState(EF);
   const [loading,setLoading]=useState(false);
-  useEffect(()=>setIsLogin(mode==='login'),[mode]);
+  useEffect(()=>{setIsLogin(mode==='login');setF(EF);},[mode]);
+
+  const LBL=({children})=><label style={{fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:.7,display:'block',marginBottom:4}}>{children}</label>;
+  const FI=({label,fk,type='text',ph='',required=false})=>(
+    <div>
+      <LBL>{label}{required&&<span style={{color:'var(--teal2)'}}>*</span>}</LBL>
+      <input style={INP} type={type} placeholder={ph} value={f[fk]} onChange={e=>setF(p=>({...p,[fk]:e.target.value}))}/>
+    </div>
+  );
+
   const submit=async()=>{
     if(!f.email||!f.password){show('Email et mot de passe requis','err');return;}
+    if(!isLogin){
+      if(!f.name||!f.familyName){show('Prénom et nom de famille requis','err');return;}
+      if(!f.phone){show('Numéro de téléphone requis','err');return;}
+      if(f.password!==f.confirmPassword){show('Les mots de passe ne correspondent pas','err');return;}
+      if(f.password.length<6){show('Mot de passe: minimum 6 caractères','err');return;}
+    }
     setLoading(true);
     try{
       if(isLogin){const u=await login(f.email,f.password);show(`Bienvenue, ${u.name}!`);}
-      else{
-        if(!f.name){show('Nom requis','err');setLoading(false);return;}
-        if(!f.phone){show('Numéro de téléphone requis','err');setLoading(false);return;}
-        await register({...f,role:'traveler'});show('Compte créé !');
-      }
+      else{await register({...f,role:'traveler'});show('Compte créé ! Bienvenue 🎉');}
       onClose();
     }catch(e){show(e.message,'err');}
     setLoading(false);
   };
+
   return(
     <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
-      <div style={{background:'#fff',borderRadius:24,padding:'32px 28px',maxWidth:420,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)'}} className="fade" onClick={e=>e.stopPropagation()}>
-        <div style={{textAlign:'center',marginBottom:24}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:14}}
-            onError={e=>e.target.style.display='none'}/>
+      <div style={{background:'#fff',borderRadius:24,padding:'28px',maxWidth:isLogin?400:520,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)',maxHeight:'90vh',overflowY:'auto'}} className="fade" onClick={e=>e.stopPropagation()}>
+        {/* Header */}
+        <div style={{textAlign:'center',marginBottom:20}}>
+          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:48,marginBottom:12}} onError={e=>e.target.style.display='none'}/>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)'}}>{isLogin?t.loginTitle:t.regTitle}</div>
+          {!isLogin&&<div style={{fontSize:12,color:'var(--muted)',marginTop:4}}>Créez votre compte voyageur</div>}
         </div>
-        <input style={INP} type="email" placeholder={t.emailLbl} value={f.email} onChange={e=>setF(p=>({...p,email:e.target.value}))}/>
-        <input style={INP} type="password" placeholder={t.passLbl} value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))} onKeyDown={e=>!isLogin?null:e.key==='Enter'&&submit()}/>
-        {!isLogin&&<>
-          <input style={INP} placeholder={t.nameLbl} value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
-          <input style={INP} type="tel" placeholder={'📞 '+t.profilePhone+' — ex: 0770 123 456'} value={f.phone} onChange={e=>setF(p=>({...p,phone:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&submit()}/>
-        </>}
-        <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'…':isLogin?t.loginTitle:t.regTitle}</button>
-        {isLogin&&<div style={{textAlign:'right',marginTop:8,marginBottom:4}}>
-          <span style={{fontSize:12,color:'var(--teal2)',cursor:'pointer',fontWeight:600}} onClick={()=>{onClose();document.dispatchEvent(new CustomEvent('openForgot'));}}>{t.forgotPass}</span>
-        </div>}
-        <div style={{textAlign:'center',marginTop:isLogin?6:14,fontSize:13,color:'var(--muted)'}}>
-          {isLogin?<>{t.noAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(false)}>{t.regTitle}</span></>
-          :<>{t.hasAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(true)}>{t.loginTitle}</span></>}
+
+        {isLogin ? (
+          /* ── LOGIN FORM ── */
+          <>
+            <FI label="Email" fk="email" type="email" ph="votre@email.com" required/>
+            <FI label="Mot de passe" fk="password" type="password" ph="••••••••" required/>
+            <button style={{...B.pri,width:'100%',padding:13,fontSize:15,marginTop:4}} onClick={submit} disabled={loading}>{loading?'…':t.loginTitle}</button>
+            <div style={{textAlign:'right',marginTop:8,marginBottom:4}}>
+              <span style={{fontSize:12,color:'var(--teal2)',cursor:'pointer',fontWeight:600}} onClick={()=>{onClose();document.dispatchEvent(new CustomEvent('openForgot'));}}>{t.forgotPass}</span>
+            </div>
+          </>
+        ) : (
+          /* ── REGISTER FORM ── */
+          <>
+            {/* Identity */}
+            <div style={{background:'var(--teal3)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>
+              👤 Identité
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+              <FI label="Prénom" fk="name" ph="Ahmed" required/>
+              <FI label="Nom de famille" fk="familyName" ph="Benali" required/>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+              <div>
+                <LBL>Date de naissance</LBL>
+                <input style={INP} type="date" value={f.birthDate} onChange={e=>setF(p=>({...p,birthDate:e.target.value}))}
+                  max={new Date().toISOString().split('T')[0]}/>
+              </div>
+              <div>
+                <LBL>Genre</LBL>
+                <select style={{...INP,marginBottom:0}} value={f.gender} onChange={e=>setF(p=>({...p,gender:e.target.value}))}>
+                  <option value="">— Sélectionner —</option>
+                  <option value="homme">Homme</option>
+                  <option value="femme">Femme</option>
+                  <option value="autre">Autre</option>
+                </select>
+              </div>
+            </div>
+            <div style={{marginBottom:4}}>
+              <LBL>Ville</LBL>
+              <input style={INP} placeholder="Ex: Alger, Oran, Constantine…" value={f.city} onChange={e=>setF(p=>({...p,city:e.target.value}))}/>
+            </div>
+
+            {/* Contact */}
+            <div style={{background:'var(--teal3)',borderRadius:12,padding:'12px 16px',marginBottom:16,marginTop:8,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>
+              📬 Contact & Accès
+            </div>
+            <FI label="Email" fk="email" type="email" ph="votre@email.com" required/>
+            <div>
+              <LBL>Téléphone<span style={{color:'var(--teal2)'}}>*</span></LBL>
+              <input style={INP} type="tel" placeholder="📞 0770 123 456" value={f.phone} onChange={e=>setF(p=>({...p,phone:e.target.value}))}/>
+            </div>
+            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+              <div>
+                <LBL>Mot de passe<span style={{color:'var(--teal2)'}}>*</span></LBL>
+                <input style={INP} type="password" placeholder="Min. 6 caractères" value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))}/>
+              </div>
+              <div>
+                <LBL>Confirmer le mot de passe<span style={{color:'var(--teal2)'}}>*</span></LBL>
+                <input style={{...INP,borderColor:f.confirmPassword&&f.password!==f.confirmPassword?'#EF4444':'',background:f.confirmPassword&&f.password!==f.confirmPassword?'#FEF2F2':''}}
+                  type="password" placeholder="Répéter" value={f.confirmPassword} onChange={e=>setF(p=>({...p,confirmPassword:e.target.value}))}
+                  onKeyDown={e=>e.key==='Enter'&&submit()}/>
+                {f.confirmPassword&&f.password!==f.confirmPassword&&<div style={{fontSize:11,color:'#EF4444',marginTop:-8,marginBottom:8,fontWeight:600}}>⚠ Les mots de passe ne correspondent pas</div>}
+              </div>
+            </div>
+            <button style={{...B.pri,width:'100%',padding:13,fontSize:15,marginTop:8}} onClick={submit} disabled={loading}>{loading?'…':'✅ Créer mon compte'}</button>
+          </>
+        )}
+
+        <div style={{textAlign:'center',marginTop:14,fontSize:13,color:'var(--muted)'}}>
+          {isLogin
+            ?<>{t.noAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(false)}>{t.regTitle}</span></>
+            :<>{t.hasAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(true)}>{t.loginTitle}</span></>}
         </div>
-        <div style={{marginTop:16,padding:'10px 14px',background:'#F7FAFA',borderRadius:10,fontSize:11,color:'var(--muted)',lineHeight:1.6}}>{t.demo}</div>
+        {isLogin&&<div style={{marginTop:14,padding:'10px 14px',background:'#F7FAFA',borderRadius:10,fontSize:11,color:'var(--muted)',lineHeight:1.6}}>{t.demo}</div>}
       </div>
     </div>
   );
@@ -883,7 +957,7 @@ function TripsPage({t,filterCat,setFilterCat,onOpen}){
 function ProfileTab({t}){
   const {user,updateUser}=useAuth();
   const {show}=useToast();
-  const [pf,setPf]=useState({name:user?.name||'',email:user?.email||'',phone:user?.phone||'',password:'',agencyName:'',agencyDesc:'',agencyLogo:'🏢'});
+  const [pf,setPf]=useState({name:user?.name||'',familyName:user?.family_name||'',birthDate:user?.birth_date||'',gender:user?.gender||'',city:user?.city||'',email:user?.email||'',phone:user?.phone||'',password:'',agencyName:'',agencyDesc:'',agencyLogo:'🏢'});
   const [agencyData,setAgencyData]=useState(null);
   const [saving,setSaving]=useState(false);
   const fileRef=useRef(null);
@@ -916,7 +990,7 @@ function ProfileTab({t}){
     setSaving(true);
     try{
       const res=await api('/auth/profile',{method:'PUT',body:{...pf}});
-      updateUser({name:pf.name,email:pf.email,phone:pf.phone});
+      updateUser({name:pf.name,family_name:pf.familyName,birth_date:pf.birthDate,gender:pf.gender,city:pf.city,email:pf.email,phone:pf.phone});
       show(t.profileSuccess);
     }catch(e){show(e.message,'err');}
     setSaving(false);
@@ -940,18 +1014,37 @@ function ProfileTab({t}){
         <div style={{padding:'8px 16px',background:'var(--teal3)',borderRadius:20,display:'inline-block',fontSize:12,fontWeight:700,color:'var(--teal2)',marginBottom:12}}>
           {user?.role==='agency'?'🏢 Agence':user?.role==='admin'?'🛡️ Admin':'🧳 Voyageur'}
         </div>
-        {user?.phone&&<div style={{fontSize:13,color:'var(--muted)'}}>📞 {user.phone}</div>}
-        <div style={{marginTop:16,fontSize:11,color:'var(--light)'}}>Cliquer sur ✏️ pour changer la photo</div>
+        {user?.phone&&<div style={{fontSize:13,color:'var(--muted)',marginBottom:4}}>📞 {user.phone}</div>}
+        {user?.city&&<div style={{fontSize:13,color:'var(--muted)',marginBottom:4}}>📍 {user.city}</div>}
+        {user?.birth_date&&<div style={{fontSize:12,color:'var(--muted)',marginBottom:4}}>🎂 {user.birth_date}</div>}
+        <div style={{marginTop:12,fontSize:11,color:'var(--light)'}}>Cliquer sur ✏️ pour changer la photo</div>
       </Card>
 
       {/* RIGHT — Form */}
       <Card style={{padding:28}}>
         <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:18,color:'var(--navy)',marginBottom:22}}>✏️ {t.profileTab}</div>
+        {/* Identity */}
+        <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',marginBottom:14,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>👤 Identité</div>
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
-          <div><LBL>{t.nameLbl}</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
+          <div><LBL>Prénom</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
+          <div><LBL>Nom de famille</LBL><input style={INP} value={pf.familyName} onChange={e=>setPf(p=>({...p,familyName:e.target.value}))}/></div>
+          <div><LBL>Date de naissance</LBL><input style={INP} type="date" value={pf.birthDate} max={new Date().toISOString().split('T')[0]} onChange={e=>setPf(p=>({...p,birthDate:e.target.value}))}/></div>
+          <div><LBL>Genre</LBL>
+            <select style={{...INP,marginBottom:0}} value={pf.gender} onChange={e=>setPf(p=>({...p,gender:e.target.value}))}>
+              <option value="">— Sélectionner —</option>
+              <option value="homme">Homme</option>
+              <option value="femme">Femme</option>
+              <option value="autre">Autre</option>
+            </select>
+          </div>
+          <div style={{gridColumn:'1/-1'}}><LBL>Ville</LBL><input style={INP} placeholder="Ex: Alger, Oran…" value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}/></div>
+        </div>
+        {/* Contact & Access */}
+        <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
           <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
           <div><LBL>📞 {t.profilePhone}</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
-          <div><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
+          <div style={{gridColumn:'1/-1'}}><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
         </div>
         {user?.role==='agency'&&<>
           <div style={{height:1,background:'#F0F4F5',margin:'16px 0'}}/>
