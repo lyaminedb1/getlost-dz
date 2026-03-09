@@ -360,15 +360,37 @@ def register():
         return jsonify({"error":"Numéro invalide (min. 8 chiffres)"}), 400
     if db_query("SELECT id FROM users WHERE email=?", (email,), one=True):
         return jsonify({"error":"Email déjà utilisé"}), 409
+    # Public registration is traveler-only; agencies are created by admin
+    role = "traveler"
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     uid = db_run("INSERT INTO users(name,email,password,role,phone) VALUES(?,?,?,?,?)",(name,email,hashed,role,phone))
-    agency_id = None
-    if role == "agency":
-        agency_name = (d.get("agencyName") or name).strip()
-        desc = (d.get("description") or "").strip()
-        agency_id = db_run("INSERT INTO agencies(user_id,name,description,status) VALUES(?,?,?,?)",(uid,agency_name,desc,"approved"))
     user = {"id":uid,"name":name,"email":email,"role":role,"phone":phone}
-    return jsonify({"token": make_token(user, agency_id), "user": {**user, "agencyId": agency_id}}), 201
+    return jsonify({"token": make_token(user, None), "user": {**user, "agencyId": None}}), 201
+
+@app.route("/api/admin/create-agency", methods=["POST"])
+@admin_required
+def admin_create_agency():
+    d = request.json or {}
+    name     = (d.get("name") or "").strip()
+    email    = (d.get("email") or "").strip().lower()
+    password = d.get("password") or ""
+    phone    = (d.get("phone") or "").strip()
+    ag_name  = (d.get("agencyName") or name).strip()
+    desc     = (d.get("description") or "").strip()
+    logo     = (d.get("logo") or "🏢").strip()
+    plan     = d.get("plan", "standard")
+    if not name or not email or not password:
+        return jsonify({"error":"Nom, email et mot de passe requis"}), 400
+    if len(password) < 6:
+        return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
+    if db_query("SELECT id FROM users WHERE email=?", (email,), one=True):
+        return jsonify({"error":"Email deja utilise"}), 409
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    uid = db_run("INSERT INTO users(name,email,password,role,phone) VALUES(?,?,?,?,?)",
+                 (name, email, hashed, "agency", phone or ""))
+    agency_id = db_run("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)",
+                       (uid, ag_name, desc, logo, plan, "approved"))
+    return jsonify({"message":"Agence creee avec succes", "userId": uid, "agencyId": agency_id}), 201
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
