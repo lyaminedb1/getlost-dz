@@ -1,8 +1,9 @@
 """
 GET LOST DZ — Full Backend API
-Flask + SQLite + JWT + bcrypt
+Flask + PostgreSQL (prod) / SQLite (dev) + JWT + bcrypt
+Auto-detects DATABASE_URL env var
 """
-import sqlite3, bcrypt, jwt, json, os
+import bcrypt, jwt, json, os
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory, g
@@ -11,201 +12,221 @@ from flask_cors import CORS
 app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
-JWT_SECRET = "getlostdz_jwt_secret_2025"
-DB = "getlost.db"
+JWT_SECRET = os.environ.get("JWT_SECRET", "getlostdz_jwt_secret_2025")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+USE_POSTGRES = DATABASE_URL.startswith("postgres")
 
-# ─── DATABASE ─────────────────────────────────────────────────────────────────
+# ─── DB LAYER ─────────────────────────────────────────────────────────────────
 
-def get_db():
-    if 'db' not in g:
-        g.db = sqlite3.connect(DB)
-        g.db.row_factory = sqlite3.Row
-        g.db.execute("PRAGMA journal_mode=WAL")
-        g.db.execute("PRAGMA foreign_keys=ON")
-    return g.db
+if USE_POSTGRES:
+    import psycopg2, psycopg2.extras
+    def _pg_conn():
+        url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        return psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
 
-@app.teardown_appcontext
-def close_db(e=None):
-    db = g.pop('db', None)
-    if db: db.close()
+    def get_db():
+        if 'db' not in g:
+            g.db = _pg_conn()
+        return g.db
 
-def db_query(sql, args=(), one=False):
-    rows = get_db().execute(sql, args).fetchall()
-    return (dict(rows[0]) if rows else None) if one else [dict(r) for r in rows]
+    @app.teardown_appcontext
+    def close_db(e=None):
+        db = g.pop('db', None)
+        if db:
+            try: db.close()
+            except: pass
 
-def db_run(sql, args=()):
-    db = get_db()
-    cur = db.execute(sql, args)
-    db.commit()
-    return cur.lastrowid
+    def _fix(sql): return sql.replace("?", "%s")
+
+    def db_query(sql, args=(), one=False):
+        cur = get_db().cursor()
+        cur.execute(_fix(sql), args)
+        rows = [dict(r) for r in cur.fetchall()]
+        return (rows[0] if rows else None) if one else rows
+
+    def db_run(sql, args=()):
+        sql2 = _fix(sql)
+        if sql2.strip().upper().startswith("INSERT"):
+            sql2 = sql2.rstrip("; ") + " RETURNING id"
+        db = get_db(); cur = db.cursor()
+        cur.execute(sql2, args); db.commit()
+        if "RETURNING" in sql2:
+            row = cur.fetchone()
+            return row["id"] if row else None
+        return None
+
+else:
+    import sqlite3
+    DB = "getlost.db"
+
+    def get_db():
+        if 'db' not in g:
+            g.db = sqlite3.connect(DB)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute("PRAGMA journal_mode=WAL")
+            g.db.execute("PRAGMA foreign_keys=ON")
+        return g.db
+
+    @app.teardown_appcontext
+    def close_db(e=None):
+        db = g.pop('db', None)
+        if db: db.close()
+
+    def db_query(sql, args=(), one=False):
+        rows = get_db().execute(sql, args).fetchall()
+        return (dict(rows[0]) if rows else None) if one else [dict(r) for r in rows]
+
+    def db_run(sql, args=()):
+        db = get_db(); cur = db.execute(sql, args); db.commit()
+        return cur.lastrowid
+
+# ─── INIT DB ──────────────────────────────────────────────────────────────────
+
+def _exec(db, sql, args=()):
+    """Execute on either psycopg2 or sqlite3 connection."""
+    if USE_POSTGRES:
+        cur = db.cursor(); cur.execute(sql.replace("?","%s"), args)
+    else:
+        db.execute(sql, args)
 
 def init_db():
-    db = sqlite3.connect(DB)
-    db.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT NOT NULL DEFAULT 'traveler',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS agencies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            logo TEXT DEFAULT '🏢',
-            plan TEXT DEFAULT 'standard',
-            status TEXT DEFAULT 'approved',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS offers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            agency_id INTEGER NOT NULL,
-            title TEXT NOT NULL,
-            category TEXT NOT NULL,
-            price INTEGER NOT NULL,
-            duration INTEGER NOT NULL DEFAULT 1,
-            region TEXT NOT NULL,
-            description TEXT DEFAULT '',
-            image_url TEXT DEFAULT '',
-            itinerary TEXT DEFAULT '[]',
-            includes TEXT DEFAULT '[]',
-            available_dates TEXT DEFAULT '[]',
-            status TEXT DEFAULT 'pending',
-            views INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(agency_id) REFERENCES agencies(id)
-        );
-        CREATE TABLE IF NOT EXISTS reviews (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            offer_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
-            title TEXT NOT NULL,
-            comment TEXT DEFAULT '',
-            status TEXT DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(offer_id) REFERENCES offers(id),
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-        CREATE TABLE IF NOT EXISTS bookings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            offer_id INTEGER NOT NULL,
-            user_id INTEGER NOT NULL,
-            message TEXT DEFAULT '',
-            status TEXT DEFAULT 'pending',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(offer_id) REFERENCES offers(id),
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        );
-    """)
-    db.commit()
+    if USE_POSTGRES:
+        db = _pg_conn()
+        cur = db.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'traveler',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS agencies (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER UNIQUE NOT NULL REFERENCES users(id),
+                name TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                logo TEXT DEFAULT '🏢',
+                plan TEXT DEFAULT 'standard',
+                status TEXT DEFAULT 'approved',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS offers (
+                id SERIAL PRIMARY KEY,
+                agency_id INTEGER NOT NULL REFERENCES agencies(id),
+                title TEXT NOT NULL,
+                category TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                duration INTEGER NOT NULL DEFAULT 1,
+                region TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                image_url TEXT DEFAULT '',
+                itinerary TEXT DEFAULT '[]',
+                includes TEXT DEFAULT '[]',
+                available_dates TEXT DEFAULT '[]',
+                status TEXT DEFAULT 'pending',
+                views INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS reviews (
+                id SERIAL PRIMARY KEY,
+                offer_id INTEGER NOT NULL REFERENCES offers(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+                title TEXT NOT NULL,
+                comment TEXT DEFAULT '',
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS bookings (
+                id SERIAL PRIMARY KEY,
+                offer_id INTEGER NOT NULL REFERENCES offers(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                message TEXT DEFAULT '',
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        db.commit()
+        # Check if already seeded
+        cur.execute("SELECT COUNT(*) as c FROM users")
+        count = cur.fetchone()["c"]
+        if count > 0:
+            db.close(); print("✅  DB already seeded"); return
+    else:
+        import sqlite3 as _sq
+        db = _sq.connect(DB)
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'traveler', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', logo TEXT DEFAULT '🏢', plan TEXT DEFAULT 'standard', status TEXT DEFAULT 'approved', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS offers (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, price INTEGER NOT NULL, duration INTEGER NOT NULL DEFAULT 1, region TEXT NOT NULL, description TEXT DEFAULT '', image_url TEXT DEFAULT '', itinerary TEXT DEFAULT '[]', includes TEXT DEFAULT '[]', available_dates TEXT DEFAULT '[]', status TEXT DEFAULT 'pending', views INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(agency_id) REFERENCES agencies(id));
+            CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), title TEXT NOT NULL, comment TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, message TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
+        """)
+        count = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        if count > 0:
+            db.close(); print("✅  DB already seeded"); return
 
-    # seed users
-    seeds = [
-        ("Admin GetLost", "admin@getlostdz.com", "admin123", "admin"),
-        ("DZ Horizons Travel", "agency1@getlostdz.com", "agency123", "agency"),
-        ("Sahara Wings", "agency2@getlostdz.com", "agency123", "agency"),
-        ("Atlas Adventures", "agency3@getlostdz.com", "agency123", "agency"),
-        ("Sarah Meziane", "sarah@test.com", "user123", "traveler"),
-        ("Karim Bensalem", "karim@test.com", "user123", "traveler"),
-    ]
-    for name, email, pw, role in seeds:
-        hashed = bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
-        try:
-            db.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)", (name,email,hashed,role))
-        except: pass
-    db.commit()
+    # Seed
+    seeds=[("Admin GetLost","admin@getlostdz.com","admin123","admin"),("DZ Horizons Travel","agency1@getlostdz.com","agency123","agency"),("Sahara Wings","agency2@getlostdz.com","agency123","agency"),("Atlas Adventures","agency3@getlostdz.com","agency123","agency"),("Sarah Meziane","sarah@test.com","user123","traveler"),("Karim Bensalem","karim@test.com","user123","traveler")]
+    for name,email,pw,role in seeds:
+        h=bcrypt.hashpw(pw.encode(),bcrypt.gensalt()).decode()
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO users(name,email,password,role) VALUES(%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING",(name,email,h,role))
+        else:
+            try: db.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",(name,email,h,role))
+            except: pass
+    if USE_POSTGRES: db.commit()
+    else: db.commit()
 
-    # seed agencies
-    ag_seeds = [
-        (2,"DZ Horizons Travel","Spécialiste voyages internationaux premium","✈️","premium","approved"),
-        (3,"Sahara Wings","Expert destinations africaines et randonnées","🦅","standard","approved"),
-        (4,"Atlas Adventures","Aventures et treks en Algérie","⛰️","standard","approved"),
-    ]
-    for uid,name,desc,logo,plan,status in ag_seeds:
-        try:
-            db.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)",(uid,name,desc,logo,plan,status))
-        except: pass
-    db.commit()
+    ags=[(2,"DZ Horizons Travel","Spécialiste voyages internationaux","✈️","premium","approved"),(3,"Sahara Wings","Expert destinations africaines","🦅","standard","approved"),(4,"Atlas Adventures","Aventures et treks en Algérie","⛰️","standard","approved")]
+    for uid,name,desc,logo,plan,status in ags:
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(user_id) DO NOTHING",(uid,name,desc,logo,plan,status))
+        else:
+            try: db.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)",(uid,name,desc,logo,plan,status))
+            except: pass
+    if USE_POSTGRES: db.commit()
+    else: db.commit()
 
-    # seed offers
-    offers = [
-        (1,"Zanzibar Paradise","intl",185000,8,"Afrique de l'Est",
-         "Découvrez les plages paradisiaques de Zanzibar avec hébergement 4★, vols et transferts inclus. Une expérience entre plages de sable blanc et culture swahili.",
-         "https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=700&q=80",
-         '["Jour 1: Arrivée Stone Town, visite guidée","Jour 2-3: North Coast, plages de Nungwi","Jour 4-5: Snorkeling & plage Kendwa","Jour 6-7: Safari bleu & épices","Jour 8: Retour"]',
-         '["Vol A/R","Hébergement 4★","Transferts aéroport","Guide francophone","Petit-déjeuner"]',
-         '["15 Avril 2025","10 Mai 2025","20 Juin 2025"]',"approved"),
-        (1,"Kenya Safari & Masai Mara","intl",220000,10,"Afrique de l'Est",
-         "Safari inoubliable dans le Masai Mara avec lodge de luxe, game drives et rencontre avec les Maasaï.",
-         "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=700&q=80",
-         '["Jour 1: Nairobi, arrivée","Jour 2-4: Masai Mara safaris","Jour 5-6: Amboseli & Kilimandjaro","Jour 7-9: Plages Mombasa","Jour 10: Retour"]',
-         '["Vol A/R","Lodge 4★","Safaris 4x4","Pension complète","Guide expert"]',
-         '["5 Mai 2025","1 Juin 2025","15 Juillet 2025"]',"approved"),
-        (2,"Tamanrasset & Massif du Hoggar","national",55000,5,"Tamanrasset",
-         "Plongez au cœur du Sahara algérien. Dormez sous un ciel étoilé, explorez les formations rocheuses du Hoggar.",
-         "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=700&q=80",
-         '["Jour 1: Vol Alger→Tamanrasset","Jour 2: Assekrem & coucher soleil","Jour 3-4: Trek dans le Hoggar","Jour 5: Retour"]',
-         '["Vol interne A/R","Camping équipé","Guide local","Repas traditionnels"]',
-         '["20 Mars 2025","15 Avril 2025","10 Oct 2025"]',"approved"),
-        (2,"Kabylie — Villages & Cascades","national",18000,3,"Kabylie",
-         "Week-end en Kabylie : villages berbères authentiques, cascade de Kefrida et lac Tiouliline.",
-         "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80",
-         '["Jour 1: Cascade de Kefrida & baignade","Jour 2: Villages berbères traditionnels","Jour 3: Lac Tiouliline & retour"]',
-         '["Transport confort","Hébergement","Petit-déjeuner"]',
-         '["Chaque week-end"]',"approved"),
-        (3,"Trek Djurdjura — Bivouac","hike",12000,2,"Bouira / Tizi Ouzou",
-         "Randonnée au Parc National du Djurdjura avec bivouac sous les étoiles.",
-         "https://images.unsplash.com/photo-1551632811-561732d1e306?w=700&q=80",
-         '["Jour 1: Tala Guilef → Col de Tirourda","Jour 2: Sommet Lalla Khedidja → retour"]',
-         '["Guide certifié","Matériel bivouac complet","Repas sur le parcours"]',
-         '["Tous les samedis"]',"approved"),
-        (3,"Sahara Bivouac Weekend","hike",25000,3,"El Oued",
-         "Nuit dans les dunes de l'erg algérien, balade en dromadaire et coucher de soleil spectaculaire.",
-         "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=700&q=80",
-         '["Jour 1: Route des dunes en 4x4","Jour 2: Dromadaires & coucher soleil","Jour 3: Oasis & retour"]',
-         '["Transport 4x4","Tente dans les dunes","Repas traditionnels","Guide"]',
-         '["Chaque week-end Nov-Mars"]',"approved"),
-        (1,"Visa Turquie Express","visa",8500,1,"Service en ligne",
-         "Visa électronique pour la Turquie en 48h. Accompagnement complet du dossier.",
-         "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=700&q=80",
-         '["Préparation du dossier","Soumission en ligne","Suivi temps réel","Livraison visa"]',
-         '["Accompagnement complet","Traduction si besoin","Suivi dossier","Support 24/7"]',
-         '["Disponible toute l\'année"]',"approved"),
-        (2,"Malaisie & Bali — Grand Tour","intl",310000,14,"Asie du Sud-Est",
-         "Combiné Kuala Lumpur & Bali — villes modernes, rizières et plages tropicales.",
-         "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=700&q=80",
-         '["J1-4: Kuala Lumpur","J5-7: Langkawi & îles","J8-11: Ubud rizières Bali","J12-14: Seminyak plages"]',
-         '["Vols internationaux","Hôtels 4★","Transferts","Visites guidées"]',
-         '["20 Juillet 2025","5 Août 2025"]',"approved"),
+    offers_data=[
+        (1,"Zanzibar Paradise","intl",185000,8,"Afrique Est","Plages paradisiaques de Zanzibar.","https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=700&q=80",'["Jour 1: Stone Town","Jour 2: Nungwi","Jour 3: Snorkeling","Jour 8: Retour"]','["Vol A/R","Hébergement 4 étoiles","Guide"]','["15 Avril 2025","10 Mai 2025"]',"approved"),
+        (1,"Kenya Safari","intl",220000,10,"Afrique Est","Safari inoubliable Masai Mara.","https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=700&q=80",'["Jour 1: Nairobi","Jour 2: Masai Mara","Jour 10: Retour"]','["Vol A/R","Lodge 4 étoiles","Safaris"]','["5 Mai 2025","1 Juin 2025"]',"approved"),
+        (2,"Tamanrasset & Hoggar","national",55000,5,"Tamanrasset","Sahara algérien.","https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=700&q=80",'["Jour 1: Vol Alger-Tam","Jour 2: Assekrem","Jour 5: Retour"]','["Vol interne","Camping","Guide"]','["20 Mars 2025","15 Avril 2025"]',"approved"),
+        (2,"Kabylie Villages","national",18000,3,"Kabylie","Week-end en Kabylie.","https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80",'["Jour 1: Cascade Kefrida","Jour 2: Villages","Jour 3: Retour"]','["Transport","Hébergement"]','["Chaque week-end"]',"approved"),
+        (3,"Trek Djurdjura","hike",12000,2,"Bouira","Randonnée Djurdjura.","https://images.unsplash.com/photo-1551632811-561732d1e306?w=700&q=80",'["Jour 1: Tala Guilef","Jour 2: Sommet"]','["Guide","Bivouac"]','["Tous les samedis"]',"approved"),
+        (3,"Sahara Bivouac","hike",25000,3,"El Oued","Nuit dans les dunes.","https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=700&q=80",'["Jour 1: Dunes 4x4","Jour 2: Dromadaires","Jour 3: Retour"]','["4x4","Tente","Guide"]','["Week-ends Nov-Mars"]',"approved"),
+        (1,"Visa Turquie Express","visa",8500,1,"Service en ligne","Visa electronique 48h.","https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=700&q=80",'["Préparation","Soumission","Livraison"]','["Accompagnement","Support 24/7"]','["Toute lannee"]',"approved"),
+        (2,"Malaisie et Bali","intl",310000,14,"Asie Sud-Est","Combiné Kuala Lumpur et Bali.","https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=700&q=80",'["J1-4: KL","J5-7: Langkawi","J8-14: Bali"]','["Vols","Hotels 4 étoiles","Transferts"]','["20 Juillet 2025"]',"approved"),
     ]
-    for ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status in offers:
-        try:
-            db.execute("""INSERT INTO offers(agency_id,title,category,price,duration,region,description,
-                image_url,itinerary,includes,available_dates,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-                (ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status))
-        except: pass
-    db.commit()
+    for ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status in offers_data:
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO offers(agency_id,title,category,price,duration,region,description,image_url,itinerary,includes,available_dates,status) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status))
+        else:
+            try: db.execute("INSERT INTO offers(agency_id,title,category,price,duration,region,description,image_url,itinerary,includes,available_dates,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status))
+            except: pass
 
-    # seed reviews
-    rev_seeds = [
-        (1,5,5,"Voyage de rêve !","Zanzibar était absolument magnifique. Organisation parfaite.","approved"),
-        (1,6,4,"Très bonne expérience","Belles plages, bon hébergement. Quelques retards.","approved"),
-        (3,5,5,"Sahara magique","Dormir sous les étoiles au Hoggar, expérience inoubliable.","approved"),
-        (5,5,5,"Trek parfait","Le Djurdjura est splendide. Guide très compétent.","approved"),
-        (2,6,5,"Kenya exceptionnel","Les safaris au Masai Mara dépassent toutes les attentes !","approved"),
-    ]
-    for oid,uid,rating,title,comment,status in rev_seeds:
-        try:
-            db.execute("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(?,?,?,?,?,?)",(oid,uid,rating,title,comment,status))
-        except: pass
-    db.commit()
-    db.close()
+    revs=[(1,5,5,"Voyage de rêve !","Zanzibar magnifique.","approved"),(1,6,4,"Très bonne expérience","Belles plages.","approved"),(3,5,5,"Sahara magique","Inoubliable.","approved"),(5,5,5,"Trek parfait","Djurdjura splendide.","approved"),(2,6,5,"Kenya exceptionnel","Masai Mara !","approved")]
+    for oid,uid,rating,title,comment,status in revs:
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(%s,%s,%s,%s,%s,%s)",(oid,uid,rating,title,comment,status))
+        else:
+            try: db.execute("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(?,?,?,?,?,?)",(oid,uid,rating,title,comment,status))
+            except: pass
+
+    if USE_POSTGRES: db.commit(); db.close()
+    else: db.commit()
     print("✅  Database seeded")
+
+# ─── HELPERS ──────────────────────────────────────────────────────────────────
+
+def parse_offer(o):
+    def safe_json(v):
+        if isinstance(v, list): return v
+        try: return json.loads(v or "[]")
+        except: return []
+    return {**o,"itinerary":safe_json(o.get("itinerary")),"includes":safe_json(o.get("includes")),"available_dates":safe_json(o.get("available_dates"))}
 
 # ─── AUTH ─────────────────────────────────────────────────────────────────────
 
