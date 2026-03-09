@@ -166,6 +166,16 @@ def init_db():
         cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
         cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                token TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
         db.commit()
         # Check if already seeded
         cur.execute("SELECT COUNT(*) as c FROM users")
@@ -195,6 +205,8 @@ def init_db():
         if 'avatar' not in ucols:
             db.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''")
             db.commit()
+        db.execute("""CREATE TABLE IF NOT EXISTS password_resets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, expires_at DATETIME NOT NULL, used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id))""")
+        db.commit()
         count = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         if count > 0:
             db.close(); print("✅  DB already seeded"); return
