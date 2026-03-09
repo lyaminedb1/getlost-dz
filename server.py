@@ -163,6 +163,22 @@ def init_db():
                 used BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS events (
+                id SERIAL PRIMARY KEY,
+                type TEXT NOT NULL,
+                offer_id INTEGER,
+                user_id INTEGER,
+                session_id TEXT,
+                device TEXT DEFAULT '',
+                browser TEXT DEFAULT '',
+                country TEXT DEFAULT '',
+                referrer TEXT DEFAULT '',
+                lang TEXT DEFAULT 'fr',
+                search_query TEXT DEFAULT '',
+                filter_cat TEXT DEFAULT '',
+                metadata TEXT DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         db.commit()
         # ── Migrations ──
@@ -180,6 +196,22 @@ def init_db():
                 token TEXT NOT NULL UNIQUE,
                 expires_at TIMESTAMP NOT NULL,
                 used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS events (
+                id SERIAL PRIMARY KEY,
+                type TEXT NOT NULL,
+                offer_id INTEGER,
+                user_id INTEGER,
+                session_id TEXT,
+                device TEXT DEFAULT '',
+                browser TEXT DEFAULT '',
+                country TEXT DEFAULT '',
+                referrer TEXT DEFAULT '',
+                lang TEXT DEFAULT 'fr',
+                search_query TEXT DEFAULT '',
+                filter_cat TEXT DEFAULT '',
+                metadata TEXT DEFAULT '{}',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         """)
@@ -880,6 +912,153 @@ def admin_users():
     rows = db_query("SELECT id,name,email,role,created_at FROM users ORDER BY id")
     return jsonify(rows)
 
+
+# ─── ANALYTICS ───────────────────────────────────────────────────────────────
+
+@app.route("/api/events", methods=["POST"])
+def track_event():
+    d = request.json or {}
+    ev_type = d.get("type","")
+    if not ev_type: return jsonify({"ok":False}), 400
+    # Parse device/browser from user agent
+    ua = request.headers.get("User-Agent","")
+    device = "mobile" if any(x in ua for x in ["iPhone","Android","Mobile"]) else "tablet" if "iPad" in ua else "desktop"
+    browser = "Chrome" if "Chrome" in ua else "Safari" if "Safari" in ua else "Firefox" if "Firefox" in ua else "Other"
+    referrer = request.headers.get("Referer","")
+    source = "instagram" if "instagram" in referrer.lower() else "facebook" if "facebook" in referrer.lower() else "google" if "google" in referrer.lower() else "direct" if not referrer else "other"
+    db_run("""INSERT INTO events(type,offer_id,user_id,session_id,device,browser,referrer,lang,search_query,filter_cat,metadata)
+        VALUES(?,?,?,?,?,?,?,?,?,?,?)""", (
+        ev_type,
+        d.get("offer_id"),
+        d.get("user_id"),
+        d.get("session_id",""),
+        device,
+        browser,
+        source,
+        d.get("lang","fr"),
+        d.get("search_query",""),
+        d.get("filter_cat",""),
+        json.dumps(d.get("metadata",{}))
+    ))
+    return jsonify({"ok":True})
+
+@app.route("/api/admin/analytics", methods=["GET"])
+@admin_required
+def admin_analytics():
+    days = int(request.args.get("days", 30))
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+    def q(sql, args=()):
+        return db_query(sql, args)
+
+    # Daily visitors (unique sessions per day)
+    daily = q("""SELECT DATE(created_at) as day, COUNT(*) as events,
+        COUNT(DISTINCT session_id) as sessions
+        FROM events WHERE created_at >= ? GROUP BY DATE(created_at) ORDER BY day""", (since,))
+
+    # Top offers by views
+    top_offers = q("""SELECT o.title, o.id,
+        COUNT(e.id) as views,
+        COUNT(CASE WHEN e.type='booking_started' THEN 1 END) as bookings_started,
+        COUNT(CASE WHEN e.type='booking_done' THEN 1 END) as bookings_done
+        FROM events e JOIN offers o ON e.offer_id=o.id
+        WHERE e.created_at >= ? AND e.type IN ('offer_view','booking_started','booking_done')
+        GROUP BY o.id, o.title ORDER BY views DESC LIMIT 10""", (since,))
+
+    # Device breakdown
+    devices = q("""SELECT device, COUNT(*) as c FROM events
+        WHERE created_at >= ? GROUP BY device""", (since,))
+
+    # Browser breakdown
+    browsers = q("""SELECT browser, COUNT(*) as c FROM events
+        WHERE created_at >= ? GROUP BY browser""", (since,))
+
+    # Traffic sources
+    sources = q("""SELECT referrer as source, COUNT(*) as c FROM events
+        WHERE created_at >= ? GROUP BY referrer ORDER BY c DESC""", (since,))
+
+    # Top searches
+    searches = q("""SELECT search_query, COUNT(*) as c FROM events
+        WHERE type='search' AND search_query!='' AND created_at >= ?
+        GROUP BY search_query ORDER BY c DESC LIMIT 10""", (since,))
+
+    # Category filters
+    filters = q("""SELECT filter_cat, COUNT(*) as c FROM events
+        WHERE type='filter_used' AND filter_cat!='' AND created_at >= ?
+        GROUP BY filter_cat ORDER BY c DESC""", (since,))
+
+    # Hourly heatmap (hour 0-23)
+    hourly = q("""SELECT CAST(strftime('%H', created_at) AS INTEGER) as hour,
+        COUNT(*) as c FROM events WHERE created_at >= ?
+        GROUP BY hour ORDER BY hour""", (since,)) if not USE_POSTGRES else         q("""SELECT EXTRACT(HOUR FROM created_at)::int as hour,
+        COUNT(*) as c FROM events WHERE created_at >= ?
+        GROUP BY hour ORDER BY hour""", (since,))
+
+    # Lang breakdown
+    langs = q("""SELECT lang, COUNT(*) as c FROM events
+        WHERE created_at >= ? GROUP BY lang""", (since,))
+
+    # Funnel: offer_view -> booking_started -> booking_done
+    funnel = {
+        "offer_views": q("SELECT COUNT(*) as c FROM events WHERE type='offer_view' AND created_at >= ?", (since,))[0]["c"] if q("SELECT COUNT(*) as c FROM events WHERE type='offer_view' AND created_at >= ?", (since,)) else 0,
+        "booking_started": q("SELECT COUNT(*) as c FROM events WHERE type='booking_started' AND created_at >= ?", (since,))[0]["c"] if q("SELECT COUNT(*) as c FROM events WHERE type='booking_started' AND created_at >= ?", (since,)) else 0,
+        "booking_done": q("SELECT COUNT(*) as c FROM events WHERE type='booking_done' AND created_at >= ?", (since,))[0]["c"] if q("SELECT COUNT(*) as c FROM events WHERE type='booking_done' AND created_at >= ?", (since,)) else 0,
+    }
+
+    total_events = q("SELECT COUNT(*) as c FROM events WHERE created_at >= ?", (since,))
+    total_sessions = q("SELECT COUNT(DISTINCT session_id) as c FROM events WHERE created_at >= ?", (since,))
+
+    return jsonify({
+        "daily": daily, "top_offers": top_offers, "devices": devices,
+        "browsers": browsers, "sources": sources, "searches": searches,
+        "filters": filters, "hourly": hourly, "langs": langs, "funnel": funnel,
+        "total_events": total_events[0]["c"] if total_events else 0,
+        "total_sessions": total_sessions[0]["c"] if total_sessions else 0,
+    })
+
+@app.route("/api/agencies/<int:aid>/analytics", methods=["GET"])
+@token_required
+def agency_analytics(aid):
+    u = g.user
+    if u["role"] not in ["admin"] and u.get("agencyId") != aid:
+        return jsonify({"error":"Forbidden"}), 403
+    days = int(request.args.get("days", 30))
+    since = (datetime.now(timezone.utc) - timedelta(days=days)).strftime("%Y-%m-%d")
+
+    # Get offer IDs for this agency
+    offer_ids = [o["id"] for o in db_query("SELECT id FROM offers WHERE agency_id=?", (aid,))]
+    if not offer_ids:
+        return jsonify({"daily":[], "top_offers":[], "funnel":{"offer_views":0,"booking_started":0,"booking_done":0}})
+
+    placeholders = ",".join(["?" for _ in offer_ids])
+
+    daily = db_query(f"""SELECT DATE(created_at) as day, COUNT(*) as events,
+        COUNT(DISTINCT session_id) as sessions
+        FROM events WHERE offer_id IN ({placeholders}) AND created_at >= ?
+        GROUP BY DATE(created_at) ORDER BY day""", offer_ids + [since])
+
+    top_offers = db_query(f"""SELECT o.title, o.id,
+        COUNT(e.id) as views,
+        COUNT(CASE WHEN e.type='booking_started' THEN 1 END) as bookings_started,
+        COUNT(CASE WHEN e.type='booking_done' THEN 1 END) as bookings_done
+        FROM events e JOIN offers o ON e.offer_id=o.id
+        WHERE e.offer_id IN ({placeholders}) AND e.created_at >= ?
+        GROUP BY o.id, o.title ORDER BY views DESC""", offer_ids + [since])
+
+    funnel_views    = db_query(f"SELECT COUNT(*) as c FROM events WHERE type='offer_view' AND offer_id IN ({placeholders}) AND created_at >= ?", offer_ids + [since])
+    funnel_started  = db_query(f"SELECT COUNT(*) as c FROM events WHERE type='booking_started' AND offer_id IN ({placeholders}) AND created_at >= ?", offer_ids + [since])
+    funnel_done     = db_query(f"SELECT COUNT(*) as c FROM events WHERE type='booking_done' AND offer_id IN ({placeholders}) AND created_at >= ?", offer_ids + [since])
+
+    return jsonify({
+        "daily": daily,
+        "top_offers": top_offers,
+        "funnel": {
+            "offer_views":      funnel_views[0]["c"] if funnel_views else 0,
+            "booking_started":  funnel_started[0]["c"] if funnel_started else 0,
+            "booking_done":     funnel_done[0]["c"] if funnel_done else 0,
+        }
+    })
+
 # ─── STATIC ──────────────────────────────────────────────────────────────────
 
 @app.route("/", defaults={"path":""})
@@ -913,6 +1092,22 @@ def run_migrations():
                 used BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS events (
+                id SERIAL PRIMARY KEY,
+                type TEXT NOT NULL,
+                offer_id INTEGER,
+                user_id INTEGER,
+                session_id TEXT,
+                device TEXT DEFAULT '',
+                browser TEXT DEFAULT '',
+                country TEXT DEFAULT '',
+                referrer TEXT DEFAULT '',
+                lang TEXT DEFAULT 'fr',
+                search_query TEXT DEFAULT '',
+                filter_cat TEXT DEFAULT '',
+                metadata TEXT DEFAULT '{}',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         db.commit()
         db.close()
@@ -932,6 +1127,14 @@ def run_migrations():
             token TEXT NOT NULL UNIQUE, expires_at DATETIME NOT NULL,
             used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id))""")
+        db.execute("""CREATE TABLE IF NOT EXISTS events (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            type TEXT NOT NULL, offer_id INTEGER, user_id INTEGER,
+            session_id TEXT, device TEXT DEFAULT '', browser TEXT DEFAULT '',
+            country TEXT DEFAULT '', referrer TEXT DEFAULT '',
+            lang TEXT DEFAULT 'fr', search_query TEXT DEFAULT '',
+            filter_cat TEXT DEFAULT '', metadata TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP)""")
         db.commit()
         db.close()
     print("✅  Migrations done")
