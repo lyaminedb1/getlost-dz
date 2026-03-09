@@ -93,6 +93,8 @@ def init_db():
                 email TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'traveler',
+                phone TEXT DEFAULT '',
+                avatar TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS agencies (
@@ -143,10 +145,10 @@ def init_db():
             );
         """)
         db.commit()
-        # ── Migration: add phone column if missing ──
-        cur.execute("""
-            ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
-        """)
+        # ── Migrations ──
+        cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
         db.commit()
         # Check if already seeded
         cur.execute("SELECT COUNT(*) as c FROM users")
@@ -157,16 +159,23 @@ def init_db():
         import sqlite3 as _sq
         db = _sq.connect(DB)
         db.executescript("""
-            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'traveler', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'traveler', phone TEXT DEFAULT '', avatar TEXT DEFAULT '', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
             CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', logo TEXT DEFAULT '🏢', plan TEXT DEFAULT 'standard', status TEXT DEFAULT 'approved', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id));
             CREATE TABLE IF NOT EXISTS offers (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, price INTEGER NOT NULL, duration INTEGER NOT NULL DEFAULT 1, region TEXT NOT NULL, description TEXT DEFAULT '', image_url TEXT DEFAULT '', itinerary TEXT DEFAULT '[]', includes TEXT DEFAULT '[]', available_dates TEXT DEFAULT '[]', status TEXT DEFAULT 'pending', views INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(agency_id) REFERENCES agencies(id));
             CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), title TEXT NOT NULL, comment TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
             CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, phone TEXT DEFAULT '', message TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
         """)
-        # ── Migration: add phone column if missing (SQLite) ──
+        # ── Migrations (SQLite) ──
         cols = [r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()]
         if 'phone' not in cols:
             db.execute("ALTER TABLE bookings ADD COLUMN phone TEXT DEFAULT ''")
+            db.commit()
+        ucols = [r[1] for r in db.execute("PRAGMA table_info(users)").fetchall()]
+        if 'phone' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''")
+            db.commit()
+        if 'avatar' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''")
             db.commit()
         count = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
         if count > 0:
@@ -270,20 +279,26 @@ def register():
     email = (d.get("email") or "").strip().lower()
     password = d.get("password") or ""
     role = d.get("role","traveler")
+    phone = (d.get("phone") or "").strip()
     if not name or not email or not password:
         return jsonify({"error":"Tous les champs sont requis"}), 400
     if len(password) < 6:
         return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
+    if not phone:
+        return jsonify({"error":"Numéro de téléphone requis"}), 400
+    digits = ''.join(c for c in phone if c.isdigit())
+    if len(digits) < 8:
+        return jsonify({"error":"Numéro invalide (min. 8 chiffres)"}), 400
     if db_query("SELECT id FROM users WHERE email=?", (email,), one=True):
         return jsonify({"error":"Email déjà utilisé"}), 409
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    uid = db_run("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",(name,email,hashed,role))
+    uid = db_run("INSERT INTO users(name,email,password,role,phone) VALUES(?,?,?,?,?)",(name,email,hashed,role,phone))
     agency_id = None
     if role == "agency":
         agency_name = (d.get("agencyName") or name).strip()
         desc = (d.get("description") or "").strip()
         agency_id = db_run("INSERT INTO agencies(user_id,name,description,status) VALUES(?,?,?,?)",(uid,agency_name,desc,"approved"))
-    user = {"id":uid,"name":name,"email":email,"role":role}
+    user = {"id":uid,"name":name,"email":email,"role":role,"phone":phone}
     return jsonify({"token": make_token(user, agency_id), "user": {**user, "agencyId": agency_id}}), 201
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -299,14 +314,65 @@ def login():
         ag = db_query("SELECT id FROM agencies WHERE user_id=?", (user["id"],), one=True)
         if ag: agency_id = ag["id"]
     return jsonify({"token": make_token(user, agency_id), "user": {
-        "id":user["id"],"name":user["name"],"email":user["email"],"role":user["role"],"agencyId":agency_id
+        "id":user["id"],"name":user["name"],"email":user["email"],"role":user["role"],
+        "phone":user.get("phone",""),"avatar":user.get("avatar",""),"agencyId":agency_id
     }})
 
 @app.route("/api/auth/me", methods=["GET"])
 @token_required
 def me():
-    u = db_query("SELECT id,name,email,role,created_at FROM users WHERE id=?", (g.user["id"],), one=True)
+    u = db_query("SELECT id,name,email,role,phone,avatar,created_at FROM users WHERE id=?", (g.user["id"],), one=True)
     return jsonify(u)
+
+@app.route("/api/auth/profile", methods=["PUT"])
+@token_required
+def update_profile():
+    d = request.json or {}
+    uid = g.user["id"]
+    name = (d.get("name") or "").strip()
+    email = (d.get("email") or "").strip().lower()
+    phone = (d.get("phone") or "").strip()
+    if not name or not email:
+        return jsonify({"error":"Nom et email requis"}), 400
+    if phone:
+        digits = ''.join(c for c in phone if c.isdigit())
+        if len(digits) < 8:
+            return jsonify({"error":"Numéro invalide (min. 8 chiffres)"}), 400
+    # Check email not taken by another user
+    existing = db_query("SELECT id FROM users WHERE email=? AND id!=?", (email, uid), one=True)
+    if existing:
+        return jsonify({"error":"Email déjà utilisé"}), 409
+    # Update password if provided
+    new_pass = d.get("password","").strip()
+    if new_pass:
+        if len(new_pass) < 6:
+            return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
+        hashed = bcrypt.hashpw(new_pass.encode(), bcrypt.gensalt()).decode()
+        db_run("UPDATE users SET name=?,email=?,phone=?,password=? WHERE id=?", (name,email,phone,hashed,uid))
+    else:
+        db_run("UPDATE users SET name=?,email=?,phone=? WHERE id=?", (name,email,phone,uid))
+    # Update agency info if agency
+    if g.user.get("role") == "agency":
+        ag_name = (d.get("agencyName") or "").strip()
+        ag_desc = (d.get("agencyDesc") or "").strip()
+        ag_logo = (d.get("agencyLogo") or "🏢").strip()
+        if ag_name:
+            db_run("UPDATE agencies SET name=?,description=?,logo=? WHERE user_id=?", (ag_name,ag_desc,ag_logo,uid))
+    user = db_query("SELECT id,name,email,role,phone,avatar FROM users WHERE id=?", (uid,), one=True)
+    return jsonify({"message":"Profil mis à jour", "user": user})
+
+@app.route("/api/auth/avatar", methods=["POST"])
+@token_required
+def upload_avatar():
+    d = request.json or {}
+    avatar = d.get("avatar","")
+    if not avatar:
+        return jsonify({"error":"Avatar requis"}), 400
+    # Limit size ~2MB base64
+    if len(avatar) > 2_800_000:
+        return jsonify({"error":"Image trop grande (max 2MB)"}), 400
+    db_run("UPDATE users SET avatar=? WHERE id=?", (avatar, g.user["id"]))
+    return jsonify({"message":"Avatar mis à jour", "avatar": avatar})
 
 # ─── OFFERS ───────────────────────────────────────────────────────────────────
 

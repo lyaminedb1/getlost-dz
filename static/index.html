@@ -89,8 +89,9 @@ function AuthProvider({children}){
     localStorage.setItem('glz_tok',d.token);localStorage.setItem('glz_user',JSON.stringify(d.user));
     setUser(d.user);return d.user;
   };
+  const updateUser=(u)=>{const merged={...user,...u};localStorage.setItem('glz_user',JSON.stringify(merged));setUser(merged);};
   const logout=()=>{localStorage.removeItem('glz_tok');localStorage.removeItem('glz_user');setUser(null);};
-  return <AuthCtx.Provider value={{user,login,register,logout}}>{children}</AuthCtx.Provider>;
+  return <AuthCtx.Provider value={{user,login,register,logout,updateUser}}>{children}</AuthCtx.Provider>;
 }
 const useAuth=()=>useContext(AuthCtx);
 
@@ -136,6 +137,7 @@ const TR={
     book:'🎫 Réserver ce voyage',booked:'Réservation envoyée !',bookMsg:"L'agence vous contactera sous 24h.",
     phoneLbl:'Téléphone',
     loginTitle:'Connexion',regTitle:'Créer un compte',emailLbl:'Email',passLbl:'Mot de passe',nameLbl:'Votre nom',agNameLbl:'Nom de l\'agence',descLbl:'Description',
+    profileTab:'Mon profil',profileSave:'Sauvegarder',profilePhone:'Téléphone',profileNewPass:'Nouveau mot de passe (laisser vide pour ne pas changer)',profileAvatar:'Photo de profil',profileAgency:'Informations agence',profileSuccess:'Profil mis à jour !',
     noAcc:'Pas de compte ?',hasAcc:'Déjà un compte ?',roleT:'Je suis voyageur',roleA:'Je suis une agence',
     dashWelcome:'Bonjour',myOffers:'Mes offres',addOffer:'+ Nouvelle offre',stats2:'Statistiques',
     totOff:'Offres',approved:'Validées',pending:'En attente',views:'Vues totales',
@@ -166,6 +168,7 @@ const TR={
     book:'🎫 Book This Trip',booked:'Booking Sent!',bookMsg:'The agency will contact you within 24h.',
     phoneLbl:'Phone',
     loginTitle:'Login',regTitle:'Create Account',emailLbl:'Email',passLbl:'Password',nameLbl:'Your name',agNameLbl:'Agency Name',descLbl:'Description',
+    profileTab:'My Profile',profileSave:'Save',profilePhone:'Phone',profileNewPass:'New password (leave empty to keep current)',profileAvatar:'Profile Photo',profileAgency:'Agency Information',profileSuccess:'Profile updated!',
     noAcc:'No account?',hasAcc:'Already have an account?',roleT:'I\'m a traveler',roleA:'I\'m an agency',
     dashWelcome:'Hello',myOffers:'My Offers',addOffer:'+ New Offer',stats2:'Statistics',
     totOff:'Offers',approved:'Approved',pending:'Pending',views:'Total Views',
@@ -196,6 +199,7 @@ const TR={
     book:'🎫 احجز هذه الرحلة',booked:'تم إرسال الحجز!',bookMsg:'ستتواصل معك الوكالة خلال 24 ساعة.',
     phoneLbl:'رقم الهاتف',
     loginTitle:'تسجيل الدخول',regTitle:'إنشاء حساب',emailLbl:'البريد الإلكتروني',passLbl:'كلمة المرور',nameLbl:'اسمك',agNameLbl:'اسم الوكالة',descLbl:'الوصف',
+    profileTab:'ملفي الشخصي',profileSave:'حفظ',profilePhone:'رقم الهاتف',profileNewPass:'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)',profileAvatar:'صورة الملف الشخصي',profileAgency:'معلومات الوكالة',profileSuccess:'تم تحديث الملف الشخصي!',
     noAcc:'ليس لديك حساب؟',hasAcc:'لديك حساب بالفعل؟',roleT:'أنا مسافر',roleA:'أنا وكالة',
     dashWelcome:'مرحباً',myOffers:'عروضي',addOffer:'+ عرض جديد',stats2:'إحصائيات',
     totOff:'العروض',approved:'معتمدة',pending:'في الانتظار',views:'إجمالي المشاهدات',
@@ -298,7 +302,9 @@ function Navbar({page,setPage,lang,setLang,openAuth,t}){
           {user?(
             <>
               <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--teal3)',borderRadius:50,padding:'5px 14px 5px 5px',cursor:'pointer'}} onClick={()=>navTo('dash')}>
-                <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{user.name[0].toUpperCase()}</div>
+                <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff',overflow:'hidden',flexShrink:0}}>
+                  {user.avatar?<img src={user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:user.name[0].toUpperCase()}
+                </div>
                 <span style={{fontSize:13,fontWeight:700,color:'var(--teal2)'}}>{user.name.split(' ')[0]}</span>
               </div>
               <button style={{...B.ghost,padding:'8px 16px',fontSize:13}} onClick={()=>{logout();setPage('home');show('À bientôt !')}}>{t.navLogout}</button>
@@ -530,7 +536,7 @@ function AuthModal({mode,onClose,t}){
   const {show}=useToast();
   const [isLogin,setIsLogin]=useState(mode==='login');
   const [role,setRole]=useState('traveler');
-  const [f,setF]=useState({email:'',password:'',name:'',agencyName:'',description:''});
+  const [f,setF]=useState({email:'',password:'',name:'',agencyName:'',description:'',phone:''});
   const [loading,setLoading]=useState(false);
   useEffect(()=>setIsLogin(mode==='login'),[mode]);
   const submit=async()=>{
@@ -538,7 +544,11 @@ function AuthModal({mode,onClose,t}){
     setLoading(true);
     try{
       if(isLogin){const u=await login(f.email,f.password);show(`Bienvenue, ${u.name}!`);}
-      else{if(!f.name){show('Nom requis','err');setLoading(false);return;}await register({...f,role});show('Compte créé !');}
+      else{
+        if(!f.name){show('Nom requis','err');setLoading(false);return;}
+        if(!f.phone){show('Numéro de téléphone requis','err');setLoading(false);return;}
+        await register({...f,role});show('Compte créé !');
+      }
       onClose();
     }catch(e){show(e.message,'err');}
     setLoading(false);
@@ -560,9 +570,10 @@ function AuthModal({mode,onClose,t}){
           </div>
         )}
         <input style={INP} type="email" placeholder={t.emailLbl} value={f.email} onChange={e=>setF(p=>({...p,email:e.target.value}))}/>
-        <input style={INP} type="password" placeholder={t.passLbl} value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        <input style={INP} type="password" placeholder={t.passLbl} value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))} onKeyDown={e=>!isLogin?null:e.key==='Enter'&&submit()}/>
         {!isLogin&&<>
           <input style={INP} placeholder={role==='agency'?t.agNameLbl:t.nameLbl} value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
+          <input style={INP} type="tel" placeholder={'📞 '+t.profilePhone+' — ex: 0770 123 456'} value={f.phone} onChange={e=>setF(p=>({...p,phone:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&submit()}/>
           {role==='agency'&&<textarea style={TA(66)} placeholder={t.descLbl} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))}/>}
         </>}
         <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'…':isLogin?t.loginTitle:t.regTitle}</button>
@@ -750,6 +761,95 @@ function TripsPage({t,filterCat,setFilterCat,onOpen}){
   );
 }
 
+/* ── PROFILE TAB ──────────────────────────────────────────────────────────── */
+function ProfileTab({t}){
+  const {user,updateUser}=useAuth();
+  const {show}=useToast();
+  const [pf,setPf]=useState({name:user?.name||'',email:user?.email||'',phone:user?.phone||'',password:'',agencyName:'',agencyDesc:'',agencyLogo:'🏢'});
+  const [agencyData,setAgencyData]=useState(null);
+  const [saving,setSaving]=useState(false);
+  const fileRef=useRef(null);
+
+  useEffect(()=>{
+    if(user?.role==='agency'&&user?.agencyId){
+      api(`/agencies`).then(list=>{
+        const ag=list.find(a=>a.id===user.agencyId);
+        if(ag){setAgencyData(ag);setPf(p=>({...p,agencyName:ag.name||'',agencyDesc:ag.description||'',agencyLogo:ag.logo||'🏢'}));}
+      }).catch(()=>{});
+    }
+  },[user]);
+
+  const handleAvatar=(e)=>{
+    const file=e.target.files?.[0];
+    if(!file)return;
+    if(file.size>2_000_000){show('Image trop grande (max 2MB)','err');return;}
+    const reader=new FileReader();
+    reader.onload=(ev)=>{
+      const b64=ev.target.result;
+      api('/auth/avatar',{method:'POST',body:{avatar:b64}}).then(d=>{
+        updateUser({avatar:b64});show('Photo mise à jour !');
+      }).catch(e=>show(e.message,'err'));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const save=async()=>{
+    if(!pf.name||!pf.email){show('Nom et email requis','err');return;}
+    setSaving(true);
+    try{
+      const res=await api('/auth/profile',{method:'PUT',body:{...pf}});
+      updateUser({name:pf.name,email:pf.email,phone:pf.phone});
+      show(t.profileSuccess);
+    }catch(e){show(e.message,'err');}
+    setSaving(false);
+  };
+
+  const LBL=({children})=><label style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--muted)',display:'block',marginBottom:5}}>{children}</label>;
+
+  return(
+    <div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:24,alignItems:'start'}}>
+      {/* LEFT — Avatar */}
+      <Card style={{padding:28,textAlign:'center'}}>
+        <div style={{position:'relative',display:'inline-block',marginBottom:20}}>
+          <div style={{width:100,height:100,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:38,fontWeight:900,color:'#fff',overflow:'hidden',margin:'0 auto',border:'4px solid #fff',boxShadow:'0 4px 20px rgba(13,185,168,.25)'}}>
+            {user?.avatar?<img src={user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:user?.name[0]?.toUpperCase()}
+          </div>
+          <button onClick={()=>fileRef.current?.click()} style={{position:'absolute',bottom:0,right:0,width:30,height:30,borderRadius:'50%',background:'var(--teal)',border:'2px solid #fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>✏️</button>
+        </div>
+        <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatar}/>
+        <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:4}}>{user?.name}</div>
+        <div style={{fontSize:12,color:'var(--muted)',marginBottom:16}}>{user?.email}</div>
+        <div style={{padding:'8px 16px',background:'var(--teal3)',borderRadius:20,display:'inline-block',fontSize:12,fontWeight:700,color:'var(--teal2)',marginBottom:12}}>
+          {user?.role==='agency'?'🏢 Agence':user?.role==='admin'?'🛡️ Admin':'🧳 Voyageur'}
+        </div>
+        {user?.phone&&<div style={{fontSize:13,color:'var(--muted)'}}>📞 {user.phone}</div>}
+        <div style={{marginTop:16,fontSize:11,color:'var(--light)'}}>Cliquer sur ✏️ pour changer la photo</div>
+      </Card>
+
+      {/* RIGHT — Form */}
+      <Card style={{padding:28}}>
+        <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:18,color:'var(--navy)',marginBottom:22}}>✏️ {t.profileTab}</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+          <div><LBL>{t.nameLbl}</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
+          <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
+          <div><LBL>📞 {t.profilePhone}</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
+          <div><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
+        </div>
+        {user?.role==='agency'&&<>
+          <div style={{height:1,background:'#F0F4F5',margin:'16px 0'}}/>
+          <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:14,color:'var(--navy)',marginBottom:14}}>🏢 {t.profileAgency}</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 80px',gap:12,marginBottom:4}}>
+            <div><LBL>{t.agNameLbl}</LBL><input style={INP} value={pf.agencyName} onChange={e=>setPf(p=>({...p,agencyName:e.target.value}))}/></div>
+            <div><LBL>Logo</LBL><input style={INP} value={pf.agencyLogo} placeholder="🏢" onChange={e=>setPf(p=>({...p,agencyLogo:e.target.value}))}/></div>
+          </div>
+          <div><LBL>{t.descLbl}</LBL><textarea style={TA(72)} value={pf.agencyDesc} onChange={e=>setPf(p=>({...p,agencyDesc:e.target.value}))}/></div>
+        </>}
+        <button style={{...B.pri,padding:'12px 28px',marginTop:8}} onClick={save} disabled={saving}>{saving?'…':t.profileSave}</button>
+      </Card>
+    </div>
+  );
+}
+
 /* ── DASHBOARD ────────────────────────────────────────────────────────────── */
 function DashPage({t,openAuth}){
   const {user}=useAuth();
@@ -815,7 +915,9 @@ function DashPage({t,openAuth}){
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
-            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:900,color:'#fff'}}>{user.name[0]}</div>
+            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:900,color:'#fff',overflow:'hidden',flexShrink:0,border:'3px solid rgba(255,255,255,.7)'}}>
+              {user.avatar?<img src={user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:user.name[0]}
+            </div>
             <div>
               <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)'}}>{t.dashWelcome}, {user.name} 👋</div>
               <div style={{color:'var(--muted)',fontSize:13}}>{user.role==='agency'?'Compte Agence':user.role==='admin'?'Administrateur':'Compte Voyageur'}</div>
@@ -823,8 +925,15 @@ function DashPage({t,openAuth}){
           </div>
           {user.role==='agency'&&(
             <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer]].map(([tk,lbl])=>(
+              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
+              ))}
+            </div>
+          )}
+          {user.role==='traveler'&&(
+            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
+              {[['bookings',t.myBook],['profile',t.profileTab]].map(([tk,lbl])=>(
+                <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
               ))}
             </div>
           )}
@@ -913,8 +1022,11 @@ function DashPage({t,openAuth}){
               </div>
             </Card>
           )}
+          {tab==='profile'&&<ProfileTab t={t}/>}
         </>}
-        {user.role==='traveler'&&(loading?<Spin/>:bookings.length===0
+        {user.role==='traveler'&&(loading?<Spin/>:
+          tab==='profile'?<ProfileTab t={t}/>:
+          bookings.length===0
           ?<div style={{textAlign:'center',padding:'60px 0'}}>
             <div style={{fontSize:48,marginBottom:12}}>🎫</div>
             <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>{t.myBook}</div>
