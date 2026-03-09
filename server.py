@@ -817,9 +817,53 @@ def serve(path):
     return send_from_directory("static", "index.html")
 
 # ─── STARTUP ─────────────────────────────────────────────────────────────────
+
+def run_migrations():
+    """Always runs migrations — even on already-seeded DBs."""
+    print("🔄  Running migrations …")
+    if USE_POSTGRES:
+        db = _pg_conn()
+        cur = db.cursor()
+        cur.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';")
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                token TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        db.commit()
+        db.close()
+    else:
+        import sqlite3 as _sq
+        db = _sq.connect(DB)
+        cols = [r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()]
+        if 'phone' not in cols:
+            db.execute("ALTER TABLE bookings ADD COLUMN phone TEXT DEFAULT ''")
+        ucols = [r[1] for r in db.execute("PRAGMA table_info(users)").fetchall()]
+        if 'phone' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN phone TEXT DEFAULT ''")
+        if 'avatar' not in ucols:
+            db.execute("ALTER TABLE users ADD COLUMN avatar TEXT DEFAULT ''")
+        db.execute("""CREATE TABLE IF NOT EXISTS password_resets (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+            token TEXT NOT NULL UNIQUE, expires_at DATETIME NOT NULL,
+            used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id))""")
+        db.commit()
+        db.close()
+    print("✅  Migrations done")
+
 if USE_POSTGRES or not os.path.exists("getlost.db"):
     print("🔧  Initialising database …")
     init_db()
+
+run_migrations()
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
