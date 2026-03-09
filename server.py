@@ -651,7 +651,7 @@ def create_review(oid):
     if not (1 <= rating <= 5):  return jsonify({"error":"Note entre 1 et 5"}), 400
     # Check booking belongs to user and is confirmed
     if bid:
-        bk = db_query("SELECT id FROM bookings WHERE id=? AND user_id=? AND status='confirmed'", (bid, u["id"]), one=True)
+        bk = db_query("SELECT id FROM bookings WHERE id=? AND user_id=? AND status='completed'", (bid, u["id"]), one=True)
         if not bk: return jsonify({"error":"R\u00e9servation non trouv\u00e9e ou non confirm\u00e9e"}), 403
     # Check not already reviewed this booking
     if bid and db_query("SELECT id FROM reviews WHERE booking_id=?", (bid,), one=True):
@@ -790,7 +790,7 @@ def update_booking_status(bid):
     u = g.user
     d = request.json or {}
     status = d.get("status")
-    VALID = ["pending","contacted","didnt_answer","pre_reserved","confirmed","cancelled"]
+    VALID = ["pending","contacted","didnt_answer","pre_reserved","confirmed","completed","cancelled"]
     if status not in VALID:
         return jsonify({"error":"Invalid status"}), 400
     booking = db_query("""SELECT b.*, o.agency_id, o.title offer_title,
@@ -803,7 +803,7 @@ def update_booking_status(bid):
     if u["role"] == "agency" and booking["agency_id"] != u.get("agencyId"):
         return jsonify({"error":"Forbidden"}), 403
     db_run("UPDATE bookings SET status=? WHERE id=?", (status, bid))
-    if status == "confirmed":
+    if status == "completed":
         review_url = f"{APP_URL}/?review_booking={bid}"
         html = f"""
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px">
@@ -812,7 +812,7 @@ def update_booking_status(bid):
             <h2 style="color:#0B2340;margin:8px 0">Get Lost DZ</h2>
           </div>
           <div style="background:#f0fdf4;border-radius:16px;padding:24px;text-align:center">
-            <h3 style="color:#0B2340">Votre voyage est confirm\u00e9 ! \U0001f389</h3>
+            <h3 style="color:#0B2340">Votre voyage est termin\u00e9 ! \U0001f389</h3>
             <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
             <p>Votre r\u00e9servation pour <strong>{booking['offer_title']}</strong> est confirm\u00e9e.</p>
             <p>Partagez votre exp\u00e9rience en laissant un avis !</p>
@@ -822,7 +822,7 @@ def update_booking_status(bid):
           </div>
           <p style="text-align:center;color:#999;font-size:12px;margin-top:24px">Get Lost DZ</p>
         </div>"""
-        send_email(booking["traveler_email"], "\U0001f389 Votre voyage est confirm\u00e9 — Laissez un avis !", html)
+        send_email(booking["traveler_email"], "\U0001f389 Votre voyage est termin\u00e9 — Laissez un avis !", html)
     return jsonify({"message":f"Booking {status}"})
 
 # ─── ADMIN ────────────────────────────────────────────────────────────────────
