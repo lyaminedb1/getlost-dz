@@ -1,1219 +1,627 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Get Lost DZ \u2014 In The Right Direction</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --teal:#0DB9A8;--teal2:#09907F;--teal3:#E6F9F7;--teal4:#CCF2EE;
-  --navy:#0B2340;--navy2:#1A3A5C;
-  --white:#FFFFFF;--offwhite:#F7FAFA;--gray:#F0F4F5;
-  --text:#1A2E3B;--muted:#6B8591;--light:#A8BEC6;
-  --gold:#F59E0B;--red:#EF4444;--green:#10B981;
-  --shadow:0 2px 20px rgba(11,35,64,.08);
-  --shadow2:0 8px 40px rgba(11,35,64,.12);
-}
-html{scroll-behavior:smooth}
-body{font-family:'Poppins',sans-serif;background:var(--white);color:var(--text);overflow-x:hidden}
-::-webkit-scrollbar{width:6px;background:#f0f4f5}
-::-webkit-scrollbar-thumb{background:var(--teal);border-radius:3px}
-button{font-family:'Poppins',sans-serif;cursor:pointer}
-input,textarea,select{font-family:'Poppins',sans-serif;outline:none}
-@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes slideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
-.fade{animation:fadeUp .5s ease both}
-.toast-in{animation:slideIn .3s ease both}
+"""
+GET LOST DZ — Full Backend API
+Flask + PostgreSQL (prod) / SQLite (dev) + JWT + bcrypt
+Auto-detects DATABASE_URL env var
+"""
+import bcrypt, jwt, json, os
+from datetime import datetime, timedelta, timezone
+from functools import wraps
+from flask import Flask, request, jsonify, send_from_directory, g
+from flask_cors import CORS
 
-/* \u2500\u2500 MOBILE RESPONSIVE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-@media(max-width:768px){
-  .nav-links{display:none!important}
-  .nav-right-desktop{display:none!important}
-  .hamburger-btn{display:flex!important}
-  .mobile-menu-open{display:flex!important}
-  .hero-grid{grid-template-columns:1fr!important;gap:32px!important;padding:32px 16px 48px!important}
-  .hero-right{display:none!important}
-  .hero-btns button{padding:11px 22px!important;font-size:13px!important}
-  .hero-stats{gap:16px!important;margin-top:24px!important}
-  .hero-stats .stat-num{font-size:20px!important}
-  .cat-filters{flex-wrap:nowrap!important;overflow-x:auto!important;padding-bottom:6px!important;-webkit-overflow-scrolling:touch!important;scrollbar-width:none!important}
-  .cat-filters::-webkit-scrollbar{display:none!important}
-  .cat-filters button{flex-shrink:0!important;white-space:nowrap!important}
-  .footer-grid{grid-template-columns:1fr!important;gap:24px!important}
-  .about-grid{grid-template-columns:1fr!important;gap:32px!important}
-}
-@media(min-width:769px){
-  .hamburger-btn{display:none!important}
-  .mobile-menu-open{display:none!important}
-}
-</style>
-</head>
-<body>
-<div id="root"></div>
-<script type="text/babel">
-const {useState,useEffect,useCallback,useRef,createContext,useContext}=React;
+app = Flask(__name__, static_folder='static', static_url_path='')
+CORS(app)
 
-/* \u2500\u2500 API \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-async function api(path,opts={}){
-  const tok=localStorage.getItem('glz_tok');
-  const res=await fetch('/api'+path,{
-    headers:{'Content-Type':'application/json',...(tok?{Authorization:`Bearer ${tok}`}:{})},
-    method:opts.method||'GET',
-    body:opts.body?JSON.stringify(opts.body):undefined
-  });
-  const data=await res.json();
-  if(!res.ok)throw new Error(data.error||'Erreur');
-  return data;
-}
+JWT_SECRET = os.environ.get("JWT_SECRET", "getlostdz_jwt_secret_2025")
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+USE_POSTGRES = DATABASE_URL.startswith("postgres")
 
-/* \u2500\u2500 AUTH CONTEXT \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-const AuthCtx=createContext(null);
-function AuthProvider({children}){
-  const [user,setUser]=useState(null);
-  useEffect(()=>{const s=localStorage.getItem('glz_user');if(s)try{setUser(JSON.parse(s))}catch{}},[]);
-  const login=async(email,password)=>{
-    const d=await api('/auth/login',{method:'POST',body:{email,password}});
-    localStorage.setItem('glz_tok',d.token);localStorage.setItem('glz_user',JSON.stringify(d.user));
-    setUser(d.user);return d.user;
-  };
-  const register=async(body)=>{
-    const d=await api('/auth/register',{method:'POST',body});
-    localStorage.setItem('glz_tok',d.token);localStorage.setItem('glz_user',JSON.stringify(d.user));
-    setUser(d.user);return d.user;
-  };
-  const logout=()=>{localStorage.removeItem('glz_tok');localStorage.removeItem('glz_user');setUser(null);};
-  return <AuthCtx.Provider value={{user,login,register,logout}}>{children}</AuthCtx.Provider>;
-}
-const useAuth=()=>useContext(AuthCtx);
+# ─── DB LAYER ─────────────────────────────────────────────────────────────────
 
-/* \u2500\u2500 TOAST \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-const ToastCtx=createContext(null);
-function ToastProvider({children}){
-  const [toasts,setToasts]=useState([]);
-  const show=(msg,type='ok')=>{
-    const id=Date.now()+Math.random();
-    setToasts(p=>[...p,{id,msg,type}]);
-    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),4000);
-  };
-  const colors={ok:{bg:'#10B981',text:'#fff'},err:{bg:'#EF4444',text:'#fff'},warn:{bg:'#F59E0B',text:'#fff'}};
-  return(
-    <ToastCtx.Provider value={{show}}>
-      {children}
-      <div style={{position:'fixed',top:76,right:18,zIndex:9999,display:'flex',flexDirection:'column',gap:8}}>
-        {toasts.map(t=>{const c=colors[t.type]||colors.ok;return(
-          <div key={t.id} className="toast-in" style={{padding:'12px 20px',borderRadius:12,fontSize:14,fontWeight:600,maxWidth:340,background:c.bg,color:c.text,boxShadow:'0 8px 24px rgba(0,0,0,.15)'}}>
-            {t.type==='ok'?'\u2705':t.type==='err'?'\u274c':'\u26a0\ufe0f'} {t.msg}
-          </div>
-        );})}
-      </div>
-    </ToastCtx.Provider>
-  );
-}
-const useToast=()=>useContext(ToastCtx);
+if USE_POSTGRES:
+    import psycopg2, psycopg2.extras
+    def _pg_conn():
+        url = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        return psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
 
-/* \u2500\u2500 TRANSLATIONS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-const TR={
-  fr:{
-    navHome:'Accueil',navTrips:'Voyages',navAbout:'\u00c0 Propos',navLogin:'Connexion',navReg:"S'inscrire",navDash:'Mon espace',navAdmin:'Admin',navLogout:'D\u00e9connexion',
-    heroTag:'\ud83c\udf0d Agence de voyage alg\u00e9rienne',heroTitle1:'D\u00e9couvrez',heroTitle2:"l'Alg\u00e9rie",heroTitle3:'& le monde',heroSub:"Zanzibar, Sahara, Kabylie\u2026 Des voyages inoubliables organis\u00e9s par les meilleures agences d'Alg\u00e9rie.",heroCta:'Voir les voyages',heroCta2:'En savoir plus',
-    stats:['Abonn\u00e9s Instagram','Voyages organis\u00e9s','Destinations','Satisfaction'],
-    catTitle:'Que recherchez-vous ?',cats:{all:'Tout voir',intl:'International',national:'Alg\u00e9rie',hike:'Randonn\u00e9es',visa:'Visas'},
-    catIco:{intl:'\u2708\ufe0f',national:'\ud83c\udde9\ud83c\uddff',hike:'\ud83e\udd7e',visa:'\ud83d\udccb'},
-    catDesc:{intl:'Afrique, Asie, Europe',national:'Sahara, Kabylie, Hoggar',hike:'Trek & bivouac',visa:'Express 48h'},
-    featTitle:'Voyages populaires',seeAll:'Voir tous les voyages',
-    from:'\u00c0 partir de',per:'/pers.',days:'j',revs:'avis',details:'Voir l\'offre',
-    srchPh:'Rechercher une destination\u2026',sortBy:'Trier :',sorts:[['rating','Mieux not\u00e9s'],['price_asc','Prix \u2191'],['price_desc','Prix \u2193']],
-    itin:'Programme',incl:'Ce qui est inclus',dates:'Dates disponibles',
-    revTitle:'Avis voyageurs',leaveRev:'Laisser un avis',yourRating:'Votre note',revPlaceholder:'Partagez votre exp\u00e9rience\u2026',submitRev:'Publier mon avis',noRevs:'Aucun avis pour l\'instant. Soyez le premier !',
-    book:'\ud83c\udfab R\u00e9server ce voyage',booked:'R\u00e9servation envoy\u00e9e !',bookMsg:"L'agence vous contactera sous 24h.",
-    phoneLbl:'Téléphone',
-    loginTitle:'Connexion',regTitle:'Cr\u00e9er un compte',emailLbl:'Email',passLbl:'Mot de passe',nameLbl:'Votre nom',agNameLbl:'Nom de l\'agence',descLbl:'Description',
-    noAcc:'Pas de compte ?',hasAcc:'D\u00e9j\u00e0 un compte ?',roleT:'Je suis voyageur',roleA:'Je suis une agence',
-    dashWelcome:'Bonjour',myOffers:'Mes offres',addOffer:'+ Nouvelle offre',stats2:'Statistiques',
-    totOff:'Offres',approved:'Valid\u00e9es',pending:'En attente',views:'Vues totales',
-    status:{approved:'Valid\u00e9e',pending:'En attente',rejected:'Refus\u00e9e'},
-    fTitle:'Titre *',fCat:'Cat\u00e9gorie',fPrice:'Prix (DZD) *',fDur:'Dur\u00e9e (jours)',fRegion:'R\u00e9gion *',fDesc:'Description',fImg:'URL image',fItin:'Programme (1 \u00e9tape/ligne)',fIncl:'Inclus (1 item/ligne)',fDates:'Dates dispo (1/ligne)',
-    submit:'Soumettre pour validation',save:'Sauvegarder',cancel:'Annuler',confirmDel:'Supprimer cette offre ?',
-    myBook:'Mes r\u00e9servations',noBook:'Aucune r\u00e9servation. Explorez nos voyages !',
-    adminTitle:'Administration',aOffers:'Offres',aAgencies:'Agences',aUsers:'Utilisateurs',aRevs:'Avis',
-    approve:'Approuver',reject:'Refuser',suspend:'Suspendre',
-    aboutTitle:'Notre histoire',
-    ap1:"Get Lost DZ est une plateforme alg\u00e9rienne connectant les voyageurs aux meilleures agences locales pour des exp\u00e9riences authentiques en Alg\u00e9rie et \u00e0 l'\u00e9tranger.",
-    ap2:'Avec pr\u00e8s de 100k abonn\u00e9s Instagram et plus de 1000 voyages organis\u00e9s, nous sommes devenus la r\u00e9f\u00e9rence du tourisme exp\u00e9rientiel en Alg\u00e9rie.',
-    ap3:'Notre \u00e9quipe passionn\u00e9e valide chaque offre pour garantir qualit\u00e9, s\u00e9curit\u00e9 et authenticit\u00e9 \u00e0 chaque aventure.',
-    vals:[{i:'\ud83c\udfaf',t:'Mission',d:'Rendre le voyage accessible et m\u00e9morable pour tous.'},{i:'\ud83c\udf3f',t:'Authenticit\u00e9',d:'Chaque exp\u00e9rience est v\u00e9rifi\u00e9e et certifi\u00e9e par notre \u00e9quipe.'},{i:'\ud83e\udd1d',t:'Partenaires',d:'15+ agences certifi\u00e9es, expertes dans leurs r\u00e9gions.'},{i:'\u2b50',t:'Excellence',d:'99% de voyageurs satisfaits. La qualit\u00e9 est notre priorit\u00e9.'}],
-  },
-  en:{
-    navHome:'Home',navTrips:'Trips',navAbout:'About',navLogin:'Login',navReg:'Sign Up',navDash:'My Space',navAdmin:'Admin',navLogout:'Logout',
-    heroTag:'\ud83c\udf0d Algerian travel agency',heroTitle1:'Discover',heroTitle2:'Algeria',heroTitle3:'& the world',heroSub:'Zanzibar, Sahara, Kabylie\u2026 Unforgettable trips organized by Algeria\'s best agencies.',heroCta:'Explore Trips',heroCta2:'Learn More',
-    stats:['Instagram Followers','Organized Trips','Destinations','Satisfaction'],
-    catTitle:'What are you looking for?',cats:{all:'See all',intl:'International',national:'Algeria',hike:'Hiking',visa:'Visas'},
-    catIco:{intl:'\u2708\ufe0f',national:'\ud83c\udde9\ud83c\uddff',hike:'\ud83e\udd7e',visa:'\ud83d\udccb'},
-    catDesc:{intl:'Africa, Asia, Europe',national:'Sahara, Kabylie, Hoggar',hike:'Trek & bivouac',visa:'Express 48h'},
-    featTitle:'Popular Trips',seeAll:'See all trips',
-    from:'From',per:'/person',days:'d',revs:'reviews',details:'View offer',
-    srchPh:'Search a destination\u2026',sortBy:'Sort:',sorts:[['rating','Top Rated'],['price_asc','Price \u2191'],['price_desc','Price \u2193']],
-    itin:'Itinerary',incl:'What\'s included',dates:'Available Dates',
-    revTitle:'Traveler Reviews',leaveRev:'Leave a Review',yourRating:'Your Rating',revPlaceholder:'Share your experience\u2026',submitRev:'Post Review',noRevs:'No reviews yet. Be the first!',
-    book:'\ud83c\udfab Book This Trip',booked:'Booking Sent!',bookMsg:'The agency will contact you within 24h.',
-    phoneLbl:'Phone',
-    loginTitle:'Login',regTitle:'Create Account',emailLbl:'Email',passLbl:'Password',nameLbl:'Your name',agNameLbl:'Agency Name',descLbl:'Description',
-    noAcc:'No account?',hasAcc:'Already have an account?',roleT:'I\'m a traveler',roleA:'I\'m an agency',
-    dashWelcome:'Hello',myOffers:'My Offers',addOffer:'+ New Offer',stats2:'Statistics',
-    totOff:'Offers',approved:'Approved',pending:'Pending',views:'Total Views',
-    status:{approved:'Approved',pending:'Pending',rejected:'Rejected'},
-    fTitle:'Title *',fCat:'Category',fPrice:'Price (DZD) *',fDur:'Duration (days)',fRegion:'Region *',fDesc:'Description',fImg:'Image URL',fItin:'Itinerary (1 step/line)',fIncl:'Included (1 item/line)',fDates:'Available dates (1/line)',
-    submit:'Submit for Validation',save:'Save',cancel:'Cancel',confirmDel:'Delete this offer?',
-    myBook:'My Bookings',noBook:'No bookings yet. Explore our trips!',
-    adminTitle:'Administration',aOffers:'Offers',aAgencies:'Agencies',aUsers:'Users',aRevs:'Reviews',
-    approve:'Approve',reject:'Reject',suspend:'Suspend',
-    aboutTitle:'Our Story',
-    ap1:'Get Lost DZ is an Algerian platform connecting travelers to the best local agencies for authentic experiences in Algeria and abroad.',
-    ap2:'With nearly 100k Instagram followers and over 1000 organized trips, we have become the reference for experiential tourism in Algeria.',
-    ap3:'Our passionate team validates each offer to guarantee quality, safety and authenticity for every adventure.',
-    vals:[{i:'\ud83c\udfaf',t:'Mission',d:'Make travel accessible and memorable for everyone.'},{i:'\ud83c\udf3f',t:'Authenticity',d:'Every experience is verified and certified by our team.'},{i:'\ud83e\udd1d',t:'Partners',d:'15+ certified agencies, experts in their regions.'},{i:'\u2b50',t:'Excellence',d:'99% satisfied travelers. Quality is our priority.'}],
-  },
-  ar:{
-    navHome:'\u0627\u0644\u0631\u0626\u064a\u0633\u064a\u0629',navTrips:'\u0627\u0644\u0631\u062d\u0644\u0627\u062a',navAbout:'\u0645\u0646 \u0646\u062d\u0646',navLogin:'\u062f\u062e\u0648\u0644',navReg:'\u062a\u0633\u062c\u064a\u0644',navDash:'\u0645\u0633\u0627\u062d\u062a\u064a',navAdmin:'\u0627\u0644\u0625\u062f\u0627\u0631\u0629',navLogout:'\u062e\u0631\u0648\u062c',
-    heroTag:'\ud83c\udf0d \u0648\u0643\u0627\u0644\u0629 \u0633\u0641\u0631 \u062c\u0632\u0627\u0626\u0631\u064a\u0629',heroTitle1:'\u0627\u0643\u062a\u0634\u0641',heroTitle2:'\u0627\u0644\u062c\u0632\u0627\u0626\u0631',heroTitle3:'\u0648\u0627\u0644\u0639\u0627\u0644\u0645',heroSub:'\u0632\u0646\u062c\u0628\u0627\u0631\u060c \u0627\u0644\u0635\u062d\u0631\u0627\u0621\u060c \u0627\u0644\u0642\u0628\u0627\u0626\u0644\u2026 \u0631\u062d\u0644\u0627\u062a \u0644\u0627 \u062a\u064f\u0646\u0633\u0649 \u0645\u0639 \u0623\u0641\u0636\u0644 \u0648\u0643\u0627\u0644\u0627\u062a \u0627\u0644\u062c\u0632\u0627\u0626\u0631.',heroCta:'\u0627\u0633\u062a\u0643\u0634\u0641 \u0627\u0644\u0631\u062d\u0644\u0627\u062a',heroCta2:'\u0627\u0639\u0631\u0641 \u0623\u0643\u062b\u0631',
-    stats:['\u0645\u062a\u0627\u0628\u0639 \u0639\u0644\u0649 \u0625\u0646\u0633\u062a\u063a\u0631\u0627\u0645','\u0631\u062d\u0644\u0629 \u0645\u0646\u0638\u0645\u0629','\u0648\u062c\u0647\u0629','\u0631\u0636\u0627 \u0627\u0644\u0639\u0645\u0644\u0627\u0621'],
-    catTitle:'\u0645\u0627\u0630\u0627 \u062a\u0628\u062d\u062b \u0639\u0646\u061f',cats:{all:'\u0627\u0644\u0643\u0644',intl:'\u062f\u0648\u0644\u064a',national:'\u0627\u0644\u062c\u0632\u0627\u0626\u0631',hike:'\u0645\u0634\u064a \u0648\u062a\u062e\u064a\u064a\u0645',visa:'\u062a\u0623\u0634\u064a\u0631\u0627\u062a'},
-    catIco:{intl:'\u2708\ufe0f',national:'\ud83c\udde9\ud83c\uddff',hike:'\ud83e\udd7e',visa:'\ud83d\udccb'},
-    catDesc:{intl:'\u0623\u0641\u0631\u064a\u0642\u064a\u0627\u060c \u0622\u0633\u064a\u0627\u060c \u0623\u0648\u0631\u0648\u0628\u0627',national:'\u0627\u0644\u0635\u062d\u0631\u0627\u0621\u060c \u0627\u0644\u0642\u0628\u0627\u0626\u0644\u060c \u0627\u0644\u0647\u0642\u0627\u0631',hike:'\u062a\u0631\u0643 \u0648\u0628\u064a\u0648\u0627\u0643',visa:'\u0633\u0631\u064a\u0639 48 \u0633\u0627\u0639\u0629'},
-    featTitle:'\u0631\u062d\u0644\u0627\u062a \u0634\u0639\u0628\u064a\u0629',seeAll:'\u0639\u0631\u0636 \u0643\u0644 \u0627\u0644\u0631\u062d\u0644\u0627\u062a',
-    from:'\u0645\u0646',per:'/\u0634\u062e\u0635',days:'\u0623\u064a\u0627\u0645',revs:'\u062a\u0642\u064a\u064a\u0645',details:'\u0639\u0631\u0636 \u0627\u0644\u062a\u0641\u0627\u0635\u064a\u0644',
-    srchPh:'\u0627\u0628\u062d\u062b \u0639\u0646 \u0648\u062c\u0647\u0629\u2026',sortBy:'\u062a\u0631\u062a\u064a\u0628:',sorts:[['rating','\u0627\u0644\u0623\u0639\u0644\u0649 \u062a\u0642\u064a\u064a\u0645\u0627\u064b'],['price_asc','\u0627\u0644\u0633\u0639\u0631 \u062a\u0635\u0627\u0639\u062f\u064a'],['price_desc','\u0627\u0644\u0633\u0639\u0631 \u062a\u0646\u0627\u0632\u0644\u064a']],
-    itin:'\u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c',incl:'\u0645\u0627 \u064a\u0634\u0645\u0644\u0647 \u0627\u0644\u0639\u0631\u0636',dates:'\u0627\u0644\u062a\u0648\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u062a\u0627\u062d\u0629',
-    revTitle:'\u062a\u0642\u064a\u064a\u0645\u0627\u062a \u0627\u0644\u0645\u0633\u0627\u0641\u0631\u064a\u0646',leaveRev:'\u0627\u062a\u0631\u0643 \u062a\u0642\u064a\u064a\u0645\u0627\u064b',yourRating:'\u062a\u0642\u064a\u064a\u0645\u0643',revPlaceholder:'\u0634\u0627\u0631\u0643\u0646\u0627 \u062a\u062c\u0631\u0628\u062a\u0643\u2026',submitRev:'\u0646\u0634\u0631 \u0627\u0644\u062a\u0642\u064a\u064a\u0645',noRevs:'\u0644\u0627 \u062a\u0648\u062c\u062f \u062a\u0642\u064a\u064a\u0645\u0627\u062a \u0628\u0639\u062f. \u0643\u0646 \u0627\u0644\u0623\u0648\u0644!',
-    book:'\ud83c\udfab \u0627\u062d\u062c\u0632 \u0647\u0630\u0647 \u0627\u0644\u0631\u062d\u0644\u0629',booked:'\u062a\u0645 \u0625\u0631\u0633\u0627\u0644 \u0627\u0644\u062d\u062c\u0632!',bookMsg:'\u0633\u062a\u062a\u0648\u0627\u0635\u0644 \u0645\u0639\u0643 \u0627\u0644\u0648\u0643\u0627\u0644\u0629 \u062e\u0644\u0627\u0644 24 \u0633\u0627\u0639\u0629.',
-    loginTitle:'\u062a\u0633\u062c\u064a\u0644 \u0627\u0644\u062f\u062e\u0648\u0644',regTitle:'\u0625\u0646\u0634\u0627\u0621 \u062d\u0633\u0627\u0628',emailLbl:'\u0627\u0644\u0628\u0631\u064a\u062f \u0627\u0644\u0625\u0644\u0643\u062a\u0631\u0648\u0646\u064a',passLbl:'\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631',nameLbl:'\u0627\u0633\u0645\u0643',agNameLbl:'\u0627\u0633\u0645 \u0627\u0644\u0648\u0643\u0627\u0644\u0629',descLbl:'\u0627\u0644\u0648\u0635\u0641',
-    noAcc:'\u0644\u064a\u0633 \u0644\u062f\u064a\u0643 \u062d\u0633\u0627\u0628\u061f',hasAcc:'\u0644\u062f\u064a\u0643 \u062d\u0633\u0627\u0628 \u0628\u0627\u0644\u0641\u0639\u0644\u061f',roleT:'\u0623\u0646\u0627 \u0645\u0633\u0627\u0641\u0631',roleA:'\u0623\u0646\u0627 \u0648\u0643\u0627\u0644\u0629',
-    dashWelcome:'\u0645\u0631\u062d\u0628\u0627\u064b',myOffers:'\u0639\u0631\u0648\u0636\u064a',addOffer:'+ \u0639\u0631\u0636 \u062c\u062f\u064a\u062f',stats2:'\u0625\u062d\u0635\u0627\u0626\u064a\u0627\u062a',
-    totOff:'\u0627\u0644\u0639\u0631\u0648\u0636',approved:'\u0645\u0639\u062a\u0645\u062f\u0629',pending:'\u0641\u064a \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631',views:'\u0625\u062c\u0645\u0627\u0644\u064a \u0627\u0644\u0645\u0634\u0627\u0647\u062f\u0627\u062a',
-    status:{approved:'\u0645\u0639\u062a\u0645\u062f',pending:'\u0641\u064a \u0627\u0644\u0627\u0646\u062a\u0638\u0627\u0631',rejected:'\u0645\u0631\u0641\u0648\u0636'},
-    fTitle:'\u0627\u0644\u0639\u0646\u0648\u0627\u0646 *',fCat:'\u0627\u0644\u0641\u0626\u0629',fPrice:'\u0627\u0644\u0633\u0639\u0631 (\u062f\u062c) *',fDur:'\u0627\u0644\u0645\u062f\u0629 (\u0623\u064a\u0627\u0645)',fRegion:'\u0627\u0644\u0645\u0646\u0637\u0642\u0629 *',fDesc:'\u0627\u0644\u0648\u0635\u0641',fImg:'\u0631\u0627\u0628\u0637 \u0627\u0644\u0635\u0648\u0631\u0629',fItin:'\u0627\u0644\u0628\u0631\u0646\u0627\u0645\u062c (\u0633\u0637\u0631 \u0644\u0643\u0644 \u0645\u0631\u062d\u0644\u0629)',fIncl:'\u064a\u0634\u0645\u0644 (\u0633\u0637\u0631 \u0644\u0643\u0644 \u0628\u0646\u062f)',fDates:'\u0627\u0644\u062a\u0648\u0627\u0631\u064a\u062e \u0627\u0644\u0645\u062a\u0627\u062d\u0629 (\u0633\u0637\u0631/\u062a\u0627\u0631\u064a\u062e)',
-    submit:'\u0625\u0631\u0633\u0627\u0644 \u0644\u0644\u0645\u0631\u0627\u062c\u0639\u0629',save:'\u062d\u0641\u0638',cancel:'\u0625\u0644\u063a\u0627\u0621',confirmDel:'\u062d\u0630\u0641 \u0647\u0630\u0627 \u0627\u0644\u0639\u0631\u0636\u061f',
-    myBook:'\u062d\u062c\u0648\u0632\u0627\u062a\u064a',noBook:'\u0644\u0627 \u062a\u0648\u062c\u062f \u062d\u062c\u0648\u0632\u0627\u062a \u0628\u0639\u062f. \u0627\u0633\u062a\u0643\u0634\u0641 \u0631\u062d\u0644\u0627\u062a\u0646\u0627!',
-    adminTitle:'\u0627\u0644\u0625\u062f\u0627\u0631\u0629',aOffers:'\u0627\u0644\u0639\u0631\u0648\u0636',aAgencies:'\u0627\u0644\u0648\u0643\u0627\u0644\u0627\u062a',aUsers:'\u0627\u0644\u0645\u0633\u062a\u062e\u062f\u0645\u0648\u0646',aRevs:'\u0627\u0644\u062a\u0642\u064a\u064a\u0645\u0627\u062a',
-    approve:'\u0627\u0639\u062a\u0645\u0627\u062f',reject:'\u0631\u0641\u0636',suspend:'\u062a\u0639\u0644\u064a\u0642',
-    aboutTitle:'\u0642\u0635\u062a\u0646\u0627',
-    ap1:'Get Lost DZ \u0645\u0646\u0635\u0629 \u062c\u0632\u0627\u0626\u0631\u064a\u0629 \u062a\u0631\u0628\u0637 \u0627\u0644\u0645\u0633\u0627\u0641\u0631\u064a\u0646 \u0628\u0623\u0641\u0636\u0644 \u0627\u0644\u0648\u0643\u0627\u0644\u0627\u062a \u0627\u0644\u0645\u062d\u0644\u064a\u0629 \u0644\u062a\u062c\u0627\u0631\u0628 \u0623\u0635\u064a\u0644\u0629 \u0641\u064a \u0627\u0644\u062c\u0632\u0627\u0626\u0631 \u0648\u062e\u0627\u0631\u062c\u0647\u0627.',
-    ap2:'\u0645\u0639 \u0645\u0627 \u064a\u0642\u0627\u0631\u0628 k100 \u0645\u062a\u0627\u0628\u0639 \u0639\u0644\u0649 \u0625\u0646\u0633\u062a\u063a\u0631\u0627\u0645 \u0648\u0623\u0643\u062b\u0631 \u0645\u0646 1000 \u0631\u062d\u0644\u0629 \u0645\u0646\u0638\u0645\u0629\u060c \u0623\u0635\u0628\u062d\u0646\u0627 \u0627\u0644\u0645\u0631\u062c\u0639 \u0644\u0644\u0633\u064a\u0627\u062d\u0629 \u0627\u0644\u062a\u062c\u0631\u064a\u0628\u064a\u0629 \u0641\u064a \u0627\u0644\u062c\u0632\u0627\u0626\u0631.',
-    ap3:'\u0641\u0631\u064a\u0642\u0646\u0627 \u0627\u0644\u0634\u063a\u0648\u0641 \u064a\u062a\u062d\u0642\u0642 \u0645\u0646 \u0643\u0644 \u0639\u0631\u0636 \u0644\u0636\u0645\u0627\u0646 \u0627\u0644\u062c\u0648\u062f\u0629 \u0648\u0627\u0644\u0623\u0645\u0627\u0646 \u0648\u0627\u0644\u0623\u0635\u0627\u0644\u0629 \u0641\u064a \u0643\u0644 \u0645\u063a\u0627\u0645\u0631\u0629.',
-    vals:[{i:'\ud83c\udfaf',t:'\u0645\u0647\u0645\u062a\u0646\u0627',d:'\u062c\u0639\u0644 \u0627\u0644\u0633\u0641\u0631 \u0645\u064a\u0633\u0648\u0631\u0627\u064b \u0648\u0644\u0627 \u064a\u064f\u0646\u0633\u0649 \u0644\u0644\u062c\u0645\u064a\u0639.'},{i:'\ud83c\udf3f',t:'\u0627\u0644\u0623\u0635\u0627\u0644\u0629',d:'\u0643\u0644 \u062a\u062c\u0631\u0628\u0629 \u064a\u062a\u0645 \u0627\u0644\u062a\u062d\u0642\u0642 \u0645\u0646\u0647\u0627 \u0648\u062a\u0648\u062b\u064a\u0642\u0647\u0627 \u0645\u0646 \u0642\u0628\u0644 \u0641\u0631\u064a\u0642\u0646\u0627.'},{i:'\ud83e\udd1d',t:'\u0634\u0631\u0643\u0627\u0624\u0646\u0627',d:'\u0623\u0643\u062b\u0631 \u0645\u0646 15 \u0648\u0643\u0627\u0644\u0629 \u0645\u0639\u062a\u0645\u062f\u0629 \u0648\u062e\u0628\u064a\u0631\u0629 \u0641\u064a \u0645\u0646\u0627\u0637\u0642\u0647\u0627.'},{i:'\u2b50',t:'\u0627\u0644\u062a\u0645\u064a\u0632',d:'99% \u0645\u0646 \u0627\u0644\u0645\u0633\u0627\u0641\u0631\u064a\u0646 \u0631\u0627\u0636\u0648\u0646. \u0627\u0644\u062c\u0648\u062f\u0629 \u0647\u064a \u0623\u0648\u0644\u0648\u064a\u062a\u0646\u0627.'}],
-  }
-};
+    def get_db():
+        if 'db' not in g:
+            g.db = _pg_conn()
+        return g.db
 
-/* \u2500\u2500 SHARED STYLES \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-const B={
-  pri:{background:'linear-gradient(135deg,#0DB9A8,#09907F)',color:'#fff',border:'none',borderRadius:50,padding:'12px 28px',fontWeight:700,fontSize:14,boxShadow:'0 4px 20px rgba(13,185,168,.35)',cursor:'pointer',transition:'all .2s'},
-  out:{background:'transparent',color:'var(--teal)',border:'2px solid var(--teal)',borderRadius:50,padding:'11px 28px',fontWeight:700,fontSize:14,cursor:'pointer',transition:'all .2s'},
-  ghost:{background:'rgba(11,35,64,.06)',color:'var(--navy)',border:'none',borderRadius:50,padding:'10px 22px',fontWeight:600,fontSize:14,cursor:'pointer',transition:'all .2s'},
-  sm:{background:'var(--teal3)',color:'var(--teal2)',border:'1px solid var(--teal4)',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer',transition:'all .2s'},
-  danger:{background:'#FEE2E2',color:'#DC2626',border:'1px solid #FECACA',borderRadius:8,padding:'6px 14px',fontWeight:700,fontSize:12,cursor:'pointer'},
-  white:{background:'#fff',color:'var(--teal2)',border:'none',borderRadius:50,padding:'12px 28px',fontWeight:700,fontSize:14,boxShadow:'0 4px 20px rgba(0,0,0,.12)',cursor:'pointer'},
-};
-const INP={width:'100%',border:'1.5px solid #E2EBF0',borderRadius:10,padding:'11px 15px',fontSize:14,background:'#fff',color:'var(--text)',marginBottom:12,transition:'border .2s'};
-const TA=(h=80)=>({...INP,height:h,resize:'vertical'});
-const TH={textAlign:'left',padding:'11px 16px',fontSize:11,fontWeight:700,color:'var(--muted)',textTransform:'uppercase',letterSpacing:1.2,borderBottom:'2px solid #F0F4F5',background:'#FAFCFC'};
-const TD={padding:'13px 16px',borderBottom:'1px solid #F0F4F5',fontSize:14,color:'var(--text)'};
+    @app.teardown_appcontext
+    def close_db(e=None):
+        db = g.pop('db', None)
+        if db:
+            try: db.close()
+            except: pass
 
-/* \u2500\u2500 HELPERS \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-const Stars=({v=0,size=14,interactive=false,onRate})=>{
-  const [h,setH]=useState(0);
-  return <span style={{display:'inline-flex',gap:2}}>{[1,2,3,4,5].map(i=>(
-    <span key={i} style={{fontSize:size,cursor:interactive?'pointer':'default',color:i<=(h||v)?'#F59E0B':'#DDE5E8',lineHeight:1}}
-      onClick={()=>interactive&&onRate?.(i)} onMouseEnter={()=>interactive&&setH(i)} onMouseLeave={()=>interactive&&setH(0)}>\u2605</span>
-  ))}</span>;
-};
+    def _fix(sql): return sql.replace("?", "%s")
 
-const Badge=({status})=>{
-  const m={approved:{bg:'#D1FAE5',c:'#065F46'},pending:{bg:'#FEF3C7',c:'#92400E'},rejected:{bg:'#FEE2E2',c:'#991B1B'},suspended:{bg:'#FEE2E2',c:'#991B1B'}};
-  const s=m[status]||m.pending;
-  return <span style={{padding:'3px 11px',borderRadius:20,fontSize:11,fontWeight:700,background:s.bg,color:s.c,letterSpacing:.3}}>{status}</span>;
-};
+    def db_query(sql, args=(), one=False):
+        cur = get_db().cursor()
+        cur.execute(_fix(sql), args)
+        rows = [dict(r) for r in cur.fetchall()]
+        return (rows[0] if rows else None) if one else rows
 
-const Spin=()=>(
-  <div style={{display:'flex',justifyContent:'center',padding:'60px 0'}}>
-    <div style={{width:36,height:36,border:'3px solid #E2EBF0',borderTopColor:'var(--teal)',borderRadius:'50%',animation:'spin 1s linear infinite'}}/>
-  </div>
-);
+    def db_run(sql, args=()):
+        sql2 = _fix(sql)
+        if sql2.strip().upper().startswith("INSERT"):
+            sql2 = sql2.rstrip("; ") + " RETURNING id"
+        db = get_db(); cur = db.cursor()
+        cur.execute(sql2, args); db.commit()
+        if "RETURNING" in sql2:
+            row = cur.fetchone()
+            return row["id"] if row else None
+        return None
 
-const Card=({children,style={}})=>(
-  <div style={{background:'#fff',borderRadius:20,boxShadow:'var(--shadow)',border:'1px solid #EEF3F5',...style}}>{children}</div>
-);
+else:
+    import sqlite3
+    DB = "getlost.db"
 
-const SectionTitle=({children,sub,center=false})=>(
-  <div style={{textAlign:center?'center':'left',marginBottom:40}}>
-    <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(22px,3.5vw,32px)',color:'var(--navy)',lineHeight:1.2,marginBottom:8}}>{children}</div>
-    {sub&&<p style={{color:'var(--muted)',fontSize:15,maxWidth:480,margin:center?'0 auto':0}}>{sub}</p>}
-    <div style={{width:50,height:4,background:'linear-gradient(90deg,var(--teal),var(--teal2))',borderRadius:2,marginTop:12,...(center?{margin:'12px auto 0'}:{})}}/>
-  </div>
-);
+    def get_db():
+        if 'db' not in g:
+            g.db = sqlite3.connect(DB)
+            g.db.row_factory = sqlite3.Row
+            g.db.execute("PRAGMA journal_mode=WAL")
+            g.db.execute("PRAGMA foreign_keys=ON")
+        return g.db
 
-/* \u2500\u2500 NAVBAR \u2014 with hamburger mobile menu \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function Navbar({page,setPage,lang,setLang,openAuth,t}){
-  const {user,logout}=useAuth();
-  const {show}=useToast();
-  const [scroll,setScroll]=useState(false);
-  const [menuOpen,setMenuOpen]=useState(false);
-  useEffect(()=>{const h=()=>setScroll(window.scrollY>30);window.addEventListener('scroll',h);return()=>window.removeEventListener('scroll',h);},[]);
-  const nl=(pg)=>({padding:'8px 16px',borderRadius:8,fontSize:13,fontWeight:600,cursor:'pointer',border:'none',background:page===pg?'var(--teal3)':'transparent',color:page===pg?'var(--teal2)':'var(--navy)',transition:'all .18s'});
-  const navTo=(pg)=>{setPage(pg);setMenuOpen(false);};
-  return(
-    <nav style={{position:'fixed',top:0,left:0,right:0,zIndex:300,background:'rgba(255,255,255,.97)',backdropFilter:'blur(20px)',borderBottom:scroll?'1px solid #E8F0F2':'1px solid transparent',boxShadow:scroll?'var(--shadow)':'none',transition:'all .3s'}}>
-      <div style={{maxWidth:1280,margin:'0 auto',padding:'0 20px',height:68,display:'flex',alignItems:'center',justifyContent:'space-between',direction:lang==='ar'?'rtl':'ltr'}}>
-        {/* LOGO */}
-        <div style={{cursor:'pointer',display:'flex',alignItems:'center'}} onClick={()=>navTo('home')}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:44,width:'auto',objectFit:'contain'}}
-            onError={e=>{e.target.style.display='none';e.target.nextSibling.style.display='flex';}}/>
-          <div style={{display:'none',alignItems:'center',gap:8}}>
-            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--teal2)'}}>Get Lost DZ</div>
-          </div>
-        </div>
-        {/* NAV LINKS \u2014 desktop only */}
-        <div className="nav-links" style={{display:'flex',gap:4,alignItems:'center'}}>
-          <button style={nl('home')} onClick={()=>navTo('home')}>{t.navHome}</button>
-          <button style={nl('trips')} onClick={()=>navTo('trips')}>{t.navTrips}</button>
-          <button style={nl('about')} onClick={()=>navTo('about')}>{t.navAbout}</button>
-          {user&&<button style={nl('dash')} onClick={()=>navTo('dash')}>{t.navDash}</button>}
-          {user?.role==='admin'&&<button style={nl('admin')} onClick={()=>navTo('admin')}>{t.navAdmin}</button>}
-        </div>
-        {/* RIGHT \u2014 desktop only */}
-        <div className="nav-right-desktop" style={{display:'flex',gap:8,alignItems:'center'}}>
-          <div style={{display:'flex',gap:2,background:'#F0F4F5',borderRadius:8,padding:3}}>
-            {['fr','en','ar'].map(l=>(
-              <button key={l} style={{padding:'4px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
-            ))}
-          </div>
-          {user?(
-            <>
-              <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--teal3)',borderRadius:50,padding:'5px 14px 5px 5px',cursor:'pointer'}} onClick={()=>navTo('dash')}>
-                <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{user.name[0].toUpperCase()}</div>
-                <span style={{fontSize:13,fontWeight:700,color:'var(--teal2)'}}>{user.name.split(' ')[0]}</span>
-              </div>
-              <button style={{...B.ghost,padding:'8px 16px',fontSize:13}} onClick={()=>{logout();setPage('home');show('\u00c0 bient\u00f4t !')}}>{t.navLogout}</button>
-            </>
-          ):(
-            <>
-              <button style={{...B.ghost,padding:'8px 18px',fontSize:13}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
-              <button style={{...B.pri,padding:'8px 20px',fontSize:13}} onClick={()=>openAuth('register')}>{t.navReg}</button>
-            </>
-          )}
-        </div>
-        {/* HAMBURGER \u2014 mobile only */}
-        <button className="hamburger-btn" onClick={()=>setMenuOpen(o=>!o)}
-          style={{display:'none',alignItems:'center',justifyContent:'center',width:40,height:40,borderRadius:10,border:'1.5px solid #E2EBF0',background:'#fff',cursor:'pointer',fontSize:20,color:'var(--navy)',flexShrink:0}}>
-          {menuOpen?'\u2715':'\u2630'}
-        </button>
-      </div>
-      {/* MOBILE DROPDOWN MENU */}
-      {menuOpen&&(
-        <div className="mobile-menu-open" style={{flexDirection:'column',background:'rgba(255,255,255,.98)',backdropFilter:'blur(20px)',borderTop:'1px solid #E8F0F2',padding:'10px 16px 18px',gap:4,boxShadow:'0 12px 32px rgba(11,35,64,.1)'}}>
-          {[
-            ['home',t.navHome,'\ud83c\udfe0'],
-            ['trips',t.navTrips,'\u2708\ufe0f'],
-            ['about',t.navAbout,'\u2139\ufe0f'],
-            ...(user?[['dash',t.navDash,'\ud83d\udc64']]:[]),
-            ...(user?.role==='admin'?[['admin',t.navAdmin,'\ud83d\udee1\ufe0f']]:[])
-          ].map(([pg,label,ico])=>(
-            <button key={pg} onClick={()=>navTo(pg)}
-              style={{padding:'11px 14px',borderRadius:10,fontSize:14,fontWeight:600,border:'none',textAlign:'left',cursor:'pointer',background:page===pg?'var(--teal3)':'transparent',color:page===pg?'var(--teal2)':'var(--navy)',transition:'all .15s',width:'100%'}}>
-              {ico} {label}
-            </button>
-          ))}
-          <div style={{height:1,background:'#E8F0F2',margin:'6px 0'}}/>
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
-            <div style={{display:'flex',gap:3,background:'#F0F4F5',borderRadius:8,padding:3}}>
-              {['fr','en','ar'].map(l=>(
-                <button key={l} style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
-              ))}
-            </div>
-            {user?(
-              <button style={{...B.ghost,padding:'8px 14px',fontSize:13}} onClick={()=>{logout();setPage('home');setMenuOpen(false);show('\u00c0 bient\u00f4t !')}}>{t.navLogout}</button>
-            ):(
-              <div style={{display:'flex',gap:6}}>
-                <button style={{...B.ghost,padding:'7px 14px',fontSize:12}} onClick={()=>{openAuth('login');setMenuOpen(false);}}>{t.navLogin}</button>
-                <button style={{...B.pri,padding:'7px 14px',fontSize:12}} onClick={()=>{openAuth('register');setMenuOpen(false);}}>{t.navReg}</button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </nav>
-  );
-}
+    @app.teardown_appcontext
+    def close_db(e=None):
+        db = g.pop('db', None)
+        if db: db.close()
 
-/* \u2500\u2500 OFFER CARD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function OfferCard({offer,t,onOpen}){
-  const [hov,setHov]=useState(false);
-  const avg=offer.avg_rating;
-  return(
-    <div onClick={()=>onOpen(offer)}
-      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{background:'#fff',borderRadius:20,overflow:'hidden',border:'1px solid #EEF3F5',cursor:'pointer',transition:'all .25s',boxShadow:hov?'0 20px 50px rgba(13,185,168,.18)':'var(--shadow)',transform:hov?'translateY(-5px)':'none'}}>
-      <div style={{position:'relative'}}>
-        <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'} alt={offer.title}
-          onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'}
-          style={{width:'100%',height:200,objectFit:'cover',display:'block',transition:'transform .3s',...(hov?{transform:'scale(1.03)'}:{})}}/>
-        <div style={{position:'absolute',top:12,left:12,background:'rgba(255,255,255,.95)',backdropFilter:'blur(4px)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>
-          {t.catIco[offer.category]} {t.cats[offer.category]||offer.category}
-        </div>
-        {avg&&<div style={{position:'absolute',bottom:12,right:12,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 10px',display:'flex',alignItems:'center',gap:4}}>
-          <span style={{color:'#F59E0B',fontSize:13}}>\u2605</span>
-          <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>{avg}</span>
-        </div>}
-      </div>
-      <div style={{padding:'16px 20px 20px'}}>
-        <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:6,lineHeight:1.3}}>{offer.title}</div>
-        <div style={{display:'flex',gap:14,color:'var(--muted)',fontSize:12,fontWeight:500,marginBottom:14,flexWrap:'wrap'}}>
-          <span>\ud83d\udccd {offer.region}</span>
-          <span>\u23f1 {offer.duration}{t.days}</span>
-          <span>\ud83d\udcac {offer.review_count||0} {t.revs}</span>
-        </div>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-          <div>
-            <div style={{fontSize:10,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginBottom:1}}>{t.from}</div>
-            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--teal2)',lineHeight:1}}>
-              {(offer.price||0).toLocaleString()} <span style={{fontSize:11,color:'var(--muted)',fontWeight:500}}>DZD{t.per}</span>
-            </div>
-          </div>
-          <button style={{...B.pri,padding:'9px 18px',fontSize:12}} onClick={e=>{e.stopPropagation();onOpen(offer);}}>{t.details}</button>
-        </div>
-      </div>
-    </div>
-  );
-}
+    def db_query(sql, args=(), one=False):
+        rows = get_db().execute(sql, args).fetchall()
+        return (dict(rows[0]) if rows else None) if one else [dict(r) for r in rows]
 
-/* \u2500\u2500 OFFER MODAL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function OfferModal({offer,onClose,t,lang}){
-  const {user}=useAuth();
-  const {show}=useToast();
-  const [reviews,setReviews]=useState([]);
-  const [rf,setRf]=useState({rating:0,title:'',comment:''});
-  const [booking,setBooking]=useState(false);
-  const [submitting,setSubmitting]=useState(false);
-  const rtl=lang==='ar';
-  useEffect(()=>{if(offer)api(`/offers/${offer.id}/reviews`).then(setReviews).catch(()=>{});},[offer?.id]);
-  if(!offer)return null;
-  const avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):(offer.avg_rating||null);
-  const SL=({children})=><div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal2)',marginBottom:10}}>{children}</div>;
-  const [phone,setPhone]=useState('');
-  const handleBook=async()=>{
-    if(!user){onClose();show('Connectez-vous pour r\u00e9server','warn');return;}
-    if(!phone.trim()){show('Num\u00e9ro de t\u00e9l\u00e9phone requis','err');return;}
-    const digits=(phone.match(/\\d/g)||[]).length;
-    if(digits<8){show('Num\u00e9ro invalide (min. 8 chiffres)','err');return;}
-    setBooking(true);
-    try{await api('/bookings',{method:'POST',body:{offerId:offer.id,phone:phone.trim()}});show(t.bookMsg);setPhone('');}
-    catch(e){show(e.message,'err');}
-    setBooking(false);
-  };
-  const handleReview=async()=>{
-    if(!user){show('Connectez-vous pour laisser un avis','warn');return;}
-    if(!rf.rating||!rf.title.trim()){show('Note et titre requis','err');return;}
-    setSubmitting(true);
-    try{await api(`/offers/${offer.id}/reviews`,{method:'POST',body:rf});show('Avis soumis, il sera publi\u00e9 apr\u00e8s mod\u00e9ration.');setRf({rating:0,title:'',comment:''});}
-    catch(e){show(e.message,'err');}
-    setSubmitting(false);
-  };
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
-      <div style={{background:'#fff',borderRadius:24,overflow:'hidden',maxWidth:660,width:'100%',maxHeight:'92vh',overflowY:'auto',direction:rtl?'rtl':'ltr'}} className="fade" onClick={e=>e.stopPropagation()}>
-        <div style={{position:'relative'}}>
-          <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'} alt={offer.title}
-            onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'}
-            style={{width:'100%',height:240,objectFit:'cover',display:'block'}}/>
-          <button onClick={onClose} style={{position:'absolute',top:14,right:14,background:'rgba(255,255,255,.95)',border:'none',borderRadius:'50%',width:36,height:36,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.15)'}}>\u00d7</button>
-          <div style={{position:'absolute',bottom:14,left:14,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 14px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>{t.catIco[offer.category]} {t.cats[offer.category]}</div>
-        </div>
-        <div style={{padding:'24px 28px 30px'}}>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)',marginBottom:8}}>{offer.title}</div>
-          <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
-            <Stars v={parseFloat(avg)||0} size={16}/>
-            {avg&&<span style={{fontWeight:800,color:'#F59E0B'}}>{avg}</span>}
-            <span style={{color:'var(--muted)',fontSize:13}}>({reviews.length} {t.revs})</span>
-          </div>
-          <div style={{display:'flex',flexWrap:'wrap',gap:8,marginBottom:18}}>
-            {[['\ud83d\udccd',offer.region],['\u23f1',`${offer.duration} ${t.days}`],['\ud83d\udcb0',`${(offer.price||0).toLocaleString()} DZD${t.per}`],offer.agency_name&&['\ud83c\udfe2',offer.agency_name]].filter(Boolean).filter(([,v])=>v).map(([i,v])=>(
-              <span key={v} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:13,fontWeight:500,color:'var(--text)'}}>{i} {v}</span>
-            ))}
-          </div>
-          {offer.description&&<p style={{color:'var(--muted)',lineHeight:1.8,marginBottom:20,fontSize:14}}>{offer.description}</p>}
-          {offer.itinerary?.length>0&&<div style={{marginBottom:18}}>
-            <SL>{t.itin}</SL>
-            {offer.itinerary.map((s,i)=><div key={i} style={{display:'flex',gap:12,marginBottom:7,fontSize:14}}>
-              <span style={{width:22,height:22,borderRadius:'50%',background:'var(--teal3)',color:'var(--teal2)',display:'inline-flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:800,flexShrink:0,marginTop:1}}>{i+1}</span>
-              <span style={{color:'var(--text)'}}>{s}</span>
-            </div>)}
-          </div>}
-          {offer.includes?.length>0&&<div style={{marginBottom:18}}>
-            <SL>{t.incl}</SL>
-            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-              {offer.includes.map((x,i)=><span key={i} style={{padding:'6px 14px',background:'var(--teal3)',borderRadius:20,fontSize:12,fontWeight:600,color:'var(--teal2)'}}>\u2713 {x}</span>)}
-            </div>
-          </div>}
-          {offer.available_dates?.length>0&&<div style={{marginBottom:22}}>
-            <SL>{t.dates}</SL>
-            <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
-              {offer.available_dates.map((d,i)=><span key={i} style={{padding:'6px 14px',background:'#F7FAFA',borderRadius:20,fontSize:12,border:'1px solid #E2EBF0'}}>\ud83d\udcc5 {d}</span>)}
-            </div>
-          </div>}
-          {/* Reviews */}
-          <div style={{borderTop:'2px solid #F0F4F5',paddingTop:20,marginBottom:16}}>
-            <SL>\ud83d\udcac {t.revTitle}</SL>
-            {reviews.length===0?<p style={{color:'var(--muted)',fontSize:14}}>{t.noRevs}</p>
-            :reviews.map(r=>(
-              <div key={r.id} style={{background:'#FAFCFC',borderRadius:14,padding:'14px 16px',marginBottom:10,border:'1px solid #EEF3F5'}}>
-                <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                  <div style={{display:'flex',alignItems:'center',gap:8}}>
-                    <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff'}}>{r.user_name?.[0]?.toUpperCase()}</div>
-                    <span style={{fontWeight:700,fontSize:14,color:'var(--navy)'}}>{r.user_name}</span>
-                    <Stars v={r.rating} size={12}/>
-                  </div>
-                  <span style={{fontSize:11,color:'var(--muted)'}}>{(r.created_at||'').split('T')[0]}</span>
-                </div>
-                <div style={{fontWeight:600,fontSize:14,marginBottom:3,color:'var(--navy)'}}>{r.title}</div>
-                {r.comment&&<div style={{color:'var(--muted)',fontSize:13}}>{r.comment}</div>}
-              </div>
-            ))}
-          </div>
-          {user?.role==='traveler'&&<div style={{background:'var(--teal3)',borderRadius:16,padding:20,marginBottom:20}}>
-            <SL>\u270f\ufe0f {t.leaveRev}</SL>
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:12,color:'var(--muted)',marginBottom:6,fontWeight:600}}>{t.yourRating}</div>
-              <Stars v={rf.rating} size={28} interactive onRate={v=>setRf(p=>({...p,rating:v}))}/>
-            </div>
-            <input style={INP} placeholder={t.revTitle+'\u2026'} value={rf.title} onChange={e=>setRf(p=>({...p,title:e.target.value}))}/>
-            <textarea style={TA(70)} placeholder={t.revPlaceholder} value={rf.comment} onChange={e=>setRf(p=>({...p,comment:e.target.value}))}/>
-            <button style={B.pri} onClick={handleReview} disabled={submitting}>{submitting?'\u2026':t.submitRev}</button>
-          </div>}
-          {/* Book CTA */}
-          <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',borderRadius:16,padding:'20px 24px'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-              <div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,.6)',textTransform:'uppercase',letterSpacing:1,marginBottom:2}}>{t.from}</div>
-                <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal)',lineHeight:1}}>
-                  {(offer.price||0).toLocaleString()} <span style={{fontSize:12,color:'rgba(255,255,255,.5)',fontWeight:400}}>DZD{t.per}</span>
-                </div>
-              </div>
-            </div>
-            <div style={{display:'flex',gap:10,alignItems:'center'}}>
-              <input
-                style={{flex:1,background:'rgba(255,255,255,.12)',border:'1.5px solid rgba(255,255,255,.25)',borderRadius:10,padding:'11px 14px',fontSize:14,color:'#fff'}}
-                placeholder={'\ud83d\udcde '+t.phoneLbl+' \u2014 ex: 0770 123 456'}
-                value={phone}
-                onChange={e=>setPhone(e.target.value)}
-                onKeyDown={e=>e.key==='Enter'&&handleBook()}
-              />
-              <button style={{...B.white,fontSize:13,padding:'11px 20px',flexShrink:0}} onClick={handleBook} disabled={booking}>{booking?'\u2026':t.book}</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+    def db_run(sql, args=()):
+        db = get_db(); cur = db.execute(sql, args); db.commit()
+        return cur.lastrowid
 
-/* \u2500\u2500 AUTH MODAL \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function AuthModal({mode,onClose,t}){
-  const {login,register}=useAuth();
-  const {show}=useToast();
-  const [isLogin,setIsLogin]=useState(mode==='login');
-  const [role,setRole]=useState('traveler');
-  const [f,setF]=useState({email:'',password:'',name:'',agencyName:'',description:''});
-  const [loading,setLoading]=useState(false);
-  useEffect(()=>setIsLogin(mode==='login'),[mode]);
-  const submit=async()=>{
-    if(!f.email||!f.password){show('Email et mot de passe requis','err');return;}
-    setLoading(true);
-    try{
-      if(isLogin){const u=await login(f.email,f.password);show(`Bienvenue, ${u.name}!`);}
-      else{if(!f.name){show('Nom requis','err');setLoading(false);return;}await register({...f,role});show('Compte cr\u00e9\u00e9 !');}
-      onClose();
-    }catch(e){show(e.message,'err');}
-    setLoading(false);
-  };
-  return(
-    <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
-      <div style={{background:'#fff',borderRadius:24,padding:'32px 28px',maxWidth:420,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)'}} className="fade" onClick={e=>e.stopPropagation()}>
-        <div style={{textAlign:'center',marginBottom:24}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:14}}
-            onError={e=>e.target.style.display='none'}/>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)'}}>{isLogin?t.loginTitle:t.regTitle}</div>
-        </div>
-        {!isLogin&&(
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8,marginBottom:16}}>
-            {['traveler','agency'].map(r=>(
-              <button key={r} style={{padding:'11px 0',borderRadius:12,fontWeight:700,fontSize:13,border:`2px solid ${role===r?'var(--teal)':'#E2EBF0'}`,background:role===r?'var(--teal3)':'#fff',color:role===r?'var(--teal2)':'var(--muted)',cursor:'pointer',transition:'all .18s'}}
-                onClick={()=>setRole(r)}>{r==='traveler'?`\ud83e\uddf3 ${t.roleT}`:`\ud83c\udfe2 ${t.roleA}`}</button>
-            ))}
-          </div>
-        )}
-        <input style={INP} type="email" placeholder={t.emailLbl} value={f.email} onChange={e=>setF(p=>({...p,email:e.target.value}))}/>
-        <input style={INP} type="password" placeholder={t.passLbl} value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))} onKeyDown={e=>e.key==='Enter'&&submit()}/>
-        {!isLogin&&<>
-          <input style={INP} placeholder={role==='agency'?t.agNameLbl:t.nameLbl} value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/>
-          {role==='agency'&&<textarea style={TA(66)} placeholder={t.descLbl} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))}/>}
-        </>}
-        <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'\u2026':isLogin?t.loginTitle:t.regTitle}</button>
-        <div style={{textAlign:'center',marginTop:14,fontSize:13,color:'var(--muted)'}}>
-          {isLogin?<>{t.noAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(false)}>{t.regTitle}</span></>
-          :<>{t.hasAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(true)}>{t.loginTitle}</span></>}
-        </div>
-        <div style={{marginTop:16,padding:'10px 14px',background:'#F7FAFA',borderRadius:10,fontSize:11,color:'var(--muted)',lineHeight:1.6}}>{t.demo}</div>
-      </div>
-    </div>
-  );
-}
+# ─── INIT DB ──────────────────────────────────────────────────────────────────
 
-/* \u2500\u2500 HOME PAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function HomePage({t,setPage,setFilterCat,onOpen}){
-  const [feat,setFeat]=useState([]);
-  useEffect(()=>{api('/offers?sort=rating').then(d=>setFeat(d.slice(0,3))).catch(()=>{});},[]);
-  const categories=[
-    {k:'intl',bg:'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=400&q=80'},
-    {k:'national',bg:'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=400&q=80'},
-    {k:'hike',bg:'https://images.unsplash.com/photo-1551632811-561732d1e306?w=400&q=80'},
-    {k:'visa',bg:'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80'},
-  ];
-  return(
-    <div>
-      {/* HERO */}
-      <div style={{minHeight:'100vh',display:'flex',alignItems:'center',background:'linear-gradient(160deg,#E6F9F7 0%,#CCF2EE 35%,#fff 70%)',position:'relative',overflow:'hidden',paddingTop:68}}>
-        {/* BG decorations */}
-        <div style={{position:'absolute',top:-80,right:-80,width:500,height:500,borderRadius:'50%',background:'radial-gradient(circle,rgba(13,185,168,.12) 0%,transparent 70%)'}}/>
-        <div style={{position:'absolute',bottom:-100,left:-50,width:400,height:400,borderRadius:'50%',background:'radial-gradient(circle,rgba(13,185,168,.08) 0%,transparent 70%)'}}/>
-        <div className="hero-grid" style={{maxWidth:1280,margin:'0 auto',padding:'60px 24px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',width:'100%'}}>
-          {/* LEFT */}
-          <div className="fade">
-            <div style={{display:'inline-flex',alignItems:'center',gap:8,background:'#fff',border:'1px solid var(--teal4)',borderRadius:50,padding:'6px 16px',fontSize:12,fontWeight:600,color:'var(--teal2)',marginBottom:24,boxShadow:'0 2px 12px rgba(13,185,168,.1)'}}>
-              {t.heroTag}
-            </div>
-            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(36px,5vw,62px)',lineHeight:1.1,color:'var(--navy)',marginBottom:20}}>
-              {t.heroTitle1}<br/>
-              <span style={{background:'linear-gradient(135deg,var(--teal),var(--teal2))',WebkitBackgroundClip:'text',WebkitTextFillColor:'transparent'}}>{t.heroTitle2}</span><br/>
-              {t.heroTitle3}
-            </div>
-            <p style={{fontSize:16,color:'var(--muted)',lineHeight:1.8,marginBottom:32,maxWidth:440}}>{t.heroSub}</p>
-            <div className="hero-btns" style={{display:'flex',gap:12,flexWrap:'wrap'}}>
-              <button style={{...B.pri,fontSize:15,padding:'14px 32px'}} onClick={()=>setPage('trips')}>{t.heroCta}</button>
-              <button style={{...B.out,fontSize:15,padding:'13px 32px'}} onClick={()=>setPage('about')}>{t.heroCta2}</button>
-            </div>
-            {/* Stats */}
-            <div className="hero-stats" style={{display:'flex',gap:32,marginTop:44,flexWrap:'wrap'}}>
-              {['100K+','1000+','5+','99%'].map((n,i)=>(
-                <div key={i}>
-                  <div className="stat-num" style={{fontFamily:'Nunito',fontWeight:900,fontSize:26,color:'var(--teal2)',lineHeight:1}}>{n}</div>
-                  <div style={{fontSize:11,color:'var(--muted)',fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:2}}>{t.stats[i]}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-          {/* RIGHT \u2014 Logo hero image */}
-          <div className="hero-right fade" style={{display:'flex',justifyContent:'center',alignItems:'center'}}>
-            <div style={{position:'relative'}}>
-              <div style={{width:420,height:420,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal3),var(--teal4))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 20px 60px rgba(13,185,168,.2)',animation:'float 5s ease-in-out infinite'}}>
-                <img src="/logo-1.png" alt="Get Lost DZ" style={{width:'75%',height:'75%',objectFit:'contain'}}/>
-              </div>
-              {/* Floating badges */}
-              {[{top:-10,right:20,ico:'\u2708\ufe0f',txt:'International'},{bottom:30,left:-20,ico:'\ud83c\udfd4\ufe0f',txt:'Aventures'},{top:'45%',right:-30,ico:'\u2b50',txt:'4.9/5'}].map((b,i)=>(
-                <div key={i} style={{position:'absolute',top:b.top,bottom:b.bottom,left:b.left,right:b.right,background:'#fff',borderRadius:14,padding:'10px 16px',boxShadow:'0 8px 24px rgba(11,35,64,.12)',display:'flex',alignItems:'center',gap:8,whiteSpace:'nowrap'}}>
-                  <span style={{fontSize:18}}>{b.ico}</span>
-                  <span style={{fontWeight:700,fontSize:13,color:'var(--navy)'}}>{b.txt}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+def init_db():
+    if USE_POSTGRES:
+        db = _pg_conn()
+        cur = db.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT NOT NULL DEFAULT 'traveler',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS agencies (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER UNIQUE NOT NULL REFERENCES users(id),
+                name TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                logo TEXT DEFAULT '🏢',
+                plan TEXT DEFAULT 'standard',
+                status TEXT DEFAULT 'approved',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS offers (
+                id SERIAL PRIMARY KEY,
+                agency_id INTEGER NOT NULL REFERENCES agencies(id),
+                title TEXT NOT NULL,
+                category TEXT NOT NULL,
+                price INTEGER NOT NULL,
+                duration INTEGER NOT NULL DEFAULT 1,
+                region TEXT NOT NULL,
+                description TEXT DEFAULT '',
+                image_url TEXT DEFAULT '',
+                itinerary TEXT DEFAULT '[]',
+                includes TEXT DEFAULT '[]',
+                available_dates TEXT DEFAULT '[]',
+                status TEXT DEFAULT 'pending',
+                views INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS reviews (
+                id SERIAL PRIMARY KEY,
+                offer_id INTEGER NOT NULL REFERENCES offers(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+                title TEXT NOT NULL,
+                comment TEXT DEFAULT '',
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS bookings (
+                id SERIAL PRIMARY KEY,
+                offer_id INTEGER NOT NULL REFERENCES offers(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                phone TEXT DEFAULT '',
+                message TEXT DEFAULT '',
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        db.commit()
+        # ── Migration: add phone column if missing ──
+        cur.execute("""
+            ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';
+        """)
+        db.commit()
+        # Check if already seeded
+        cur.execute("SELECT COUNT(*) as c FROM users")
+        count = cur.fetchone()["c"]
+        if count > 0:
+            db.close(); print("✅  DB already seeded"); return
+    else:
+        import sqlite3 as _sq
+        db = _sq.connect(DB)
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT UNIQUE NOT NULL, password TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'traveler', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS agencies (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER UNIQUE NOT NULL, name TEXT NOT NULL, description TEXT DEFAULT '', logo TEXT DEFAULT '🏢', plan TEXT DEFAULT 'standard', status TEXT DEFAULT 'approved', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS offers (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, price INTEGER NOT NULL, duration INTEGER NOT NULL DEFAULT 1, region TEXT NOT NULL, description TEXT DEFAULT '', image_url TEXT DEFAULT '', itinerary TEXT DEFAULT '[]', includes TEXT DEFAULT '[]', available_dates TEXT DEFAULT '[]', status TEXT DEFAULT 'pending', views INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(agency_id) REFERENCES agencies(id));
+            CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), title TEXT NOT NULL, comment TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, phone TEXT DEFAULT '', message TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
+        """)
+        # ── Migration: add phone column if missing (SQLite) ──
+        cols = [r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()]
+        if 'phone' not in cols:
+            db.execute("ALTER TABLE bookings ADD COLUMN phone TEXT DEFAULT ''")
+            db.commit()
+        count = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        if count > 0:
+            db.close(); print("✅  DB already seeded"); return
 
-      {/* CATEGORIES */}
-      <div style={{background:'#fff',padding:'80px 24px'}}>
-        <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <SectionTitle center sub="Trouvez le voyage parfait selon vos envies">{t.catTitle}</SectionTitle>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:20}}>
-            {categories.map(({k,bg})=>(
-              <div key={k} onClick={()=>{setFilterCat(k);setPage('trips');}}
-                style={{position:'relative',borderRadius:20,overflow:'hidden',cursor:'pointer',height:180,transition:'transform .25s'}}
-                onMouseEnter={e=>e.currentTarget.style.transform='translateY(-4px) scale(1.01)'}
-                onMouseLeave={e=>e.currentTarget.style.transform='none'}>
-                <img src={bg} alt={k} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-                <div style={{position:'absolute',inset:0,background:'linear-gradient(to top,rgba(11,35,64,.75) 0%,rgba(11,35,64,.2) 60%,transparent 100%)'}}/>
-                <div style={{position:'absolute',bottom:0,left:0,right:0,padding:'16px 20px'}}>
-                  <div style={{fontSize:24,marginBottom:4}}>{t.catIco[k]}</div>
-                  <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'#fff'}}>{t.cats[k]}</div>
-                  <div style={{fontSize:12,color:'rgba(255,255,255,.7)',fontWeight:500}}>{t.catDesc[k]}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+    # Seed
+    seeds=[("Admin GetLost","admin@getlostdz.com","admin123","admin"),("DZ Horizons Travel","agency1@getlostdz.com","agency123","agency"),("Sahara Wings","agency2@getlostdz.com","agency123","agency"),("Atlas Adventures","agency3@getlostdz.com","agency123","agency"),("Sarah Meziane","sarah@test.com","user123","traveler"),("Karim Bensalem","karim@test.com","user123","traveler")]
+    for name,email,pw,role in seeds:
+        h=bcrypt.hashpw(pw.encode(),bcrypt.gensalt()).decode()
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO users(name,email,password,role) VALUES(%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING",(name,email,h,role))
+        else:
+            try: db.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",(name,email,h,role))
+            except: pass
+    if USE_POSTGRES: db.commit()
+    else: db.commit()
 
-      {/* FEATURED */}
-      <div style={{background:'var(--offwhite)',padding:'80px 24px'}}>
-        <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:40,flexWrap:'wrap',gap:16}}>
-            <SectionTitle sub="Nos voyages les mieux not\u00e9s par la communaut\u00e9">{t.featTitle}</SectionTitle>
-            <button style={{...B.out,marginTop:8}} onClick={()=>setPage('trips')}>{t.seeAll} \u2192</button>
-          </div>
-          {feat.length===0?<Spin/>:(
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
-              {feat.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
-            </div>
-          )}
-        </div>
-      </div>
+    ags=[(2,"DZ Horizons Travel","Spécialiste voyages internationaux","✈️","premium","approved"),(3,"Sahara Wings","Expert destinations africaines","🦅","standard","approved"),(4,"Atlas Adventures","Aventures et treks en Algérie","⛰️","standard","approved")]
+    for uid,name,desc,logo,plan,status in ags:
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(user_id) DO NOTHING",(uid,name,desc,logo,plan,status))
+        else:
+            try: db.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)",(uid,name,desc,logo,plan,status))
+            except: pass
+    if USE_POSTGRES: db.commit()
+    else: db.commit()
 
-      {/* TRUST BAND */}
-      <div style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',padding:'72px 24px'}}>
-        <div style={{maxWidth:1100,margin:'0 auto',textAlign:'center'}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:80,marginBottom:20,filter:'brightness(0) invert(1) sepia(1) saturate(3) hue-rotate(140deg)'}}
-            onError={e=>e.target.style.display='none'}/>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'#fff',marginBottom:12}}>Pourquoi choisir Get Lost DZ ?</div>
-          <p style={{color:'rgba(255,255,255,.65)',maxWidth:540,margin:'0 auto 32px',lineHeight:1.8}}>Chaque offre est valid\u00e9e par notre \u00e9quipe. Qualit\u00e9, s\u00e9curit\u00e9 et authenticit\u00e9 garanties.</p>
-          <div style={{display:'flex',gap:14,justifyContent:'center',flexWrap:'wrap'}}>
-            {['\u2705 Offres valid\u00e9es','\u2b50 Avis v\u00e9rifi\u00e9s','\ud83e\udd1d Agences certifi\u00e9es','\ud83c\udf0d 100K communaut\u00e9'].map(x=>(
-              <div key={x} style={{background:'rgba(255,255,255,.08)',border:'1px solid rgba(255,255,255,.15)',borderRadius:50,padding:'10px 20px',fontSize:13,fontWeight:600,color:'rgba(255,255,255,.9)'}}>{x}</div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+    offers_data=[
+        (1,"Zanzibar Paradise","intl",185000,8,"Afrique Est","Plages paradisiaques de Zanzibar.","https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=700&q=80",'["Jour 1: Stone Town","Jour 2: Nungwi","Jour 3: Snorkeling","Jour 8: Retour"]','["Vol A/R","Hébergement 4 étoiles","Guide"]','["15 Avril 2025","10 Mai 2025"]',"approved"),
+        (1,"Kenya Safari","intl",220000,10,"Afrique Est","Safari inoubliable Masai Mara.","https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=700&q=80",'["Jour 1: Nairobi","Jour 2: Masai Mara","Jour 10: Retour"]','["Vol A/R","Lodge 4 étoiles","Safaris"]','["5 Mai 2025","1 Juin 2025"]',"approved"),
+        (2,"Tamanrasset & Hoggar","national",55000,5,"Tamanrasset","Sahara algérien.","https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=700&q=80",'["Jour 1: Vol Alger-Tam","Jour 2: Assekrem","Jour 5: Retour"]','["Vol interne","Camping","Guide"]','["20 Mars 2025","15 Avril 2025"]',"approved"),
+        (2,"Kabylie Villages","national",18000,3,"Kabylie","Week-end en Kabylie.","https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80",'["Jour 1: Cascade Kefrida","Jour 2: Villages","Jour 3: Retour"]','["Transport","Hébergement"]','["Chaque week-end"]',"approved"),
+        (3,"Trek Djurdjura","hike",12000,2,"Bouira","Randonnée Djurdjura.","https://images.unsplash.com/photo-1551632811-561732d1e306?w=700&q=80",'["Jour 1: Tala Guilef","Jour 2: Sommet"]','["Guide","Bivouac"]','["Tous les samedis"]',"approved"),
+        (3,"Sahara Bivouac","hike",25000,3,"El Oued","Nuit dans les dunes.","https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=700&q=80",'["Jour 1: Dunes 4x4","Jour 2: Dromadaires","Jour 3: Retour"]','["4x4","Tente","Guide"]','["Week-ends Nov-Mars"]',"approved"),
+        (1,"Visa Turquie Express","visa",8500,1,"Service en ligne","Visa electronique 48h.","https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=700&q=80",'["Préparation","Soumission","Livraison"]','["Accompagnement","Support 24/7"]','["Toute lannee"]',"approved"),
+        (2,"Malaisie et Bali","intl",310000,14,"Asie Sud-Est","Combiné Kuala Lumpur et Bali.","https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=700&q=80",'["J1-4: KL","J5-7: Langkawi","J8-14: Bali"]','["Vols","Hotels 4 étoiles","Transferts"]','["20 Juillet 2025"]',"approved"),
+    ]
+    for ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status in offers_data:
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO offers(agency_id,title,category,price,duration,region,description,image_url,itinerary,includes,available_dates,status) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",(ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status))
+        else:
+            try: db.execute("INSERT INTO offers(agency_id,title,category,price,duration,region,description,image_url,itinerary,includes,available_dates,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)",(ag_id,title,cat,price,dur,region,desc,img,itin,incl,dates,status))
+            except: pass
 
-/* \u2500\u2500 TRIPS PAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function TripsPage({t,filterCat,setFilterCat,onOpen}){
-  const [offers,setOffers]=useState([]);
-  const [loading,setLoading]=useState(true);
-  const [search,setSearch]=useState('');
-  const [sort,setSort]=useState('rating');
-  const [debSearch,setDebSearch]=useState('');
-  useEffect(()=>{const tm=setTimeout(()=>setDebSearch(search),400);return()=>clearTimeout(tm);},[search]);
-  useEffect(()=>{
-    setLoading(true);
-    const p=new URLSearchParams({sort});
-    if(filterCat&&filterCat!=='all')p.set('category',filterCat);
-    if(debSearch)p.set('search',debSearch);
-    api(`/offers?${p}`).then(d=>{setOffers(d);setLoading(false);}).catch(()=>setLoading(false));
-  },[filterCat,sort,debSearch]);
-  return(
-    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
-      {/* Header band */}
-      <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'48px 24px 36px'}}>
-        <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(24px,4vw,38px)',color:'var(--navy)',marginBottom:6}}>Nos Voyages</div>
-          <p style={{color:'var(--muted)',fontSize:15}}>D\u00e9couvrez toutes nos offres \u2014 Alg\u00e9rie, Afrique, Asie et plus.</p>
-          {/* Search + Sort */}
-          <div style={{display:'flex',gap:10,marginTop:24,flexWrap:'wrap'}}>
-            <div style={{position:'relative',flex:1,minWidth:240}}>
-              <span style={{position:'absolute',left:14,top:'50%',transform:'translateY(-50%)',fontSize:16}}>\ud83d\udd0d</span>
-              <input style={{...INP,paddingLeft:42,marginBottom:0,borderRadius:50,boxShadow:'var(--shadow)'}} placeholder={t.srchPh} value={search} onChange={e=>setSearch(e.target.value)}/>
-            </div>
-            <select style={{...INP,width:'auto',marginBottom:0,borderRadius:50,paddingLeft:16,background:'#fff',cursor:'pointer',boxShadow:'var(--shadow)'}} value={sort} onChange={e=>setSort(e.target.value)}>
-              {t.sorts.map(([v,l])=><option key={v} value={v}>{l}</option>)}
-            </select>
-          </div>
-        </div>
-      </div>
-      <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
-        {/* Category filters \u2014 FIX 2: horizontal scroll on mobile */}
-        <div className="cat-filters" style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:28}}>
-          {['all','intl','national','hike','visa'].map(c=>(
-            <button key={c} style={{padding:'8px 20px',borderRadius:50,cursor:'pointer',fontSize:13,fontWeight:700,border:'none',background:filterCat===c?'var(--teal)':'#fff',color:filterCat===c?'#fff':'var(--text)',boxShadow:filterCat===c?'0 4px 14px rgba(13,185,168,.3)':'var(--shadow)',transition:'all .2s'}}
-              onClick={()=>setFilterCat(c)}>{t.catIco[c]||'\ud83c\udf0d'} {t.cats[c]||c}</button>
-          ))}
-        </div>
-        {loading?<Spin/>:offers.length===0
-          ?<div style={{textAlign:'center',padding:'60px 0',color:'var(--muted)'}}>
-            <div style={{fontSize:48,marginBottom:12}}>\ud83d\udd0d</div>
-            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,marginBottom:6}}>Aucune offre trouv\u00e9e</div>
-            <div style={{fontSize:14}}>Essayez une autre recherche</div>
-          </div>
-          :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
-            {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
-          </div>
-        }
-      </div>
-    </div>
-  );
-}
+    revs=[(1,5,5,"Voyage de rêve !","Zanzibar magnifique.","approved"),(1,6,4,"Très bonne expérience","Belles plages.","approved"),(3,5,5,"Sahara magique","Inoubliable.","approved"),(5,5,5,"Trek parfait","Djurdjura splendide.","approved"),(2,6,5,"Kenya exceptionnel","Masai Mara !","approved")]
+    for oid,uid,rating,title,comment,status in revs:
+        if USE_POSTGRES:
+            cur.execute("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(%s,%s,%s,%s,%s,%s)",(oid,uid,rating,title,comment,status))
+        else:
+            try: db.execute("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(?,?,?,?,?,?)",(oid,uid,rating,title,comment,status))
+            except: pass
 
-/* \u2500\u2500 DASHBOARD \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function DashPage({t,openAuth}){
-  const {user}=useAuth();
-  const {show}=useToast();
-  const [tab,setTab]=useState('stats');
-  const [offers,setOffers]=useState([]);
-  const [bookings,setBookings]=useState([]);
-  const [loading,setLoading]=useState(false);
-  const [editTarget,setEditTarget]=useState(null);
-  const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',imageUrl:'',itinerary:'',includes:'',dates:''};
-  const [form,setForm]=useState(EF);
-  const load=useCallback(async()=>{
-    if(!user)return;setLoading(true);
-    try{
-      if(user.role==='agency'&&user.agencyId){setOffers(await api(`/agencies/${user.agencyId}/offers`));setBookings(await api(`/agencies/${user.agencyId}/bookings`));}
-      else if(user.role==='traveler'){setBookings(await api('/bookings/my'));}
-    }catch(e){show(e.message,'err');}
-    setLoading(false);
-  },[user]);
-  useEffect(()=>{load();},[load]);
-  if(!user)return(
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--offwhite)',paddingTop:68}}>
-      <Card style={{padding:'48px 40px',textAlign:'center',maxWidth:380}}>
-        <div style={{fontSize:48,marginBottom:16}}>\ud83d\udd10</div>
-        <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Acc\u00e8s r\u00e9serv\u00e9</div>
-        <p style={{color:'var(--muted)',marginBottom:24,fontSize:14}}>Connectez-vous pour acc\u00e9der \u00e0 votre espace personnel.</p>
-        <button style={{...B.pri,width:'100%'}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
-      </Card>
-    </div>
-  );
-  const submitOffer=async()=>{
-    if(!form.title||!form.price||!form.region){show('Titre, prix et r\u00e9gion requis','err');return;}
-    try{
-      const body={title:form.title,category:form.category,price:parseInt(form.price),duration:parseInt(form.duration)||1,region:form.region,description:form.description,imageUrl:form.imageUrl,
-        itinerary:form.itinerary.split('\
-').filter(Boolean),includes:form.includes.split('\
-').filter(Boolean),dates:form.dates.split('\
-').filter(Boolean)};
-      if(editTarget){await api(`/offers/${editTarget.id}`,{method:'PUT',body});show('Offre mise \u00e0 jour!');}
-      else{await api('/offers',{method:'POST',body});show('Offre soumise pour validation!');}
-      setForm(EF);setEditTarget(null);setTab('offers');load();
-    }catch(e){show(e.message,'err');}
-  };
-  const delOffer=async(id)=>{
-    if(!window.confirm(t.confirmDel))return;
-    try{await api(`/offers/${id}`,{method:'DELETE'});show('Offre supprim\u00e9e');load();}
-    catch(e){show(e.message,'err');}
-  };
-  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',imageUrl:o.image_url||'',itinerary:(o.itinerary||[]).join('\
-'),includes:(o.includes||[]).join('\
-'),dates:(o.available_dates||[]).join('\
-')});setTab('add');};
-  const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
-  const FI=({label,fk,type='text'})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><input style={INP} type={type} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
-  const FTA=({label,fk,h=88})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><textarea style={TA(h)} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
-  const SC=(ico,lbl,val,c='var(--teal2)')=>(
-    <Card style={{padding:'20px 24px'}}>
-      <div style={{fontSize:28,marginBottom:10}}>{ico}</div>
-      <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:30,color:c,lineHeight:1}}>{val}</div>
-      <div style={{color:'var(--muted)',fontSize:12,fontWeight:600,marginTop:4,textTransform:'uppercase',letterSpacing:.8}}>{lbl}</div>
-    </Card>
-  );
+    if USE_POSTGRES: db.commit(); db.close()
+    else: db.commit()
+    print("✅  Database seeded")
 
-  /* FIX 4: Short date formatter */
-  const fmtDate=(d)=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'';
+# ─── HELPERS ──────────────────────────────────────────────────────────────────
 
-  return(
-    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
-      <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
-        <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <div style={{display:'flex',alignItems:'center',gap:16,marginBottom:24}}>
-            <div style={{width:56,height:56,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:900,color:'#fff'}}>{user.name[0]}</div>
-            <div>
-              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--navy)'}}>{t.dashWelcome}, {user.name} \ud83d\udc4b</div>
-              <div style={{color:'var(--muted)',fontSize:13}}>{user.role==='agency'?'Compte Agence':user.role==='admin'?'Administrateur':'Compte Voyageur'}</div>
-            </div>
-          </div>
-          {user.role==='agency'&&(
-            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer]].map(([tk,lbl])=>(
-                <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-      <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
-        {user.role==='agency'&&<>
-          {tab==='stats'&&!loading&&(
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:16}}>
-              {SC('\ud83d\udce6',t.totOff,offers.length)}
-              {SC('\u2705',t.approved,offers.filter(o=>o.status==='approved').length)}
-              {SC('\u23f3',t.pending,offers.filter(o=>o.status==='pending').length,'#D97706')}
-              {SC('\ud83d\udc41',t.views,offers.reduce((s,o)=>s+(o.views||0),0))}
-            </div>
-          )}
-          {tab==='bookings'&&(loading?<Spin/>:(
-            <Card>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr>{['Voyageur','Email','Offre','Prix','T\u00e9l\u00e9phone','Date','Statut','Action'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {bookings.map(b=>(
-                    <tr key={b.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
-                      <td style={{...TD,fontWeight:700,color:'var(--navy)'}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>{b.traveler_name}</div></td>
-                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
-                      <td style={{...TD,fontWeight:600,maxWidth:160}}>{b.offer_title}</td>
-                      <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()} DZD</td>
-                      <td style={{...TD,fontSize:13}}>{b.phone||<span style={{color:'var(--muted)'}}>\u2014</span>}</td>
-                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
-                      <td style={TD}><Badge status={b.status}/></td>
-                      <td style={TD}><div style={{display:'flex',gap:5}}>
-                        {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('\u2705 R\u00e9servation confirm\u00e9e!');load();}catch(e){show(e.message,'err');}}}>\u2705 Confirmer</button>}
-                        {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annul\u00e9e');load();}catch(e){show(e.message,'err');}}}>\u2715 Annuler</button>}
-                      </div></td>
-                    </tr>
-                  ))}
-                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune r\u00e9servation re\u00e7ue pour l&apos;instant.</td></tr>}
-                </tbody>
-              </table>
-            </Card>
-          ))}
-          {tab==='offers'&&(loading?<Spin/>:(
-            <Card>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr>{['Titre','Cat.','Prix','Dur\u00e9e','Note','Statut','Actions'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {offers.map(o=>(
-                    <tr key={o.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
-                      <td style={{...TD,fontWeight:700,color:'var(--navy)'}}>{o.title}</td>
-                      <td style={{...TD,color:'var(--muted)'}}>{t.cats[o.category]||o.category}</td>
-                      <td style={{...TD,fontWeight:700,color:'var(--teal2)',fontFamily:'Nunito'}}>{(o.price||0).toLocaleString()}</td>
-                      <td style={{...TD,color:'var(--muted)'}}>{o.duration}j</td>
-                      <td style={TD}>{o.avg_rating?<><Stars v={parseFloat(o.avg_rating)} size={12}/> <span style={{color:'#F59E0B',fontSize:12,fontWeight:700}}>{o.avg_rating}</span></>:'\u2014'}</td>
-                      <td style={TD}><Badge status={o.status}/></td>
-                      <td style={TD}><div style={{display:'flex',gap:6}}><button style={B.sm} onClick={()=>startEdit(o)}>\u270f\ufe0f</button><button style={B.danger} onClick={()=>delOffer(o.id)}>\ud83d\uddd1\ufe0f</button></div></td>
-                    </tr>
-                  ))}
-                  {!offers.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune offre. Cr\u00e9ez votre premi\u00e8re offre!</td></tr>}
-                </tbody>
-              </table>
-            </Card>
-          ))}
-          {tab==='add'&&(
-            <Card style={{padding:28}}>
-              {editTarget&&<div style={{marginBottom:18,padding:'11px 16px',background:'#FEF3C7',border:'1px solid #F59E0B',borderRadius:10,color:'#92400E',fontSize:13,fontWeight:600}}>\u270f\ufe0f Modification : {editTarget.title}</div>}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:4}}>
-                <FI label={t.fTitle} fk="title"/>
-                <div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{t.fCat}</label>
-                  <select style={{...INP,background:'#fff'}} value={form.category} onChange={e=>setForm(p=>({...p,category:e.target.value}))}>
-                    {['intl','national','hike','visa'].map(c=><option key={c} value={c}>{t.cats[c]}</option>)}
-                  </select>
-                </div>
-                <FI label={t.fPrice} fk="price" type="number"/>
-                <FI label={t.fDur} fk="duration" type="number"/>
-                <FI label={t.fRegion} fk="region"/>
-                <FI label={t.fImg} fk="imageUrl"/>
-              </div>
-              <FTA label={t.fDesc} fk="description" h={72}/>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
-                <FTA label={t.fItin} fk="itinerary" h={90}/>
-                <FTA label={t.fIncl} fk="includes" h={90}/>
-                <FTA label={t.fDates} fk="dates" h={90}/>
-              </div>
-              <div style={{display:'flex',gap:10,marginTop:8}}>
-                <button style={B.pri} onClick={submitOffer}>{editTarget?t.save:t.submit}</button>
-                {editTarget&&<button style={B.ghost} onClick={()=>{setEditTarget(null);setForm(EF);setTab('offers');}}>{t.cancel}</button>}
-              </div>
-            </Card>
-          )}
-        </>}
-        {user.role==='traveler'&&(loading?<Spin/>:bookings.length===0
-          ?<div style={{textAlign:'center',padding:'60px 0'}}>
-            <div style={{fontSize:48,marginBottom:12}}>\ud83c\udfab</div>
-            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>{t.myBook}</div>
-            <p style={{color:'var(--muted)',fontSize:14}}>{t.noBook}</p>
-          </div>
-          :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
-            {bookings.map(b=>(
-              <Card key={b.id} style={{overflow:'hidden'}}>
-                {b.image_url&&<img src={b.image_url} alt={b.offer_title} style={{width:'100%',height:120,objectFit:'cover'}}/>}
-                <div style={{padding:'16px 18px'}}>
-                  <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
-                  <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
-                  {/* FIX 4: short date format */}
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <Badge status={b.status}/>
-                    <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+def parse_offer(o):
+    if not o: return o
+    for f in ["itinerary","includes","available_dates"]:
+        try: o[f] = json.loads(o.get(f) or "[]")
+        except: o[f] = []
+    return o
 
-/* \u2500\u2500 ADMIN \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function AdminPage({t,openAuth}){
-  const {user}=useAuth();
-  const {show}=useToast();
-  const [tab,setTab]=useState('offers');
-  const [data,setData]=useState({offers:[],agencies:[],users:[],reviews:[],bookings:[],stats:null});
-  const [loading,setLoading]=useState(false);
-  const load=useCallback(async()=>{
-    if(!user||user.role!=='admin')return;setLoading(true);
-    try{
-      const [stats,offers,agencies,users,reviews,bookings]=await Promise.all([api('/admin/stats'),api('/admin/offers'),api('/agencies'),api('/admin/users'),api('/admin/reviews'),api('/admin/bookings')]);
-      setData({stats,offers,agencies,users,reviews,bookings});
-    }catch(e){show(e.message,'err');}
-    setLoading(false);
-  },[user]);
-  useEffect(()=>{load();},[load]);
-  if(!user||user.role!=='admin')return(
-    <div style={{minHeight:'100vh',display:'flex',alignItems:'center',justifyContent:'center',background:'var(--offwhite)',paddingTop:68}}>
-      <Card style={{padding:'48px 40px',textAlign:'center',maxWidth:380}}>
-        <div style={{fontSize:48,marginBottom:16}}>\ud83d\udee1\ufe0f</div>
-        <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>Admin uniquement</div>
-        <button style={{...B.pri,width:'100%',marginTop:16}} onClick={()=>openAuth('login')}>{t.navLogin}</button>
-      </Card>
-    </div>
-  );
-  const patch=async(url,body,msg)=>{try{await api(url,{method:'PATCH',body});show(msg);load();}catch(e){show(e.message,'err');}};
-  const {stats,offers,agencies,users,reviews,bookings=[]}=data;
-  const pendO=offers.filter(o=>o.status==='pending').length;
-  const pendR=reviews.filter(r=>r.status==='pending').length;
-  const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
-  const Tbl=({children,cols})=>(
-    <Card><table style={{width:'100%',borderCollapse:'collapse'}}>
-      <thead><tr>{cols.map(c=><th key={c} style={TH}>{c}</th>)}</tr></thead>
-      <tbody>{children}</tbody>
-    </table></Card>
-  );
-  /* FIX 4: date formatter */
-  const fmtDate=(d)=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'';
-  return(
-    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
-      <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
-        <div style={{maxWidth:1280,margin:'0 auto'}}>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--navy)',marginBottom:20}}>\ud83d\udee1\ufe0f {t.adminTitle}</div>
-          {stats&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12,marginBottom:24}}>
-            {[['\ud83d\udce6','Offres',stats.total_offers,'var(--teal2)'],['\u23f3','En attente',stats.pending_offers,'#D97706'],['\u2705','Valid\u00e9es',stats.approved_offers,'#059669'],['\ud83c\udfe2','Agences',stats.total_agencies,'var(--teal2)'],['\ud83d\udc64','Voyageurs',stats.total_travelers,'var(--teal2)'],['\ud83d\udcac','Avis',stats.total_reviews,'var(--teal2)'],['\ud83d\udd14','Avis pend.',stats.pending_reviews,'#D97706'],['\ud83c\udfab','R\u00e9servations',stats.total_bookings,'var(--teal2)']].map(([ico,lbl,val,c])=>(
-              <div key={lbl} style={{background:'rgba(255,255,255,.8)',borderRadius:12,padding:'14px 16px',backdropFilter:'blur(4px)'}}>
-                <div style={{fontSize:20,marginBottom:6}}>{ico}</div>
-                <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:c,lineHeight:1}}>{val}</div>
-                <div style={{color:'var(--muted)',fontSize:11,fontWeight:600,marginTop:2}}>{lbl}</div>
-              </div>
-            ))}
-          </div>}
-          <div style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
-            {[['offers',t.aOffers,pendO],['bookings','R\u00e9servations',0],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR]].map(([tk,lbl,badge])=>(
-              <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>
-                {lbl}{badge>0&&<span style={{marginLeft:6,padding:'1px 7px',background:'#F59E0B',color:'#fff',borderRadius:10,fontSize:10,fontWeight:800}}>{badge}</span>}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div style={{maxWidth:1280,margin:'0 auto',padding:'24px 24px 60px'}}>
-        {loading?<Spin/>:<>
-          {tab==='bookings'&&<Tbl cols={['Voyageur','Email','Offre','Agence','Prix','T\u00e9l\u00e9phone','Date','Statut','Action']}>
-            {bookings.map(b=>(
-              <tr key={b.id}>
-                <td style={{...TD,fontWeight:700}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>{b.traveler_name}</div></td>
-                <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
-                <td style={{...TD,fontWeight:600,maxWidth:150,fontSize:13}}>{b.offer_title}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{b.agency_name}</td>
-                <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()}</td>
-                <td style={{...TD,fontSize:13}}>{b.phone||<span style={{color:'var(--muted)'}}>\u2014</span>}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
-                <td style={TD}><Badge status={b.status}/></td>
-                <td style={TD}><div style={{display:'flex',gap:5}}>
-                  {b.status!=='confirmed'&&<button style={B.sm} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'confirmed'}});show('Confirm\u00e9e!');load();}catch(e){show(e.message,'err');}}}>\u2705</button>}
-                  {b.status!=='cancelled'&&<button style={B.danger} onClick={async()=>{try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:'cancelled'}});show('Annul\u00e9e');load();}catch(e){show(e.message,'err');}}}>\u2715</button>}
-                </div></td>
-              </tr>
-            ))}
-            {!bookings.length&&<tr><td colSpan={8} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune r\u00e9servation.</td></tr>}
-          </Tbl>}
-          {tab==='offers'&&<Tbl cols={['Titre','Agence','Cat.','Prix','Statut','Actions']}>
-            {offers.map(o=>(
-              <tr key={o.id} style={{background:o.status==='pending'?'#FFFBEB':''}}>
-                <td style={{...TD,fontWeight:700,color:'var(--navy)'}}>{o.title}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{o.agency_name||'\u2014'}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{t.cats[o.category]||o.category}</td>
-                <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(o.price||0).toLocaleString()}</td>
-                <td style={TD}><Badge status={o.status}/></td>
-                <td style={TD}><div style={{display:'flex',gap:6}}>
-                  {o.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/offers/${o.id}/status`,{status:'approved'},'\u2705 Approuv\u00e9')}>{t.approve}</button>}
-                  {o.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/offers/${o.id}/status`,{status:'rejected'},'Refus\u00e9')}>{t.reject}</button>}
-                </div></td>
-              </tr>
-            ))}
-          </Tbl>}
-          {tab==='agencies'&&<Tbl cols={['Agence','Plan','Email','Offres','Statut','Actions']}>
-            {agencies.map(a=>(
-              <tr key={a.id}>
-                <td style={{...TD,fontWeight:700}}><span style={{marginRight:8,fontSize:18}}>{a.logo}</span>{a.name}</td>
-                <td style={TD}><span style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:a.plan==='premium'?'#FEF3C7':'#F0F4F5',color:a.plan==='premium'?'#92400E':'var(--muted)'}}>{a.plan}</span></td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{a.email}</td>
-                <td style={TD}>{a.offer_count||0}</td>
-                <td style={TD}><Badge status={a.status}/></td>
-                <td style={TD}><div style={{display:'flex',gap:6}}>
-                  {a.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'approved'},'Activ\u00e9e')}>{t.approve}</button>}
-                  {a.status==='approved'&&<button style={B.danger} onClick={()=>patch(`/agencies/${a.id}/status`,{status:'suspended'},'Suspendue')}>{t.suspend}</button>}
-                </div></td>
-              </tr>
-            ))}
-          </Tbl>}
-          {tab==='users'&&<Tbl cols={['Nom','Email','R\u00f4le','Inscrit le']}>
-            {users.map(u=>(
-              <tr key={u.id}>
-                <td style={{...TD,fontWeight:700}}>{u.name}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{u.email}</td>
-                <td style={TD}><span style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:u.role==='admin'?'#D1FAE5':u.role==='agency'?'#EDE9FE':'#F0F4F5',color:u.role==='admin'?'#065F46':u.role==='agency'?'#5B21B6':'var(--muted)'}}>{u.role}</span></td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13}}>{(u.created_at||'').split('T')[0]}</td>
-              </tr>
-            ))}
-          </Tbl>}
-          {tab==='reviews'&&<Tbl cols={['Utilisateur','Offre','Note','Titre','Statut','Actions']}>
-            {reviews.map(r=>(
-              <tr key={r.id} style={{background:r.status==='pending'?'#FFFBEB':''}}>
-                <td style={{...TD,fontWeight:700}}>{r.user_name}</td>
-                <td style={{...TD,color:'var(--muted)',fontSize:13,maxWidth:160}}>{r.offer_title}</td>
-                <td style={TD}><Stars v={r.rating} size={13}/></td>
-                <td style={{...TD,fontWeight:600}}>{r.title}</td>
-                <td style={TD}><Badge status={r.status}/></td>
-                <td style={TD}><div style={{display:'flex',gap:6}}>
-                  {r.status!=='approved'&&<button style={B.sm} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'approved'},'Approuv\u00e9')}>{t.approve}</button>}
-                  {r.status!=='rejected'&&<button style={B.danger} onClick={()=>patch(`/reviews/${r.id}/status`,{status:'rejected'},'Refus\u00e9')}>{t.reject}</button>}
-                </div></td>
-              </tr>
-            ))}
-          </Tbl>}
-        </>}
-      </div>
-    </div>
-  );
-}
+# ─── AUTH ─────────────────────────────────────────────────────────────────────
 
-/* \u2500\u2500 ABOUT PAGE \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function AboutPage({t}){
-  return(
-    <div style={{background:'#fff',paddingTop:68}}>
-      {/* Hero */}
-      <div style={{background:'linear-gradient(160deg,var(--teal3) 0%,var(--teal4) 40%,#fff 80%)',padding:'80px 24px 60px'}}>
-        <div style={{maxWidth:900,margin:'0 auto',textAlign:'center'}}>
-          <img src="/logo-1.png" alt="Get Lost DZ" style={{height:100,marginBottom:24}}/>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(28px,4vw,44px)',color:'var(--navy)',marginBottom:16}}>{t.aboutTitle}</div>
-          <p style={{color:'var(--muted)',fontSize:16,lineHeight:1.9,maxWidth:640,margin:'0 auto'}}>{t.ap1}</p>
-        </div>
-      </div>
-      <div style={{maxWidth:1100,margin:'0 auto',padding:'60px 24px'}}>
-        {/* Story */}
-        <div className="about-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:60,alignItems:'center',marginBottom:72}}>
-          <div>
-            <SectionTitle>Notre communaut\u00e9</SectionTitle>
-            <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15,marginBottom:16}}>{t.ap2}</p>
-            <p style={{color:'var(--muted)',lineHeight:1.9,fontSize:15}}>{t.ap3}</p>
-          </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14}}>
-            {['100K+\
-Instagram','1000+\
-Voyages','3+\
-Destinations','99%\
-Satisfaction'].map((s,i)=>{
-              const [n,l]=s.split('\
-');
-              return <Card key={i} style={{padding:'24px 20px',textAlign:'center'}}>
-                <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--teal2)'}}>{n}</div>
-                <div style={{color:'var(--muted)',fontSize:12,fontWeight:600,textTransform:'uppercase',letterSpacing:.8,marginTop:4}}>{l}</div>
-              </Card>;
-            })}
-          </div>
-        </div>
-        {/* Values */}
-        <SectionTitle center sub="Ce qui nous diff\u00e9rencie">Nos valeurs</SectionTitle>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:20,marginBottom:60}}>
-          {t.vals.map(({i,t:title,d})=>(
-            <Card key={title} style={{padding:'28px 24px',transition:'all .25s'}}
-              onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow='0 16px 40px rgba(13,185,168,.15)';}}
-              onMouseLeave={e=>{e.currentTarget.style.transform='none';e.currentTarget.style.boxShadow='var(--shadow)';}}>
-              <div style={{width:48,height:48,borderRadius:14,background:'var(--teal3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,marginBottom:16}}>{i}</div>
-              <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:8}}>{title}</div>
-              <div style={{color:'var(--muted)',fontSize:13,lineHeight:1.7}}>{d}</div>
-            </Card>
-          ))}
-        </div>
-        {/* Social CTA */}
-        <Card style={{background:'linear-gradient(135deg,var(--navy),var(--navy2))',border:'none',padding:'48px',textAlign:'center'}}>
-          <div style={{fontSize:40,marginBottom:14}}>\ud83d\udcf1</div>
-          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:24,color:'#fff',marginBottom:10}}>Suivez-nous sur les r\u00e9seaux</div>
-          <p style={{color:'rgba(255,255,255,.6)',marginBottom:24,fontSize:14}}>100k+ voyageurs nous font confiance sur Instagram</p>
-          <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-            {[
-                {ico:'\ud83d\udcf8',lbl:'Instagram',url:'https://www.instagram.com/get_lost_dz/'},
-                {ico:'\ud83d\udd17',lbl:'Link Tree',url:'https://www.hopp.bio/get-lost'},
-              ].map(({ico,lbl,url})=>(
-              <a key={lbl} href={url} target="_blank" rel="noopener noreferrer" style={{...B.white,fontSize:13,padding:'9px 20px',textDecoration:'none',display:'inline-block'}}>{ico} {lbl}</a>
-            ))}
-          </div>
-        </Card>
-      </div>
-    </div>
-  );
-}
+def make_token(user, agency_id=None):
+    payload = {
+        "id": user["id"], "name": user["name"], "email": user["email"],
+        "role": user["role"], "agencyId": agency_id,
+        "exp": datetime.now(timezone.utc) + timedelta(days=7)
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
-/* \u2500\u2500 FOOTER \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function Footer({t,setPage}){
-  return(
-    <footer style={{background:'var(--navy)',padding:'52px 24px 24px'}}>
-      <div style={{maxWidth:1280,margin:'0 auto'}}>
-        <div className="footer-grid" style={{display:'grid',gridTemplateColumns:'2fr 1fr 1fr 1fr',gap:40,marginBottom:40}}>
-          <div>
-            <img src="/logo-1.png" alt="Get Lost DZ" style={{height:52,marginBottom:16,filter:'brightness(0) invert(1) sepia(1) saturate(2) hue-rotate(140deg)'}}
-              onError={e=>e.target.style.display='none'}/>
-            <p style={{color:'rgba(255,255,255,.5)',fontSize:13,lineHeight:1.8,maxWidth:240}}>La r\u00e9f\u00e9rence du tourisme exp\u00e9rientiel en Alg\u00e9rie.</p>
-          </div>
-          {[['Navigation',[[t.navHome,'home',null],[t.navTrips,'trips',null],[t.navAbout,'about',null]]],['Contact',[['\ud83d\udce7 getlost.dz@gmail.com',null,null],['\ud83d\udcf1 +213 782 8292 46',null,null],['\ud83d\udccd Alger, Alg\u00e9rie',null,null]]],['R\u00e9seaux',[['\ud83d\udcf8 Instagram',null,'https://www.instagram.com/get_lost_dz/'],['\ud83d\udd17 Linktree',null,'https://www.hopp.bio/get-lost'],['\ud83d\udcd8 Facebook',null,'https://www.facebook.com/getlostdz']]]]
-          .map(([title,links])=>(
-            <div key={title}>
-              <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:12,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal)',marginBottom:16}}>{title}</div>
-              {links.map(([lbl,pg,url])=>{
-                if(url) return(<a key={lbl} href={url} target="_blank" rel="noopener noreferrer" style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,display:'block',textDecoration:'none',transition:'color .18s'}} onMouseEnter={e=>e.target.style.color='rgba(255,255,255,.9)'} onMouseLeave={e=>e.target.style.color='rgba(255,255,255,.5)'}>{lbl}</a>);
-                return(<div key={lbl} onClick={()=>pg&&setPage(pg)} style={{color:'rgba(255,255,255,.5)',fontSize:13,marginBottom:9,cursor:pg?'pointer':'default',transition:'color .18s'}} onMouseEnter={e=>{if(pg)e.target.style.color='rgba(255,255,255,.9)'}} onMouseLeave={e=>{if(pg)e.target.style.color='rgba(255,255,255,.5)'}}>{lbl}</div>);
-              })}
-            </div>
-          ))}
-        </div>
-        <div style={{borderTop:'1px solid rgba(255,255,255,.08)',paddingTop:20,display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:8}}>
-          <span style={{color:'rgba(255,255,255,.3)',fontSize:12}}>\u00a9 {new Date().getFullYear()} Get Lost DZ \u2014 Tous droits r\u00e9serv\u00e9s</span>
-          <div style={{display:'flex',gap:16}}>{['Mentions l\u00e9gales','CGU','FAQ'].map(l=><span key={l} style={{color:'rgba(255,255,255,.3)',fontSize:12,cursor:'pointer'}}>{l}</span>)}</div>
-        </div>
-      </div>
-    </footer>
-  );
-}
+def token_required(f):
+    @wraps(f)
+    def wrapper(*a, **kw):
+        token = request.headers.get("Authorization","").replace("Bearer ","")
+        if not token: return jsonify({"error":"Token required"}), 401
+        try: g.user = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError: return jsonify({"error":"Token expired"}), 401
+        except: return jsonify({"error":"Invalid token"}), 401
+        return f(*a, **kw)
+    return wrapper
 
-/* \u2500\u2500 APP \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500 */
-function App(){
-  const [lang,setLang]=useState('fr');
-  const [page,setPage]=useState('home');
-  const [filterCat,setFilterCat]=useState('all');
-  const [authModal,setAuthModal]=useState(null);
-  const [selOffer,setSelOffer]=useState(null);
-  const t=TR[lang];
-  return(
-    <div style={{direction:lang==='ar'?'rtl':'ltr'}}>
-      <Navbar page={page} setPage={setPage} lang={lang} setLang={setLang} openAuth={setAuthModal} t={t}/>
-      {page==='home'&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
-      {page==='trips'&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
-      {page==='about'&&<AboutPage t={t}/>}
-      {page==='dash'&&<DashPage t={t} openAuth={setAuthModal}/>}
-      {page==='admin'&&<AdminPage t={t} openAuth={setAuthModal}/>}
-      <Footer t={t} setPage={setPage}/>
-      {authModal&&<AuthModal mode={authModal} onClose={()=>setAuthModal(null)} t={t}/>}
-      {selOffer&&<OfferModal offer={selOffer} onClose={()=>setSelOffer(null)} t={t} lang={lang}/>}
-    </div>
-  );
-}
+def admin_required(f):
+    @wraps(f)
+    @token_required
+    def wrapper(*a, **kw):
+        if g.user.get("role") != "admin": return jsonify({"error":"Admin only"}), 403
+        return f(*a, **kw)
+    return wrapper
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <AuthProvider><ToastProvider><App/></ToastProvider></AuthProvider>
-);
-</script>
-</body>
-</html>
+# ─── AUTH ROUTES ──────────────────────────────────────────────────────────────
+
+@app.route("/api/auth/register", methods=["POST"])
+def register():
+    d = request.json or {}
+    name = (d.get("name") or "").strip()
+    email = (d.get("email") or "").strip().lower()
+    password = d.get("password") or ""
+    role = d.get("role","traveler")
+    if not name or not email or not password:
+        return jsonify({"error":"Tous les champs sont requis"}), 400
+    if len(password) < 6:
+        return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
+    if db_query("SELECT id FROM users WHERE email=?", (email,), one=True):
+        return jsonify({"error":"Email déjà utilisé"}), 409
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    uid = db_run("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)",(name,email,hashed,role))
+    agency_id = None
+    if role == "agency":
+        agency_name = (d.get("agencyName") or name).strip()
+        desc = (d.get("description") or "").strip()
+        agency_id = db_run("INSERT INTO agencies(user_id,name,description,status) VALUES(?,?,?,?)",(uid,agency_name,desc,"approved"))
+    user = {"id":uid,"name":name,"email":email,"role":role}
+    return jsonify({"token": make_token(user, agency_id), "user": {**user, "agencyId": agency_id}}), 201
+
+@app.route("/api/auth/login", methods=["POST"])
+def login():
+    d = request.json or {}
+    email = (d.get("email") or "").strip().lower()
+    password = d.get("password") or ""
+    user = db_query("SELECT * FROM users WHERE email=?", (email,), one=True)
+    if not user or not bcrypt.checkpw(password.encode(), user["password"].encode()):
+        return jsonify({"error":"Email ou mot de passe incorrect"}), 401
+    agency_id = None
+    if user["role"] == "agency":
+        ag = db_query("SELECT id FROM agencies WHERE user_id=?", (user["id"],), one=True)
+        if ag: agency_id = ag["id"]
+    return jsonify({"token": make_token(user, agency_id), "user": {
+        "id":user["id"],"name":user["name"],"email":user["email"],"role":user["role"],"agencyId":agency_id
+    }})
+
+@app.route("/api/auth/me", methods=["GET"])
+@token_required
+def me():
+    u = db_query("SELECT id,name,email,role,created_at FROM users WHERE id=?", (g.user["id"],), one=True)
+    return jsonify(u)
+
+# ─── OFFERS ───────────────────────────────────────────────────────────────────
+
+@app.route("/api/offers", methods=["GET"])
+def get_offers():
+    cat    = request.args.get("category","")
+    search = request.args.get("search","")
+    sort   = request.args.get("sort","rating")
+    status = request.args.get("status","approved")
+    sql = """SELECT o.*, a.name agency_name, a.logo agency_logo,
+             ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
+             COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
+             FROM offers o
+             LEFT JOIN agencies a ON o.agency_id=a.id
+             LEFT JOIN reviews r ON r.offer_id=o.id
+             WHERE o.status=?"""
+    args = [status]
+    if cat:
+        sql += " AND o.category=?"; args.append(cat)
+    if search:
+        sql += " AND (o.title LIKE ? OR o.region LIKE ?)"; args += [f"%{search}%",f"%{search}%"]
+    sql += " GROUP BY o.id, a.name, a.logo"
+    sql += {
+        "price_asc":  " ORDER BY o.price ASC",
+        "price_desc": " ORDER BY o.price DESC",
+    }.get(sort, " ORDER BY avg_rating DESC NULLS LAST, o.id DESC")
+    return jsonify([parse_offer(o) for o in db_query(sql, args)])
+
+@app.route("/api/offers/<int:oid>", methods=["GET"])
+def get_offer(oid):
+    o = db_query("""SELECT o.*, a.name agency_name, a.logo agency_logo, a.description agency_desc,
+             ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
+             COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
+             FROM offers o LEFT JOIN agencies a ON o.agency_id=a.id
+             LEFT JOIN reviews r ON r.offer_id=o.id
+             WHERE o.id=? GROUP BY o.id, a.name, a.logo, a.description""", (oid,), one=True)
+    if not o: return jsonify({"error":"Not found"}), 404
+    db_run("UPDATE offers SET views=views+1 WHERE id=?", (oid,))
+    return jsonify(parse_offer(o))
+
+@app.route("/api/offers", methods=["POST"])
+@token_required
+def create_offer():
+    u = g.user
+    if u["role"] not in ["agency","admin"]: return jsonify({"error":"Agency required"}), 403
+    d = request.json or {}
+    ag_id = u.get("agencyId")
+    if not ag_id:
+        ag = db_query("SELECT id FROM agencies WHERE user_id=?", (u["id"],), one=True)
+        if ag: ag_id = ag["id"]
+    if not ag_id: return jsonify({"error":"No agency found"}), 400
+    for f in ["title","category","price","region"]:
+        if not d.get(f): return jsonify({"error":f"{f} required"}), 400
+    oid = db_run("""INSERT INTO offers(agency_id,title,category,price,duration,region,description,
+        image_url,itinerary,includes,available_dates,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (
+        ag_id, d["title"], d["category"], int(d["price"]), int(d.get("duration",1)),
+        d["region"], d.get("description",""), d.get("imageUrl",""),
+        json.dumps(d.get("itinerary",[])), json.dumps(d.get("includes",[])),
+        json.dumps(d.get("dates",[])), "pending"
+    ))
+    return jsonify({"id":oid,"message":"Offer submitted for validation"}), 201
+
+@app.route("/api/offers/<int:oid>", methods=["PUT"])
+@token_required
+def update_offer(oid):
+    u = g.user
+    offer = db_query("SELECT * FROM offers WHERE id=?", (oid,), one=True)
+    if not offer: return jsonify({"error":"Not found"}), 404
+    if u["role"] == "agency" and offer["agency_id"] != u.get("agencyId"):
+        return jsonify({"error":"Forbidden"}), 403
+    d = request.json or {}
+    db_run("""UPDATE offers SET title=?,category=?,price=?,duration=?,region=?,
+              description=?,image_url=?,itinerary=?,includes=?,available_dates=? WHERE id=?""", (
+        d.get("title",offer["title"]), d.get("category",offer["category"]),
+        int(d.get("price",offer["price"])), int(d.get("duration",offer["duration"])),
+        d.get("region",offer["region"]), d.get("description",offer["description"]),
+        d.get("imageUrl",offer["image_url"]),
+        json.dumps(d.get("itinerary",[])), json.dumps(d.get("includes",[])),
+        json.dumps(d.get("dates",[])), oid
+    ))
+    return jsonify({"message":"Updated"})
+
+@app.route("/api/offers/<int:oid>", methods=["DELETE"])
+@token_required
+def delete_offer(oid):
+    u = g.user
+    offer = db_query("SELECT * FROM offers WHERE id=?", (oid,), one=True)
+    if not offer: return jsonify({"error":"Not found"}), 404
+    if u["role"] == "agency" and offer["agency_id"] != u.get("agencyId"):
+        return jsonify({"error":"Forbidden"}), 403
+    db_run("DELETE FROM reviews WHERE offer_id=?", (oid,))
+    db_run("DELETE FROM bookings WHERE offer_id=?", (oid,))
+    db_run("DELETE FROM offers WHERE id=?", (oid,))
+    return jsonify({"message":"Deleted"})
+
+@app.route("/api/offers/<int:oid>/status", methods=["PATCH"])
+@admin_required
+def set_offer_status(oid):
+    status = (request.json or {}).get("status")
+    if status not in ["approved","rejected","pending"]: return jsonify({"error":"Invalid status"}), 400
+    db_run("UPDATE offers SET status=? WHERE id=?", (status,oid))
+    return jsonify({"message":f"Offer {status}"})
+
+# ─── REVIEWS ─────────────────────────────────────────────────────────────────
+
+@app.route("/api/offers/<int:oid>/reviews", methods=["GET"])
+def get_reviews(oid):
+    rows = db_query("""SELECT r.*, u.name user_name FROM reviews r
+        JOIN users u ON r.user_id=u.id
+        WHERE r.offer_id=? AND r.status='approved'
+        ORDER BY r.created_at DESC""", (oid,))
+    return jsonify(rows)
+
+@app.route("/api/offers/<int:oid>/reviews", methods=["POST"])
+@token_required
+def create_review(oid):
+    u = g.user
+    d = request.json or {}
+    rating = int(d.get("rating",0))
+    title  = (d.get("title") or "").strip()
+    if not rating or not title: return jsonify({"error":"Rating and title required"}), 400
+    if not (1 <= rating <= 5):  return jsonify({"error":"Rating must be 1-5"}), 400
+    if db_query("SELECT id FROM reviews WHERE offer_id=? AND user_id=?", (oid,u["id"]), one=True):
+        return jsonify({"error":"You already reviewed this offer"}), 409
+    rid = db_run("INSERT INTO reviews(offer_id,user_id,rating,title,comment,status) VALUES(?,?,?,?,?,?)",
+        (oid, u["id"], rating, title, d.get("comment",""), "pending"))
+    return jsonify({"id":rid,"message":"Review submitted – will appear after moderation"}), 201
+
+@app.route("/api/reviews/<int:rid>/status", methods=["PATCH"])
+@admin_required
+def set_review_status(rid):
+    status = (request.json or {}).get("status")
+    if status not in ["approved","rejected"]: return jsonify({"error":"Invalid"}), 400
+    db_run("UPDATE reviews SET status=? WHERE id=?", (status,rid))
+    return jsonify({"message":f"Review {status}"})
+
+# ─── AGENCIES ────────────────────────────────────────────────────────────────
+
+@app.route("/api/agencies", methods=["GET"])
+def get_agencies():
+    rows = db_query("""SELECT a.*, u.email,
+        COUNT(DISTINCT o.id) offer_count,
+        COUNT(DISTINCT b.id) booking_count
+        FROM agencies a JOIN users u ON a.user_id=u.id
+        LEFT JOIN offers o ON o.agency_id=a.id AND o.status='approved'
+        LEFT JOIN bookings b ON b.offer_id IN (SELECT id FROM offers WHERE agency_id=a.id)
+        GROUP BY a.id, u.email ORDER BY a.id""")
+    return jsonify(rows)
+
+@app.route("/api/agencies/<int:aid>", methods=["PUT"])
+@token_required
+def update_agency(aid):
+    u = g.user
+    if u["role"] == "agency":
+        ag = db_query("SELECT id FROM agencies WHERE user_id=?", (u["id"],), one=True)
+        if not ag or ag["id"] != aid: return jsonify({"error":"Forbidden"}), 403
+    d = request.json or {}
+    db_run("UPDATE agencies SET name=?,description=?,logo=? WHERE id=?",
+        (d.get("name"), d.get("description",""), d.get("logo","🏢"), aid))
+    return jsonify({"message":"Updated"})
+
+@app.route("/api/agencies/<int:aid>/status", methods=["PATCH"])
+@admin_required
+def set_agency_status(aid):
+    d = request.json or {}
+    if d.get("status"): db_run("UPDATE agencies SET status=? WHERE id=?", (d["status"],aid))
+    if d.get("plan"):   db_run("UPDATE agencies SET plan=? WHERE id=?",   (d["plan"],aid))
+    return jsonify({"message":"Updated"})
+
+@app.route("/api/agencies/<int:aid>/offers", methods=["GET"])
+@token_required
+def agency_offers(aid):
+    u = g.user
+    if u["role"] not in ["admin"] and u.get("agencyId") != aid:
+        return jsonify({"error":"Forbidden"}), 403
+    rows = db_query("""SELECT o.*,
+        ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
+        COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
+        FROM offers o LEFT JOIN reviews r ON r.offer_id=o.id
+        WHERE o.agency_id=? GROUP BY o.id ORDER BY o.id DESC""", (aid,))
+    return jsonify([parse_offer(o) for o in rows])
+
+# ─── BOOKINGS ────────────────────────────────────────────────────────────────
+
+@app.route("/api/bookings", methods=["POST"])
+@token_required
+def book():
+    u = g.user
+    d = request.json or {}
+    oid   = d.get("offerId")
+    phone = (d.get("phone") or "").strip()
+    if not oid:   return jsonify({"error":"offerId required"}), 400
+    if not phone: return jsonify({"error":"Numéro de téléphone requis"}), 400
+    # Basic phone validation: must contain at least 8 digits
+    digits = ''.join(c for c in phone if c.isdigit())
+    if len(digits) < 8:
+        return jsonify({"error":"Numéro de téléphone invalide (min. 8 chiffres)"}), 400
+    if not db_query("SELECT id FROM offers WHERE id=? AND status='approved'", (oid,), one=True):
+        return jsonify({"error":"Offer not found"}), 404
+    bid = db_run("INSERT INTO bookings(offer_id,user_id,phone,message) VALUES(?,?,?,?)",
+        (oid, u["id"], phone, d.get("message","")))
+    return jsonify({"id":bid,"message":"Booking confirmed! The agency will contact you within 24h."}), 201
+
+@app.route("/api/bookings/my", methods=["GET"])
+@token_required
+def my_bookings():
+    rows = db_query("""SELECT b.*, o.title offer_title, o.price, o.image_url, o.category
+        FROM bookings b JOIN offers o ON b.offer_id=o.id
+        WHERE b.user_id=? ORDER BY b.created_at DESC""", (g.user["id"],))
+    return jsonify(rows)
+
+@app.route("/api/agencies/<int:aid>/bookings", methods=["GET"])
+@token_required
+def agency_bookings(aid):
+    u = g.user
+    if u["role"] not in ["admin"] and u.get("agencyId") != aid:
+        return jsonify({"error":"Forbidden"}), 403
+    rows = db_query("""SELECT b.*, o.title offer_title, o.price, o.category, o.image_url,
+        u.name traveler_name, u.email traveler_email
+        FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        JOIN users u ON b.user_id=u.id
+        WHERE o.agency_id=?
+        ORDER BY b.created_at DESC""", (aid,))
+    return jsonify(rows)
+
+@app.route("/api/bookings/<int:bid>/status", methods=["PATCH"])
+@token_required
+def update_booking_status(bid):
+    u = g.user
+    d = request.json or {}
+    status = d.get("status")
+    if status not in ["pending","confirmed","cancelled"]:
+        return jsonify({"error":"Invalid status"}), 400
+    booking = db_query("""SELECT b.*, o.agency_id FROM bookings b
+        JOIN offers o ON b.offer_id=o.id WHERE b.id=?""", (bid,), one=True)
+    if not booking: return jsonify({"error":"Not found"}), 404
+    if u["role"] == "agency" and booking["agency_id"] != u.get("agencyId"):
+        return jsonify({"error":"Forbidden"}), 403
+    db_run("UPDATE bookings SET status=? WHERE id=?", (status, bid))
+    return jsonify({"message":f"Booking {status}"})
+
+# ─── ADMIN ────────────────────────────────────────────────────────────────────
+
+@app.route("/api/admin/stats", methods=["GET"])
+@admin_required
+def admin_stats():
+    def cnt(sql,args=()): return db_query(sql,args,one=True)["c"]
+    return jsonify({
+        "total_offers":    cnt("SELECT COUNT(*) c FROM offers"),
+        "pending_offers":  cnt("SELECT COUNT(*) c FROM offers WHERE status='pending'"),
+        "approved_offers": cnt("SELECT COUNT(*) c FROM offers WHERE status='approved'"),
+        "total_agencies":  cnt("SELECT COUNT(*) c FROM agencies"),
+        "total_travelers": cnt("SELECT COUNT(*) c FROM users WHERE role='traveler'"),
+        "total_reviews":   cnt("SELECT COUNT(*) c FROM reviews"),
+        "pending_reviews": cnt("SELECT COUNT(*) c FROM reviews WHERE status='pending'"),
+        "total_bookings":  cnt("SELECT COUNT(*) c FROM bookings"),
+    })
+
+@app.route("/api/admin/offers", methods=["GET"])
+@admin_required
+def admin_offers():
+    rows = db_query("""SELECT o.*, a.name agency_name,
+        ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
+        COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
+        FROM offers o LEFT JOIN agencies a ON o.agency_id=a.id
+        LEFT JOIN reviews r ON r.offer_id=o.id
+        GROUP BY o.id, a.name ORDER BY o.id DESC""")
+    return jsonify([parse_offer(o) for o in rows])
+
+@app.route("/api/admin/reviews", methods=["GET"])
+@admin_required
+def admin_reviews():
+    rows = db_query("""SELECT r.*, u.name user_name, o.title offer_title
+        FROM reviews r JOIN users u ON r.user_id=u.id JOIN offers o ON r.offer_id=o.id
+        ORDER BY (r.status='pending') DESC, r.created_at DESC""")
+    return jsonify(rows)
+
+@app.route("/api/admin/bookings", methods=["GET"])
+@admin_required
+def admin_bookings():
+    rows = db_query("""SELECT b.*, o.title offer_title, o.price, o.category,
+        u.name traveler_name, u.email traveler_email,
+        a.name agency_name
+        FROM bookings b
+        JOIN offers o ON b.offer_id=o.id
+        JOIN users u ON b.user_id=u.id
+        JOIN agencies a ON o.agency_id=a.id
+        ORDER BY b.created_at DESC""")
+    return jsonify(rows)
+
+@app.route("/api/admin/users", methods=["GET"])
+@admin_required
+def admin_users():
+    rows = db_query("SELECT id,name,email,role,created_at FROM users ORDER BY id")
+    return jsonify(rows)
+
+# ─── STATIC ──────────────────────────────────────────────────────────────────
+
+@app.route("/", defaults={"path":""})
+@app.route("/<path:path>")
+def serve(path):
+    if path and os.path.exists(os.path.join("static", path)):
+        return send_from_directory("static", path)
+    return send_from_directory("static", "index.html")
+
+# ─── STARTUP ─────────────────────────────────────────────────────────────────
+if USE_POSTGRES or not os.path.exists("getlost.db"):
+    print("🔧  Initialising database …")
+    init_db()
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    print(f"🚀  Get Lost DZ  →  http://localhost:{port}")
+    print("    admin@getlostdz.com / admin123")
+    print("    agency1@getlostdz.com / agency123")
+    print("    sarah@test.com / user123")
+    app.run(debug=False, host="0.0.0.0", port=port)
