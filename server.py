@@ -440,7 +440,7 @@ def forgot_password():
     if not user:
         return jsonify({"message":"Si cet email existe, un lien de réinitialisation a été envoyé."}), 200
     # Invalidate old tokens
-    db_run("UPDATE password_resets SET used=1 WHERE user_id=? AND used=0", (user["id"],))
+    db_run("UPDATE password_resets SET used=TRUE WHERE user_id=? AND used=FALSE", (user["id"],))
     # Generate token valid 1h
     token = secrets.token_urlsafe(32)
     expires = datetime.now(timezone.utc) + timedelta(hours=1)
@@ -480,7 +480,7 @@ def reset_password():
         return jsonify({"error":"Token et mot de passe requis"}), 400
     if len(password) < 6:
         return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
-    row = db_query("SELECT * FROM password_resets WHERE token=? AND used=0", (token,), one=True)
+    row = db_query("SELECT * FROM password_resets WHERE token=? AND used=FALSE", (token,), one=True)
     if not row:
         return jsonify({"error":"Lien invalide ou déjà utilisé"}), 400
     # Check expiry
@@ -492,7 +492,7 @@ def reset_password():
         return jsonify({"error":"Lien invalide"}), 400
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     db_run("UPDATE users SET password=? WHERE id=?", (hashed, row["user_id"]))
-    db_run("UPDATE password_resets SET used=1 WHERE token=?", (token,))
+    db_run("UPDATE password_resets SET used=TRUE WHERE token=?", (token,))
     return jsonify({"message":"Mot de passe réinitialisé avec succès !"}), 200
 
 @app.route("/api/auth/verify-reset-token", methods=["POST"])
@@ -500,7 +500,7 @@ def verify_reset_token():
     token = (request.json or {}).get("token","").strip()
     if not token:
         return jsonify({"valid":False}), 200
-    row = db_query("SELECT * FROM password_resets WHERE token=? AND used=0", (token,), one=True)
+    row = db_query("SELECT * FROM password_resets WHERE token=? AND used=FALSE", (token,), one=True)
     if not row:
         return jsonify({"valid":False}), 200
     try:
