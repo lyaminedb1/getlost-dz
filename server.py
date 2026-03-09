@@ -3,7 +3,9 @@ GET LOST DZ — Full Backend API
 Flask + PostgreSQL (prod) / SQLite (dev) + JWT + bcrypt
 Auto-detects DATABASE_URL env var
 """
-import bcrypt, jwt, json, os
+import bcrypt, jwt, json, os, secrets, smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 from flask import Flask, request, jsonify, send_from_directory, g
@@ -15,6 +17,13 @@ CORS(app)
 JWT_SECRET = os.environ.get("JWT_SECRET", "getlostdz_jwt_secret_2025")
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 USE_POSTGRES = DATABASE_URL.startswith("postgres")
+
+MAIL_HOST = os.environ.get("MAIL_HOST", "smtp-relay.brevo.com")
+MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+MAIL_USER = os.environ.get("MAIL_USER", "")
+MAIL_PASS = os.environ.get("MAIL_PASS", "")
+MAIL_FROM = os.environ.get("MAIL_FROM", "noreply@getlostdz.com")
+APP_URL   = os.environ.get("APP_URL", "https://getlost-dz.onrender.com")
 
 # ─── DB LAYER ─────────────────────────────────────────────────────────────────
 
@@ -143,6 +152,14 @@ def init_db():
                 status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                token TEXT NOT NULL UNIQUE,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         db.commit()
         # ── Migrations ──
@@ -164,6 +181,7 @@ def init_db():
             CREATE TABLE IF NOT EXISTS offers (id INTEGER PRIMARY KEY AUTOINCREMENT, agency_id INTEGER NOT NULL, title TEXT NOT NULL, category TEXT NOT NULL, price INTEGER NOT NULL, duration INTEGER NOT NULL DEFAULT 1, region TEXT NOT NULL, description TEXT DEFAULT '', image_url TEXT DEFAULT '', itinerary TEXT DEFAULT '[]', includes TEXT DEFAULT '[]', available_dates TEXT DEFAULT '[]', status TEXT DEFAULT 'pending', views INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(agency_id) REFERENCES agencies(id));
             CREATE TABLE IF NOT EXISTS reviews (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5), title TEXT NOT NULL, comment TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
             CREATE TABLE IF NOT EXISTS bookings (id INTEGER PRIMARY KEY AUTOINCREMENT, offer_id INTEGER NOT NULL, user_id INTEGER NOT NULL, phone TEXT DEFAULT '', message TEXT DEFAULT '', status TEXT DEFAULT 'pending', created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(offer_id) REFERENCES offers(id), FOREIGN KEY(user_id) REFERENCES users(id));
+            CREATE TABLE IF NOT EXISTS password_resets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, token TEXT NOT NULL UNIQUE, expires_at DATETIME NOT NULL, used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY(user_id) REFERENCES users(id));
         """)
         # ── Migrations (SQLite) ──
         cols = [r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()]
@@ -373,6 +391,113 @@ def upload_avatar():
         return jsonify({"error":"Image trop grande (max 2MB)"}), 400
     db_run("UPDATE users SET avatar=? WHERE id=?", (avatar, g.user["id"]))
     return jsonify({"message":"Avatar mis à jour", "avatar": avatar})
+
+# ─── EMAIL HELPER ─────────────────────────────────────────────────────────────
+
+def send_email(to, subject, html):
+    if not MAIL_USER or not MAIL_PASS:
+        print(f"[EMAIL] No credentials — skipping email to {to}: {subject}")
+        return False
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"]    = f"Get Lost DZ <{MAIL_USER}>"
+        msg["To"]      = to
+        msg.attach(MIMEText(html, "html"))
+        with smtplib.SMTP(MAIL_HOST, MAIL_PORT) as s:
+            s.ehlo()
+            s.starttls()
+            s.login(MAIL_USER, MAIL_PASS)
+            s.sendmail(MAIL_USER, to, msg.as_string())
+        print(f"[EMAIL] Sent to {to}: {subject}")
+        return True
+    except Exception as e:
+        print(f"[EMAIL] Error sending to {to}: {e}")
+        return False
+
+# ─── PASSWORD RESET ───────────────────────────────────────────────────────────
+
+@app.route("/api/auth/forgot-password", methods=["POST"])
+def forgot_password():
+    d = request.json or {}
+    email = (d.get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error":"Email requis"}), 400
+    user = db_query("SELECT id,name,email FROM users WHERE email=?", (email,), one=True)
+    # Always return success to avoid email enumeration
+    if not user:
+        return jsonify({"message":"Si cet email existe, un lien de réinitialisation a été envoyé."}), 200
+    # Invalidate old tokens
+    db_run("UPDATE password_resets SET used=1 WHERE user_id=? AND used=0", (user["id"],))
+    # Generate token valid 1h
+    token = secrets.token_urlsafe(32)
+    expires = datetime.now(timezone.utc) + timedelta(hours=1)
+    expires_str = expires.strftime("%Y-%m-%d %H:%M:%S")
+    db_run("INSERT INTO password_resets(user_id,token,expires_at) VALUES(?,?,?)", (user["id"], token, expires_str))
+    reset_url = f"{APP_URL}?reset_token={token}"
+    html = f"""
+    <div style="font-family:Poppins,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;background:#fff;">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div style="font-size:32px;margin-bottom:8px;">🌍</div>
+        <div style="font-family:Nunito,sans-serif;font-weight:900;font-size:22px;color:#0B2340;">Get Lost DZ</div>
+      </div>
+      <div style="background:#E6F9F7;border-radius:16px;padding:28px 24px;margin-bottom:24px;">
+        <h2 style="color:#0B2340;margin:0 0 12px;font-size:18px;">Réinitialisation de mot de passe</h2>
+        <p style="color:#6B8591;margin:0 0 20px;line-height:1.7;">Bonjour <strong>{user['name']}</strong>,<br>
+        Vous avez demandé à réinitialiser votre mot de passe. Cliquez sur le bouton ci-dessous :</p>
+        <div style="text-align:center;">
+          <a href="{reset_url}" style="display:inline-block;background:linear-gradient(135deg,#0DB9A8,#09907F);color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;font-size:15px;">
+            🔑 Réinitialiser mon mot de passe
+          </a>
+        </div>
+      </div>
+      <p style="color:#A8BEC6;font-size:12px;text-align:center;margin:0;">
+        Ce lien expire dans <strong>1 heure</strong>. Si vous n'avez pas fait cette demande, ignorez cet email.
+      </p>
+    </div>
+    """
+    send_email(user["email"], "🔑 Réinitialisation de mot de passe — Get Lost DZ", html)
+    return jsonify({"message":"Si cet email existe, un lien de réinitialisation a été envoyé."}), 200
+
+@app.route("/api/auth/reset-password", methods=["POST"])
+def reset_password():
+    d = request.json or {}
+    token    = (d.get("token") or "").strip()
+    password = (d.get("password") or "").strip()
+    if not token or not password:
+        return jsonify({"error":"Token et mot de passe requis"}), 400
+    if len(password) < 6:
+        return jsonify({"error":"Mot de passe: minimum 6 caractères"}), 400
+    row = db_query("SELECT * FROM password_resets WHERE token=? AND used=0", (token,), one=True)
+    if not row:
+        return jsonify({"error":"Lien invalide ou déjà utilisé"}), 400
+    # Check expiry
+    try:
+        expires = datetime.strptime(str(row["expires_at"])[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires:
+            return jsonify({"error":"Lien expiré. Faites une nouvelle demande."}), 400
+    except:
+        return jsonify({"error":"Lien invalide"}), 400
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    db_run("UPDATE users SET password=? WHERE id=?", (hashed, row["user_id"]))
+    db_run("UPDATE password_resets SET used=1 WHERE token=?", (token,))
+    return jsonify({"message":"Mot de passe réinitialisé avec succès !"}), 200
+
+@app.route("/api/auth/verify-reset-token", methods=["POST"])
+def verify_reset_token():
+    token = (request.json or {}).get("token","").strip()
+    if not token:
+        return jsonify({"valid":False}), 200
+    row = db_query("SELECT * FROM password_resets WHERE token=? AND used=0", (token,), one=True)
+    if not row:
+        return jsonify({"valid":False}), 200
+    try:
+        expires = datetime.strptime(str(row["expires_at"])[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires:
+            return jsonify({"valid":False}), 200
+    except:
+        return jsonify({"valid":False}), 200
+    return jsonify({"valid":True}), 200
 
 # ─── OFFERS ───────────────────────────────────────────────────────────────────
 

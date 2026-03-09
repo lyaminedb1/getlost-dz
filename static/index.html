@@ -138,6 +138,7 @@ const TR={
     phoneLbl:'Téléphone',
     loginTitle:'Connexion',regTitle:'Créer un compte',emailLbl:'Email',passLbl:'Mot de passe',nameLbl:'Votre nom',agNameLbl:'Nom de l\'agence',descLbl:'Description',
     profileTab:'Mon profil',profileSave:'Sauvegarder',profilePhone:'Téléphone',profileNewPass:'Nouveau mot de passe (laisser vide pour ne pas changer)',profileAvatar:'Photo de profil',profileAgency:'Informations agence',profileSuccess:'Profil mis à jour !',
+    forgotPass:'Mot de passe oublié ?',forgotTitle:'Réinitialiser le mot de passe',forgotSub:'Entrez votre email et nous vous enverrons un lien.',forgotSend:'Envoyer le lien',forgotDone:'Email envoyé ! Vérifiez votre boîte mail.',resetTitle:'Nouveau mot de passe',resetSub:'Choisissez un nouveau mot de passe sécurisé.',resetNewPass:'Nouveau mot de passe',resetConfirm:'Confirmer le mot de passe',resetSave:'Réinitialiser',resetDone:'Mot de passe réinitialisé ! Vous pouvez vous connecter.',resetMismatch:'Les mots de passe ne correspondent pas.',resetInvalid:'Lien invalide ou expiré.',backToLogin:'Retour à la connexion',
     noAcc:'Pas de compte ?',hasAcc:'Déjà un compte ?',roleT:'Je suis voyageur',roleA:'Je suis une agence',
     dashWelcome:'Bonjour',myOffers:'Mes offres',addOffer:'+ Nouvelle offre',stats2:'Statistiques',
     totOff:'Offres',approved:'Validées',pending:'En attente',views:'Vues totales',
@@ -169,6 +170,7 @@ const TR={
     phoneLbl:'Phone',
     loginTitle:'Login',regTitle:'Create Account',emailLbl:'Email',passLbl:'Password',nameLbl:'Your name',agNameLbl:'Agency Name',descLbl:'Description',
     profileTab:'My Profile',profileSave:'Save',profilePhone:'Phone',profileNewPass:'New password (leave empty to keep current)',profileAvatar:'Profile Photo',profileAgency:'Agency Information',profileSuccess:'Profile updated!',
+    forgotPass:'Forgot password?',forgotTitle:'Reset Password',forgotSub:'Enter your email and we\'ll send you a reset link.',forgotSend:'Send Link',forgotDone:'Email sent! Check your inbox.',resetTitle:'New Password',resetSub:'Choose a new secure password.',resetNewPass:'New password',resetConfirm:'Confirm password',resetSave:'Reset Password',resetDone:'Password reset! You can now login.',resetMismatch:'Passwords do not match.',resetInvalid:'Invalid or expired link.',backToLogin:'Back to login',
     noAcc:'No account?',hasAcc:'Already have an account?',roleT:'I\'m a traveler',roleA:'I\'m an agency',
     dashWelcome:'Hello',myOffers:'My Offers',addOffer:'+ New Offer',stats2:'Statistics',
     totOff:'Offers',approved:'Approved',pending:'Pending',views:'Total Views',
@@ -200,6 +202,7 @@ const TR={
     phoneLbl:'رقم الهاتف',
     loginTitle:'تسجيل الدخول',regTitle:'إنشاء حساب',emailLbl:'البريد الإلكتروني',passLbl:'كلمة المرور',nameLbl:'اسمك',agNameLbl:'اسم الوكالة',descLbl:'الوصف',
     profileTab:'ملفي الشخصي',profileSave:'حفظ',profilePhone:'رقم الهاتف',profileNewPass:'كلمة مرور جديدة (اتركها فارغة للإبقاء على الحالية)',profileAvatar:'صورة الملف الشخصي',profileAgency:'معلومات الوكالة',profileSuccess:'تم تحديث الملف الشخصي!',
+    forgotPass:'نسيت كلمة المرور؟',forgotTitle:'إعادة تعيين كلمة المرور',forgotSub:'أدخل بريدك الإلكتروني وسنرسل لك رابطاً.',forgotSend:'إرسال الرابط',forgotDone:'تم الإرسال! تحقق من بريدك.',resetTitle:'كلمة مرور جديدة',resetSub:'اختر كلمة مرور جديدة آمنة.',resetNewPass:'كلمة المرور الجديدة',resetConfirm:'تأكيد كلمة المرور',resetSave:'إعادة التعيين',resetDone:'تم إعادة التعيين! يمكنك تسجيل الدخول.',resetMismatch:'كلمتا المرور غير متطابقتين.',resetInvalid:'رابط غير صالح أو منتهي الصلاحية.',backToLogin:'العودة لتسجيل الدخول',
     noAcc:'ليس لديك حساب؟',hasAcc:'لديك حساب بالفعل؟',roleT:'أنا مسافر',roleA:'أنا وكالة',
     dashWelcome:'مرحباً',myOffers:'عروضي',addOffer:'+ عرض جديد',stats2:'إحصائيات',
     totOff:'العروض',approved:'معتمدة',pending:'في الانتظار',views:'إجمالي المشاهدات',
@@ -577,11 +580,115 @@ function AuthModal({mode,onClose,t}){
           {role==='agency'&&<textarea style={TA(66)} placeholder={t.descLbl} value={f.description} onChange={e=>setF(p=>({...p,description:e.target.value}))}/>}
         </>}
         <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'…':isLogin?t.loginTitle:t.regTitle}</button>
-        <div style={{textAlign:'center',marginTop:14,fontSize:13,color:'var(--muted)'}}>
+        {isLogin&&<div style={{textAlign:'right',marginTop:8,marginBottom:4}}>
+          <span style={{fontSize:12,color:'var(--teal2)',cursor:'pointer',fontWeight:600}} onClick={()=>{onClose();document.dispatchEvent(new CustomEvent('openForgot'));}}>{t.forgotPass}</span>
+        </div>}
+        <div style={{textAlign:'center',marginTop:isLogin?6:14,fontSize:13,color:'var(--muted)'}}>
           {isLogin?<>{t.noAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(false)}>{t.regTitle}</span></>
           :<>{t.hasAcc} <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:700}} onClick={()=>setIsLogin(true)}>{t.loginTitle}</span></>}
         </div>
         <div style={{marginTop:16,padding:'10px 14px',background:'#F7FAFA',borderRadius:10,fontSize:11,color:'var(--muted)',lineHeight:1.6}}>{t.demo}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── FORGOT PASSWORD MODAL ────────────────────────────────────────────────── */
+function ForgotPasswordModal({onClose,t,openAuth}){
+  const {show}=useToast();
+  const [email,setEmail]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [done,setDone]=useState(false);
+  const submit=async()=>{
+    if(!email){show('Email requis','err');return;}
+    setLoading(true);
+    try{
+      await api('/auth/forgot-password',{method:'POST',body:{email}});
+      setDone(true);
+    }catch(e){show(e.message,'err');}
+    setLoading(false);
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:24,padding:'32px 28px',maxWidth:400,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)'}} className="fade" onClick={e=>e.stopPropagation()}>
+        <div style={{textAlign:'center',marginBottom:24}}>
+          <div style={{fontSize:40,marginBottom:10}}>🔑</div>
+          <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:6}}>{t.forgotTitle}</div>
+          <p style={{color:'var(--muted)',fontSize:13}}>{t.forgotSub}</p>
+        </div>
+        {done?(
+          <div style={{textAlign:'center'}}>
+            <div style={{background:'#D1FAE5',borderRadius:16,padding:'20px',marginBottom:20}}>
+              <div style={{fontSize:32,marginBottom:8}}>📧</div>
+              <div style={{color:'#065F46',fontWeight:700,fontSize:14}}>{t.forgotDone}</div>
+            </div>
+            <span style={{fontSize:13,color:'var(--teal2)',cursor:'pointer',fontWeight:600}} onClick={()=>{onClose();openAuth('login');}}>{t.backToLogin}</span>
+          </div>
+        ):(
+          <>
+            <input style={INP} type="email" placeholder={t.emailLbl} value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+            <button style={{...B.pri,width:'100%',padding:13,fontSize:15,marginBottom:12}} onClick={submit} disabled={loading}>{loading?'…':t.forgotSend}</button>
+            <div style={{textAlign:'center',fontSize:13,color:'var(--muted)'}}>
+              <span style={{color:'var(--teal2)',cursor:'pointer',fontWeight:600}} onClick={()=>{onClose();openAuth('login');}}>{t.backToLogin}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── RESET PASSWORD MODAL ─────────────────────────────────────────────────── */
+function ResetPasswordModal({token,onClose,t,openAuth}){
+  const {show}=useToast();
+  const [pass,setPass]=useState('');
+  const [confirm,setConfirm]=useState('');
+  const [loading,setLoading]=useState(false);
+  const [done,setDone]=useState(false);
+  const [invalid,setInvalid]=useState(false);
+  useEffect(()=>{
+    api('/auth/verify-reset-token',{method:'POST',body:{token}}).then(d=>{
+      if(!d.valid)setInvalid(true);
+    }).catch(()=>setInvalid(true));
+  },[token]);
+  const submit=async()=>{
+    if(!pass||!confirm){show('Les deux champs sont requis','err');return;}
+    if(pass!==confirm){show(t.resetMismatch,'err');return;}
+    if(pass.length<6){show('Minimum 6 caractères','err');return;}
+    setLoading(true);
+    try{
+      await api('/auth/reset-password',{method:'POST',body:{token,password:pass}});
+      setDone(true);
+    }catch(e){show(e.message,'err');}
+    setLoading(false);
+  };
+  return(
+    <div style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:16}}>
+      <div style={{background:'#fff',borderRadius:24,padding:'32px 28px',maxWidth:400,width:'100%',boxShadow:'0 24px 60px rgba(11,35,64,.2)'}} className="fade">
+        {invalid?(
+          <div style={{textAlign:'center'}}>
+            <div style={{fontSize:40,marginBottom:12}}>❌</div>
+            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--navy)',marginBottom:8}}>{t.resetInvalid}</div>
+            <button style={{...B.pri,marginTop:16}} onClick={()=>{onClose();openAuth('login');}}>{t.backToLogin}</button>
+          </div>
+        ):done?(
+          <div style={{textAlign:'center'}}>
+            <div style={{fontSize:40,marginBottom:12}}>✅</div>
+            <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:18,color:'var(--navy)',marginBottom:8}}>{t.resetDone}</div>
+            <button style={{...B.pri,marginTop:16}} onClick={()=>{onClose();openAuth('login');}}>{t.navLogin}</button>
+          </div>
+        ):(
+          <>
+            <div style={{textAlign:'center',marginBottom:24}}>
+              <div style={{fontSize:40,marginBottom:10}}>🔐</div>
+              <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:6}}>{t.resetTitle}</div>
+              <p style={{color:'var(--muted)',fontSize:13}}>{t.resetSub}</p>
+            </div>
+            <input style={INP} type="password" placeholder={t.resetNewPass} value={pass} onChange={e=>setPass(e.target.value)}/>
+            <input style={INP} type="password" placeholder={t.resetConfirm} value={confirm} onChange={e=>setConfirm(e.target.value)} onKeyDown={e=>e.key==='Enter'&&submit()}/>
+            <button style={{...B.pri,width:'100%',padding:13,fontSize:15}} onClick={submit} disabled={loading}>{loading?'…':t.resetSave}</button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -1297,7 +1404,21 @@ function App(){
   const [filterCat,setFilterCat]=useState('all');
   const [authModal,setAuthModal]=useState(null);
   const [selOffer,setSelOffer]=useState(null);
+  const [forgotModal,setForgotModal]=useState(false);
+  const [resetToken,setResetToken]=useState(null);
   const t=TR[lang];
+
+  useEffect(()=>{
+    // Check for reset token in URL
+    const params=new URLSearchParams(window.location.search);
+    const tok=params.get('reset_token');
+    if(tok){setResetToken(tok);window.history.replaceState({},'',window.location.pathname);}
+    // Listen for forgot password event from AuthModal
+    const handler=()=>setForgotModal(true);
+    document.addEventListener('openForgot',handler);
+    return()=>document.removeEventListener('openForgot',handler);
+  },[]);
+
   return(
     <div style={{direction:lang==='ar'?'rtl':'ltr'}}>
       <Navbar page={page} setPage={setPage} lang={lang} setLang={setLang} openAuth={setAuthModal} t={t}/>
@@ -1309,6 +1430,8 @@ function App(){
       <Footer t={t} setPage={setPage}/>
       {authModal&&<AuthModal mode={authModal} onClose={()=>setAuthModal(null)} t={t}/>}
       {selOffer&&<OfferModal offer={selOffer} onClose={()=>setSelOffer(null)} t={t} lang={lang}/>}
+      {forgotModal&&<ForgotPasswordModal onClose={()=>setForgotModal(false)} t={t} openAuth={setAuthModal}/>}
+      {resetToken&&<ResetPasswordModal token={resetToken} onClose={()=>setResetToken(null)} t={t} openAuth={setAuthModal}/>}
     </div>
   );
 }
