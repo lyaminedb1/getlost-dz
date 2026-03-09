@@ -613,7 +613,7 @@ def serve(path):
     return send_from_directory("static", "index.html")
 
 # ─── STARTUP (gunicorn + direct) ─────────────────────────────────────────────
-if not os.path.exists(DB):
+if USE_POSTGRES or not os.path.exists("getlost.db"):
     print("🔧  Initialising database …")
     init_db()
 
