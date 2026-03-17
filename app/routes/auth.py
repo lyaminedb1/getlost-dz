@@ -50,6 +50,27 @@ def register():
         (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone)
     )
     user = {"id": uid, "name": name, "family_name": family_name, "email": email, "role": "traveler", "phone": phone}
+    # Welcome email
+    try:
+        html = f"""
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+          <div style="text-align:center;margin-bottom:24px;">
+            <span style="font-size:48px;">🌍</span>
+            <h2 style="color:#0B2340;margin:8px 0;">Get Lost DZ</h2>
+          </div>
+          <div style="background:#E6F9F7;border-radius:16px;padding:28px;text-align:center;">
+            <h3 style="color:#0B2340;">Bienvenue {name} ! 🎉</h3>
+            <p style="color:#6B8591;line-height:1.7;">Votre compte voyageur a été créé avec succès.<br>
+            Découvrez nos voyages et réservez votre prochaine aventure !</p>
+            <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#0DB9A8;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
+              Explorer les voyages
+            </a>
+          </div>
+          <p style="text-align:center;color:#999;font-size:12px;margin-top:16px;">Get Lost DZ — La référence du tourisme expérientiel en Algérie</p>
+        </div>"""
+        send_email(email, "🌍 Bienvenue sur Get Lost DZ !", html)
+    except Exception as e:
+        print(f"[email] welcome error: {e}")
     return jsonify({"token": make_token(user, None), "user": {**user, "agencyId": None}}), 201
 
 

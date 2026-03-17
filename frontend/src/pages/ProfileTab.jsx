@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext"
 import { useToast } from "../context/ToastContext"
 import { api } from "../api"
 import { B, INP, TA, TH, TD, Card, Spin, Badge, Stars, SectionTitle } from "../utils/styles.jsx"
+import WILAYAS from '../utils/wilayas.js'
 
 export default function ProfileTab({t}){
 
@@ -88,7 +89,13 @@ export default function ProfileTab({t}){
               <option value="autre">Autre</option>
             </select>
           </div>
-          <div style={{gridColumn:'1/-1'}}><LBL>Ville</LBL><input style={INP} placeholder="Ex: Alger, Oran…" value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}/></div>
+          <div style={{gridColumn:'1/-1'}}>
+            <LBL>Wilaya</LBL>
+            <select style={{...INP,marginBottom:0}} value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}>
+              <option value="">— Sélectionner une wilaya —</option>
+              {WILAYAS.map(w=><option key={w.code} value={w.name}>{w.code} — {w.name}</option>)}
+            </select>
+          </div>
         </div>
         {/* Contact & Access */}
         <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>

@@ -87,6 +87,35 @@ def book():
         "INSERT INTO bookings(offer_id,user_id,phone,message) VALUES(?,?,?,?)",
         (oid, u["id"], phone, d.get("message", ""))
     )
+    # Email to agency
+    try:
+        offer = db_query("SELECT o.*, a.name agency_name, u2.email agency_email FROM offers o JOIN agencies ag ON o.agency_id=ag.id JOIN users u2 ON ag.user_id=u2.id WHERE o.id=?", (oid,), one=True)
+        traveler = db_query("SELECT name, email FROM users WHERE id=?", (u["id"],), one=True)
+        if offer and offer.get("agency_email"):
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:40px;">🌍</span>
+                <h2 style="color:#0B2340;">Get Lost DZ</h2>
+              </div>
+              <div style="background:#E6F9F7;border-radius:16px;padding:24px;">
+                <h3 style="color:#0B2340;">🎫 Nouvelle réservation !</h3>
+                <p>Bonjour <strong>{offer['agency_name']}</strong>,</p>
+                <p>Vous avez reçu une nouvelle réservation pour <strong>{offer['title']}</strong>.</p>
+                <table style="width:100%;border-collapse:collapse;margin-top:16px;">
+                  <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:700;">Voyageur</td><td style="padding:8px;border-bottom:1px solid #ddd;">{traveler['name']}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:700;">Téléphone</td><td style="padding:8px;border-bottom:1px solid #ddd;">{phone}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #ddd;font-weight:700;">Offre</td><td style="padding:8px;border-bottom:1px solid #ddd;">{offer['title']}</td></tr>
+                  <tr><td style="padding:8px;font-weight:700;">Prix</td><td style="padding:8px;">{offer['price']:,} DZD</td></tr>
+                </table>
+                <div style="text-align:center;margin-top:20px;">
+                  <a href="{APP_URL}" style="background:#0DB9A8;color:#fff;padding:12px 28px;border-radius:50px;text-decoration:none;font-weight:700;">Voir le dashboard</a>
+                </div>
+              </div>
+            </div>"""
+            send_email(offer["agency_email"], f"🎫 Nouvelle réservation — {offer['title']}", html)
+    except Exception as e:
+        print(f"[email] booking notify error: {e}")
     return jsonify({"id": bid, "message": "Réservation reçue ! L'agence vous contactera sous 24h."}), 201
 
 
@@ -134,6 +163,94 @@ def update_booking_status(bid):
         return jsonify({"error": "Forbidden"}), 403
 
     db_run("UPDATE bookings SET status=? WHERE id=?", (status, bid))
+
+    if status == "confirmed":
+        try:
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:48px;">✅</span>
+                <h2 style="color:#0B2340;">Get Lost DZ</h2>
+              </div>
+              <div style="background:#D1FAE5;border-radius:16px;padding:28px;text-align:center;">
+                <h3 style="color:#065F46;">Réservation confirmée ! 🎉</h3>
+                <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
+                <p>Votre réservation pour <strong>{booking['offer_title']}</strong> a été <strong>confirmée</strong> par l'agence.</p>
+                <p style="color:#6B8591;">L'agence vous contactera prochainement pour les détails.</p>
+                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#10B981;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
+                  Voir mes réservations
+                </a>
+              </div>
+            </div>"""
+            send_email(booking["traveler_email"], "✅ Réservation confirmée — Get Lost DZ", html)
+        except Exception as e:
+            print(f"[email] confirmed error: {e}")
+
+    if status == "cancelled":
+        try:
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:48px;">❌</span>
+                <h2 style="color:#0B2340;">Get Lost DZ</h2>
+              </div>
+              <div style="background:#FEE2E2;border-radius:16px;padding:28px;text-align:center;">
+                <h3 style="color:#991B1B;">Réservation annulée</h3>
+                <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
+                <p>Votre réservation pour <strong>{booking['offer_title']}</strong> a été annulée.</p>
+                <p style="color:#6B8591;">Explorez nos autres voyages disponibles.</p>
+                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#0DB9A8;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
+                  Voir les voyages
+                </a>
+              </div>
+            </div>"""
+            send_email(booking["traveler_email"], "❌ Réservation annulée — Get Lost DZ", html)
+        except Exception as e:
+            print(f"[email] cancelled error: {e}")
+
+    if status == "confirmed":
+        try:
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:48px;">✅</span>
+                <h2 style="color:#0B2340;">Get Lost DZ</h2>
+              </div>
+              <div style="background:#D1FAE5;border-radius:16px;padding:28px;text-align:center;">
+                <h3 style="color:#065F46;">Réservation confirmée ! 🎉</h3>
+                <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
+                <p>Votre réservation pour <strong>{booking['offer_title']}</strong> a été <strong>confirmée</strong> par l'agence.</p>
+                <p style="color:#6B8591;">L'agence vous contactera prochainement pour les détails.</p>
+                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#10B981;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
+                  Voir mes réservations
+                </a>
+              </div>
+            </div>"""
+            send_email(booking["traveler_email"], "✅ Réservation confirmée — Get Lost DZ", html)
+        except Exception as e:
+            print(f"[email] confirmed error: {e}")
+
+    if status == "cancelled":
+        try:
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:48px;">❌</span>
+                <h2 style="color:#0B2340;">Get Lost DZ</h2>
+              </div>
+              <div style="background:#FEE2E2;border-radius:16px;padding:28px;text-align:center;">
+                <h3 style="color:#991B1B;">Réservation annulée</h3>
+                <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
+                <p>Votre réservation pour <strong>{booking['offer_title']}</strong> a été annulée.</p>
+                <p style="color:#6B8591;">Explorez nos autres voyages disponibles.</p>
+                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#0DB9A8;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
+                  Voir les voyages
+                </a>
+              </div>
+            </div>"""
+            send_email(booking["traveler_email"], "❌ Réservation annulée — Get Lost DZ", html)
+        except Exception as e:
+            print(f"[email] cancelled error: {e}")
 
     if status == "completed":
         review_url = f"{APP_URL}/?review_booking={bid}"

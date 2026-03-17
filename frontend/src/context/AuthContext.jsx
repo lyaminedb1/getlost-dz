@@ -22,15 +22,17 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const data = await api('/auth/login', { method: 'POST', body: { email, password } })
     localStorage.setItem('glz_token', data.token)
-    setUser(data.user)
-    return data.user
+    const fullUser = await api('/auth/me')
+    setUser(fullUser)
+    return fullUser
   }
 
   const register = async (form) => {
     const data = await api('/auth/register', { method: 'POST', body: form })
     localStorage.setItem('glz_token', data.token)
-    setUser(data.user)
-    return data.user
+    const fullUser = await api('/auth/me')
+    setUser(fullUser)
+    return fullUser
   }
 
   const logout = () => {

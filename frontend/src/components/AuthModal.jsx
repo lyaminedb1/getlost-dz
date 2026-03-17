@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { B, INP } from '../utils/styles.jsx'
+import { validateEmail, validatePassword, validatePhone, PasswordStrengthBar } from '../utils/validation.jsx'
+import WILAYAS from '../utils/wilayas.js'
 
 export default function AuthModal({mode,onClose,t}){
   const {login,register}=useAuth()
@@ -15,11 +17,13 @@ export default function AuthModal({mode,onClose,t}){
 
   const submit=async()=>{
     if(!f.email||!f.password){show('Email et mot de passe requis','err');return;}
+    if(!validateEmail(f.email)){show('Format email invalide','err');return;}
     if(!isLogin){
       if(!f.name||!f.familyName){show('Prénom et nom de famille requis','err');return;}
       if(!f.phone){show('Numéro de téléphone requis','err');return;}
+      if(!validatePhone(f.phone)){show('Numéro invalide (min. 8 chiffres)','err');return;}
       if(f.password!==f.confirmPassword){show('Les mots de passe ne correspondent pas','err');return;}
-      if(f.password.length<6){show('Mot de passe: minimum 6 caractères','err');return;}
+      if(!validatePassword(f.password).valid){show('Mot de passe trop faible (8+ caractères, 1 majuscule, 1 chiffre)','err');return;}
     }
     setLoading(true)
     try{
@@ -69,8 +73,11 @@ export default function AuthModal({mode,onClose,t}){
               </div>
             </div>
             <div style={{marginBottom:4}}>
-              <LBL>Ville</LBL>
-              <input style={INP} placeholder="Ex: Alger, Oran, Constantine…" value={f.city} onChange={e=>setF(p=>({...p,city:e.target.value}))}/>
+              <LBL>Wilaya</LBL>
+              <select style={{...INP,marginBottom:0}} value={f.city} onChange={e=>setF(p=>({...p,city:e.target.value}))}>
+                <option value="">— Sélectionner une wilaya —</option>
+                {WILAYAS.map(w=><option key={w.code} value={w.name}>{w.code} — {w.name}</option>)}
+              </select>
             </div>
             <div style={{background:'var(--teal3)',borderRadius:12,padding:'12px 16px',marginBottom:16,marginTop:8,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
             <div><LBL>Email<span style={{color:"var(--teal2)"}}>*</span></LBL><input style={INP} type="email" placeholder="votre@email.com" value={f.email} onChange={e=>setF(p=>({...p,email:e.target.value}))}/></div>
@@ -81,7 +88,8 @@ export default function AuthModal({mode,onClose,t}){
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div>
                 <LBL>Mot de passe<span style={{color:'var(--teal2)'}}>*</span></LBL>
-                <input style={INP} type="password" placeholder="Min. 6 caractères" value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))}/>
+                <input style={INP} type="password" placeholder="Min. 8 caractères" value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))}/>
+              <PasswordStrengthBar password={f.password}/>
               </div>
               <div>
                 <LBL>Confirmer le mot de passe<span style={{color:'var(--teal2)'}}>*</span></LBL>
