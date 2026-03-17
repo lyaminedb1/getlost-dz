@@ -85,7 +85,7 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS messages (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
                 sender_id INTEGER NOT NULL REFERENCES users(id),
                 content TEXT NOT NULL,
@@ -343,12 +343,12 @@ def run_migrations():
                 db.execute(f"ALTER TABLE reviews ADD COLUMN {col} TEXT DEFAULT {dflt}")
         db.executescript("""
             CREATE TABLE IF NOT EXISTS password_resets (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
+                id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,
                 token TEXT NOT NULL UNIQUE, expires_at DATETIME NOT NULL,
                 used INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id));
             CREATE TABLE IF NOT EXISTS events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL,
+                id SERIAL PRIMARY KEY, type TEXT NOT NULL,
                 offer_id INTEGER, user_id INTEGER, session_id TEXT,
                 device TEXT DEFAULT '', browser TEXT DEFAULT '', country TEXT DEFAULT '',
                 referrer TEXT DEFAULT '', lang TEXT DEFAULT 'fr',
