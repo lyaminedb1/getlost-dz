@@ -142,6 +142,7 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
                         }} style={{padding:'6px 10px',borderRadius:10,border:'1.5px solid #E2EBF0',fontSize:12,fontWeight:600,cursor:'pointer',background:'#F8FAFC'}}>
                           {BOOKING_STATUSES.map(s=><option key={s.v} value={s.v}>{s.label}</option>)}
                         </select>
+                        <button onClick={()=>setChatBooking(b)} style={{...B.sm,marginTop:4,width:'100%',background:'linear-gradient(135deg,#0B2340,#0DB9A8)',color:'#fff',border:'none',fontWeight:700}}>💬 Chat</button>
                       </td>
                     </tr>
                   ))}
