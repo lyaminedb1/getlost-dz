@@ -141,7 +141,13 @@ def me():
         "SELECT id,name,family_name,birth_date,gender,city,email,role,phone,avatar,created_at FROM users WHERE id=?",
         (g.user["id"],), one=True
     )
-    return jsonify(u)
+    result = dict(u)
+    if result.get("role") == "agency":
+        ag = db_query("SELECT id FROM agencies WHERE user_id=?", (result["id"],), one=True)
+        result["agencyId"] = ag["id"] if ag else None
+    else:
+        result["agencyId"] = None
+    return jsonify(result)
 
 
 @bp.route("/auth/profile", methods=["PUT"])
