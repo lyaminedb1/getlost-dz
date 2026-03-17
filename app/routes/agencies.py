@@ -7,6 +7,7 @@ from app.db import db_query, db_run
 from app.auth import token_required, admin_required
 from app.utils import parse_offer, send_email
 from app.config import APP_URL
+from app.routes.notification_helpers import notify_agency_new_booking, notify_traveler_status_change
 
 bp = Blueprint("agencies", __name__, url_prefix="/api")
 
@@ -116,6 +117,19 @@ def book():
             send_email(offer["agency_email"], f"🎫 Nouvelle réservation — {offer['title']}", html)
     except Exception as e:
         print(f"[email] booking notify error: {e}")
+
+    # ── In-app notification to agency ──
+    try:
+        ag_user = db_query(
+            "SELECT ag.user_id FROM agencies ag JOIN offers o ON o.agency_id=ag.id WHERE o.id=?",
+            (oid,), one=True
+        )
+        offer_info = db_query("SELECT title FROM offers WHERE id=?", (oid,), one=True)
+        if ag_user and offer_info:
+            notify_agency_new_booking(ag_user["user_id"], u["name"], offer_info["title"], bid)
+    except Exception as e:
+        print(f"[notif] booking notify error: {e}")
+
     return jsonify({"id": bid, "message": "Réservation reçue ! L'agence vous contactera sous 24h."}), 201
 
 
@@ -273,6 +287,12 @@ def update_booking_status(bid):
           <p style="text-align:center;color:#999;font-size:12px;margin-top:24px;">Get Lost DZ</p>
         </div>"""
         send_email(booking["traveler_email"], "🎉 Votre voyage est terminé — Laissez un avis !", html)
+
+    # ── In-app notification to traveler ──
+    try:
+        notify_traveler_status_change(booking["user_id"], booking["offer_title"], status, bid)
+    except Exception as e:
+        print(f"[notif] status change error: {e}")
 
     return jsonify({"message": f"Booking {status}"})
 

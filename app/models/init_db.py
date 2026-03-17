@@ -108,6 +108,18 @@ def init_db():
                 metadata TEXT DEFAULT '{}',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                type VARCHAR(50) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                body TEXT,
+                link VARCHAR(255),
+                ref_id INTEGER,
+                read_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_notif_user_unread ON notifications(user_id, read_at);
         """)
         db.commit()
         cur.execute("SELECT COUNT(*) as c FROM users")
@@ -195,6 +207,16 @@ def init_db():
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             );
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER NOT NULL,
+                sender_id INTEGER NOT NULL,
+                content TEXT NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                read_at DATETIME,
+                FOREIGN KEY(booking_id) REFERENCES bookings(id) ON DELETE CASCADE,
+                FOREIGN KEY(sender_id) REFERENCES users(id)
+            );
             CREATE TABLE IF NOT EXISTS events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 type TEXT NOT NULL,
@@ -210,6 +232,18 @@ def init_db():
                 filter_cat TEXT DEFAULT '',
                 metadata TEXT DEFAULT '{}',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT,
+                link TEXT,
+                ref_id INTEGER,
+                read_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
             );
         """)
         already_seeded = db.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0
@@ -321,6 +355,18 @@ def run_migrations():
                 filter_cat TEXT DEFAULT '', metadata TEXT DEFAULT '{}',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );""",
+            """CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                type VARCHAR(50) NOT NULL,
+                title VARCHAR(255) NOT NULL,
+                body TEXT,
+                link VARCHAR(255),
+                ref_id INTEGER,
+                read_at TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );""",
+            "CREATE INDEX IF NOT EXISTS idx_notif_user_unread ON notifications(user_id, read_at);",
         ]
         for m in migrations:
             try: cur.execute(m)
@@ -354,6 +400,17 @@ def run_migrations():
                 referrer TEXT DEFAULT '', lang TEXT DEFAULT 'fr',
                 search_query TEXT DEFAULT '', filter_cat TEXT DEFAULT '',
                 metadata TEXT DEFAULT '{}', created_at DATETIME DEFAULT CURRENT_TIMESTAMP);
+            CREATE TABLE IF NOT EXISTS notifications (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                type TEXT NOT NULL,
+                title TEXT NOT NULL,
+                body TEXT,
+                link TEXT,
+                ref_id INTEGER,
+                read_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);
         """)
         db.commit()
         db.close()

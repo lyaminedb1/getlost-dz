@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useToast } from '../context/ToastContext'
 import { B } from '../utils/styles.jsx'
+import NotificationBell from './NotificationBell'
 
 export default function Navbar({page,setPage,lang,setLang,openAuth,t}){
   const {user,logout}=useAuth()
@@ -37,6 +38,11 @@ export default function Navbar({page,setPage,lang,setLang,openAuth,t}){
           </div>
           {user?(
             <>
+              <NotificationBell onNavigate={(link)=>{
+                const params=new URLSearchParams(link.split('?')[1]||'')
+                const pg=link.split('?')[0].replace('/','') || 'home'
+                navTo(pg)
+              }} />
               <div style={{display:'flex',alignItems:'center',gap:8,background:'var(--teal3)',borderRadius:50,padding:'5px 14px 5px 5px',cursor:'pointer'}} onClick={()=>navTo('dash')}>
                 <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff',overflow:'hidden',flexShrink:0}}>
                   {user.avatar?<img src={user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:user.name[0].toUpperCase()}
@@ -72,10 +78,16 @@ export default function Navbar({page,setPage,lang,setLang,openAuth,t}){
           ))}
           <div style={{height:1,background:'#E8F0F2',margin:'6px 0'}}/>
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8}}>
-            <div style={{display:'flex',gap:3,background:'#F0F4F5',borderRadius:8,padding:3}}>
-              {['fr','en','ar'].map(l=>(
-                <button key={l} style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
-              ))}
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <div style={{display:'flex',gap:3,background:'#F0F4F5',borderRadius:8,padding:3}}>
+                {['fr','en','ar'].map(l=>(
+                  <button key={l} style={{padding:'5px 10px',borderRadius:6,fontSize:11,fontWeight:700,border:'none',cursor:'pointer',background:lang===l?'var(--teal)':'transparent',color:lang===l?'#fff':'var(--muted)',transition:'all .18s'}} onClick={()=>setLang(l)}>{l.toUpperCase()}</button>
+                ))}
+              </div>
+              {user && <NotificationBell onNavigate={(link)=>{
+                const pg=link.split('?')[0].replace('/','') || 'home'
+                navTo(pg)
+              }} />}
             </div>
             {user?(
               <button style={{...B.ghost,padding:'8px 14px',fontSize:13}} onClick={()=>{logout();setPage('home');setMenuOpen(false);show('À bientôt !')}}>{t.navLogout}</button>

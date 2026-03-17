@@ -3,6 +3,7 @@ from app.db import db_query, db_run
 from app.auth import token_required
 from app.utils import send_email
 from app.config import APP_URL
+from app.routes.notification_helpers import notify_new_message
 
 messages_bp = Blueprint('messages', __name__)
 
@@ -93,6 +94,20 @@ def send_message(bid):
         send_email(recipient_email, f"Nouveau message — {booking['offer_title']}", html)
     except Exception as e:
         print(f"[email] message notify error: {e}")
+
+    # ── In-app notification ──
+    try:
+        if u['role'] == 'traveler':
+            # Notify agency owner
+            ag_user = db_query("SELECT user_id FROM agencies WHERE id=?", (booking['agency_id'],), one=True)
+            if ag_user:
+                notify_new_message(ag_user['user_id'], u['name'], bid)
+        else:
+            # Notify traveler
+            notify_new_message(booking['user_id'], u['name'], bid)
+    except Exception as e:
+        print(f"[notif] message notify error: {e}")
+
     return jsonify({'ok': True}), 201
 
 @messages_bp.route('/bookings/<int:bid>/messages/unread', methods=['GET'])

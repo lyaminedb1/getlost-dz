@@ -1,0 +1,58 @@
+"""
+GET LOST DZ — Notification helpers
+Called from booking / message routes to create notifications.
+Uses db_run (? placeholders, auto-converted for PG).
+"""
+from app.db import db_run
+
+
+def notify(user_id, notif_type, title, body=None, link=None, ref_id=None):
+    """Insert a notification row. Returns the new id."""
+    return db_run(
+        "INSERT INTO notifications(user_id, type, title, body, link, ref_id) VALUES(?,?,?,?,?,?)",
+        (user_id, notif_type, title, body, link, ref_id)
+    )
+
+
+def notify_agency_new_booking(agency_user_id, traveler_name, offer_title, booking_id):
+    """Notify agency owner when a traveler books one of their offers."""
+    notify(
+        user_id=agency_user_id,
+        notif_type='new_booking',
+        title='Nouvelle réservation',
+        body=f'{traveler_name} a réservé "{offer_title}"',
+        link='/dash?tab=bookings',
+        ref_id=booking_id
+    )
+
+
+def notify_traveler_status_change(traveler_id, offer_title, new_status, booking_id):
+    """Notify traveler when booking status changes."""
+    status_labels = {
+        'confirmed': 'confirmée',
+        'cancelled': 'annulée',
+        'completed': 'terminée',
+        'contacted': 'contactée',
+        'pre_reserved': 'pré-réservée',
+    }
+    label = status_labels.get(new_status, new_status)
+    notify(
+        user_id=traveler_id,
+        notif_type='booking_status',
+        title=f'Réservation {label}',
+        body=f'Votre réservation pour "{offer_title}" a été {label}',
+        link='/dash?tab=bookings',
+        ref_id=booking_id
+    )
+
+
+def notify_new_message(recipient_id, sender_name, booking_id):
+    """Notify user of a new message in a booking conversation."""
+    notify(
+        user_id=recipient_id,
+        notif_type='new_message',
+        title='Nouveau message',
+        body=f'{sender_name} vous a envoyé un message',
+        link=f'/dash?tab=bookings&chat={booking_id}',
+        ref_id=booking_id
+    )
