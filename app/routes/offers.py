@@ -7,6 +7,7 @@ from flask import Blueprint, request, jsonify, g
 from app.db import db_query, db_run
 from app.auth import token_required, admin_required
 from app.utils import parse_offer, validate
+from app.routes.notification_helpers import notify_admins_new_offer, notify_admins_new_review
 
 bp = Blueprint("offers", __name__, url_prefix="/api")
 
@@ -85,6 +86,12 @@ def create_offer():
         json.dumps(d.get("itinerary", [])), json.dumps(d.get("includes", [])),
         json.dumps(d.get("dates", [])), "pending"
     ))
+    # Notify admins
+    try:
+        ag = db_query("SELECT name FROM agencies WHERE id=?", (ag_id,), one=True)
+        notify_admins_new_offer(ag["name"] if ag else "Agence", d["title"], oid)
+    except Exception as e:
+        print(f"[notif] new offer error: {e}")
     return jsonify({"id": oid, "message": "Offer submitted for validation"}), 201
 
 
@@ -174,6 +181,12 @@ def create_review(oid):
         "INSERT INTO reviews(offer_id,user_id,booking_id,rating,title,comment,photo,status) VALUES(?,?,?,?,?,?,?,?)",
         (oid, u["id"], bid, rating, title, comment, photo, "approved")
     )
+    # Notify admins
+    try:
+        offer = db_query("SELECT title FROM offers WHERE id=?", (oid,), one=True)
+        notify_admins_new_review(u["name"], offer["title"] if offer else "Offre", rid)
+    except Exception as e:
+        print(f"[notif] new review error: {e}")
     return jsonify({"id": rid, "message": "Avis publié !"}), 201
 
 

@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import useNotifications from '../hooks/useNotifications'
 
-const ICONS = { new_booking: '📋', booking_status: '✅', new_message: '💬' }
-const COLORS = { new_booking: '#0DB9A8', booking_status: '#F59E0B', new_message: '#3B82F6' }
+const ICONS = { new_booking: '📋', booking_status: '✅', new_message: '💬', new_offer: '📦', new_user: '👤', new_review: '⭐' }
+const COLORS = { new_booking: '#0DB9A8', booking_status: '#F59E0B', new_message: '#3B82F6', new_offer: '#8B5CF6', new_user: '#059669', new_review: '#F59E0B' }
 
 function timeAgo(d) {
   const s = (Date.now() - new Date(d).getTime()) / 1000

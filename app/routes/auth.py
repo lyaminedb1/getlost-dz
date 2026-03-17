@@ -10,6 +10,7 @@ from app.db import db_query, db_run
 from app.auth import make_token, token_required, admin_required
 from app.utils import send_email, validate
 from app.config import APP_URL
+from app.routes.notification_helpers import notify_admins_new_user
 
 bp = Blueprint("auth", __name__, url_prefix="/api")
 
@@ -71,6 +72,11 @@ def register():
         send_email(email, "🌍 Bienvenue sur Get Lost DZ !", html)
     except Exception as e:
         print(f"[email] welcome error: {e}")
+    # Notify admins
+    try:
+        notify_admins_new_user(name, email)
+    except Exception as e:
+        print(f"[notif] new user error: {e}")
     return jsonify({"token": make_token(user, None), "user": {**user, "agencyId": None}}), 201
 
 

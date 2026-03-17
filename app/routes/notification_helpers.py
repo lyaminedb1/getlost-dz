@@ -1,9 +1,9 @@
 """
 GET LOST DZ — Notification helpers
-Called from booking / message routes to create notifications.
+Called from booking / message / offer / auth routes to create notifications.
 Uses db_run (? placeholders, auto-converted for PG).
 """
-from app.db import db_run
+from app.db import db_run, db_query
 
 
 def notify(user_id, notif_type, title, body=None, link=None, ref_id=None):
@@ -12,6 +12,12 @@ def notify(user_id, notif_type, title, body=None, link=None, ref_id=None):
         "INSERT INTO notifications(user_id, type, title, body, link, ref_id) VALUES(?,?,?,?,?,?)",
         (user_id, notif_type, title, body, link, ref_id)
     )
+
+
+def _admin_ids():
+    """Return list of admin user IDs."""
+    rows = db_query("SELECT id FROM users WHERE role='admin'")
+    return [r['id'] for r in rows]
 
 
 def notify_agency_new_booking(agency_user_id, traveler_name, offer_title, booking_id):
@@ -56,3 +62,56 @@ def notify_new_message(recipient_id, sender_name, booking_id):
         link=f'/dash?tab=bookings&chat={booking_id}',
         ref_id=booking_id
     )
+
+
+# ── Admin notifications ──────────────────────────────────────────────────────
+
+def notify_admins_new_offer(agency_name, offer_title, offer_id):
+    """Notify all admins when an agency submits a new offer."""
+    for aid in _admin_ids():
+        notify(
+            user_id=aid,
+            notif_type='new_offer',
+            title='Nouvelle offre soumise',
+            body=f'{agency_name} a soumis "{offer_title}"',
+            link='/admin?tab=offers',
+            ref_id=offer_id
+        )
+
+
+def notify_admins_new_user(user_name, user_email):
+    """Notify all admins when a new user registers."""
+    for aid in _admin_ids():
+        notify(
+            user_id=aid,
+            notif_type='new_user',
+            title='Nouvel utilisateur',
+            body=f'{user_name} ({user_email}) s\'est inscrit',
+            link='/admin?tab=users',
+        )
+
+
+def notify_admins_new_review(user_name, offer_title, review_id):
+    """Notify all admins when a new review is posted."""
+    for aid in _admin_ids():
+        notify(
+            user_id=aid,
+            notif_type='new_review',
+            title='Nouvel avis',
+            body=f'{user_name} a laissé un avis sur "{offer_title}"',
+            link='/admin?tab=reviews',
+            ref_id=review_id
+        )
+
+
+def notify_admins_new_booking(traveler_name, offer_title, booking_id):
+    """Notify all admins when a new booking is made."""
+    for aid in _admin_ids():
+        notify(
+            user_id=aid,
+            notif_type='new_booking',
+            title='Nouvelle réservation',
+            body=f'{traveler_name} a réservé "{offer_title}"',
+            link='/admin?tab=bookings',
+            ref_id=booking_id
+        )

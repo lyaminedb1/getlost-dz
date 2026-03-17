@@ -43,7 +43,7 @@ export default function App(){
       {page==="home"&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
       {page==="trips"&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
       {page==="about"&&<AboutPage t={t}/>}
-      {page==="dash"&&<DashPage t={t} openAuth={setAuthModal} setReviewBookingId={setReviewBookingId}/>}
+      {page==="dash"&&<DashPage t={t} openAuth={setAuthModal} setReviewBookingId={setReviewBookingId} setPage={setPage}/>}
       {page==="analytics"&&<AgencyAnalytics t={t} openAuth={setAuthModal}/>}
       {page==="admin"&&<AdminPage t={t} openAuth={setAuthModal}/>}
       <Footer t={t} setPage={setPage}/>

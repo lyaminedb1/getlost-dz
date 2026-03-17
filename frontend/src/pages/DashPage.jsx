@@ -8,16 +8,22 @@ import ReviewCard from "../components/ReviewCard"
 import ReviewModal from "../components/ReviewModal"
 import ChatModal from "../components/ChatModal"
 
-export default function DashPage({t,openAuth,setReviewBookingId}){
+export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
 
   const {user}=useAuth();
   const {show}=useToast();
-  const [tab,setTab]=useState('stats');
+  const [tab,setTab]=useState(()=>{
+    if(!user) return 'stats';
+    if(user.role==='admin') return 'overview';
+    if(user.role==='traveler') return 'bookings';
+    return 'stats';
+  });
   const [offers,setOffers]=useState([]);
   const [bookings,setBookings]=useState([]);
   const [chatBooking,setChatBooking]=useState(null);
   const [agencyReviews,setAgencyReviews]=useState([]);
   const [loading,setLoading]=useState(false);
+  const [adminData,setAdminData]=useState(null);
   const [editTarget,setEditTarget]=useState(null);
   const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',imageUrl:'',itinerary:'',includes:'',dates:''};
   const [form,setForm]=useState(EF);
@@ -34,6 +40,17 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
         setAgencyReviews(revArrays.flat());
       }
       else if(user.role==='traveler'){setBookings(await api('/bookings/my'));}
+      else if(user.role==='admin'){
+        try{
+          const [stats,recentBookings,recentUsers,recentReviews]=await Promise.all([
+            api('/admin/stats'),
+            api('/admin/bookings'),
+            api('/admin/users'),
+            api('/admin/reviews')
+          ]);
+          setAdminData({stats,recentBookings:recentBookings.slice(0,5),recentUsers:recentUsers.slice(-5).reverse(),recentReviews:recentReviews.slice(0,5)});
+        }catch(e){console.log('admin dash load error',e);}
+      }
     }catch(e){show(e.message,'err');}
     setLoading(false);
   },[user]);
@@ -102,6 +119,13 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
           {user.role==='traveler'&&(
             <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
               {[['bookings',t.myBook],['profile',t.profileTab]].map(([tk,lbl])=>(
+                <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
+              ))}
+            </div>
+          )}
+          {user.role==='admin'&&(
+            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
+              {[['overview','Vue d\'ensemble'],['activity','Activité récente'],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
               ))}
             </div>
@@ -247,6 +271,99 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
             ))}
           </div>
         )}
+        {user.role==='admin'&&(loading?<Spin/>:<>
+          {tab==='profile'&&<ProfileTab t={t}/>}
+          {tab==='overview'&&adminData&&adminData.stats&&(
+            <div>
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:14,marginBottom:28}}>
+                {[
+                  ['📦','Offres',adminData.stats.total_offers,'var(--teal2)'],
+                  ['⏳','En attente',adminData.stats.pending_offers,'#D97706'],
+                  ['✅','Validées',adminData.stats.approved_offers,'#059669'],
+                  ['🏢','Agences',adminData.stats.total_agencies,'var(--teal2)'],
+                  ['👤','Voyageurs',adminData.stats.total_travelers,'var(--teal2)'],
+                  ['💬','Avis',adminData.stats.total_reviews,'var(--teal2)'],
+                  ['🔔','Avis pend.',adminData.stats.pending_reviews,'#D97706'],
+                  ['🎫','Réservations',adminData.stats.total_bookings,'var(--teal2)']
+                ].map(([ico,lbl,val,c])=>SC(ico,lbl,val,c))}
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+                <Card style={{padding:22}}>
+                  <div style={{fontFamily:'Poppins',fontWeight:700,fontSize:15,color:'var(--navy)',marginBottom:14}}>🎫 Dernières réservations</div>
+                  {(adminData.recentBookings||[]).length===0
+                    ?<div style={{color:'var(--muted)',fontSize:13,padding:'16px 0',textAlign:'center'}}>Aucune réservation</div>
+                    :(adminData.recentBookings||[]).map(b=>(
+                    <div key={b.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #F0F4F5'}}>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700,color:'var(--navy)'}}>{b.traveler_name}</div>
+                        <div style={{fontSize:12,color:'var(--muted)'}}>{b.offer_title} · {b.agency_name}</div>
+                      </div>
+                      <div style={{textAlign:'right'}}>
+                        <Badge status={b.status}/>
+                        <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{fmtDate(b.created_at)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </Card>
+                <Card style={{padding:22}}>
+                  <div style={{fontFamily:'Poppins',fontWeight:700,fontSize:15,color:'var(--navy)',marginBottom:14}}>👤 Derniers inscrits</div>
+                  {(adminData.recentUsers||[]).length===0
+                    ?<div style={{color:'var(--muted)',fontSize:13,padding:'16px 0',textAlign:'center'}}>Aucun utilisateur</div>
+                    :(adminData.recentUsers||[]).map(u=>(
+                    <div key={u.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #F0F4F5'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:10}}>
+                        <div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff'}}>{(u.name||'?')[0].toUpperCase()}</div>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:'var(--navy)'}}>{u.name}</div>
+                          <div style={{fontSize:11,color:'var(--muted)'}}>{u.email}</div>
+                        </div>
+                      </div>
+                      <span style={{padding:'3px 10px',borderRadius:20,fontSize:10,fontWeight:700,background:u.role==='agency'?'#EDE9FE':'#F0F4F5',color:u.role==='agency'?'#5B21B6':'var(--muted)'}}>{u.role}</span>
+                    </div>
+                  ))}
+                </Card>
+              </div>
+              <div style={{marginTop:20,textAlign:'center'}}>
+                <button style={B.pri} onClick={()=>{if(setPage)setPage('admin');else window.scrollTo(0,0);}}>
+                  🛡️ Accéder au panneau Admin complet
+                </button>
+              </div>
+            </div>
+          )}
+          {tab==='activity'&&adminData&&(
+            <div>
+              <Card style={{padding:22}}>
+                <div style={{fontFamily:'Poppins',fontWeight:700,fontSize:15,color:'var(--navy)',marginBottom:14}}>⭐ Derniers avis</div>
+                {(adminData.recentReviews||[]).length===0
+                  ?<div style={{color:'var(--muted)',fontSize:13,padding:'16px 0',textAlign:'center'}}>Aucun avis</div>
+                  :(adminData.recentReviews||[]).map(r=>(
+                  <div key={r.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #F0F4F5'}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--navy)'}}>{r.user_name} — <Stars v={r.rating} size={12}/></div>
+                      <div style={{fontSize:12,color:'var(--muted)'}}>{r.offer_title} · "{r.title}"</div>
+                    </div>
+                    <Badge status={r.status}/>
+                  </div>
+                ))}
+              </Card>
+              <Card style={{padding:22,marginTop:16}}>
+                <div style={{fontFamily:'Poppins',fontWeight:700,fontSize:15,color:'var(--navy)',marginBottom:14}}>🎫 Dernières réservations</div>
+                {(adminData.recentBookings||[]).map(b=>(
+                  <div key={b.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 0',borderBottom:'1px solid #F0F4F5'}}>
+                    <div>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--navy)'}}>{b.traveler_name} → {b.offer_title}</div>
+                      <div style={{fontSize:12,color:'var(--muted)'}}>{b.agency_name} · {(b.price||0).toLocaleString()} DZD</div>
+                    </div>
+                    <div style={{textAlign:'right'}}>
+                      <Badge status={b.status}/>
+                      <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{fmtDate(b.created_at)}</div>
+                    </div>
+                  </div>
+                ))}
+              </Card>
+            </div>
+          )}
+        </>)}
       </div>
     </div>
     {chatBooking&&<ChatModal booking={chatBooking} onClose={()=>setChatBooking(null)}/>}

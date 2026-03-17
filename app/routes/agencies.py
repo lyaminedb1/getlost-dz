@@ -7,7 +7,7 @@ from app.db import db_query, db_run
 from app.auth import token_required, admin_required
 from app.utils import parse_offer, send_email
 from app.config import APP_URL
-from app.routes.notification_helpers import notify_agency_new_booking, notify_traveler_status_change
+from app.routes.notification_helpers import notify_agency_new_booking, notify_traveler_status_change, notify_admins_new_booking
 
 bp = Blueprint("agencies", __name__, url_prefix="/api")
 
@@ -129,6 +129,13 @@ def book():
             notify_agency_new_booking(ag_user["user_id"], u["name"], offer_info["title"], bid)
     except Exception as e:
         print(f"[notif] booking notify error: {e}")
+
+    # Notify admins
+    try:
+        offer_info2 = db_query("SELECT title FROM offers WHERE id=?", (oid,), one=True)
+        notify_admins_new_booking(u["name"], offer_info2["title"] if offer_info2 else "Offre", bid)
+    except Exception as e:
+        print(f"[notif] admin booking error: {e}")
 
     return jsonify({"id": bid, "message": "Réservation reçue ! L'agence vous contactera sous 24h."}), 201
 
