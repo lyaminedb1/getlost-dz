@@ -6,6 +6,7 @@ import { B, INP, TA, TH, TD, Card, Spin, Badge, Stars, SectionTitle, BOOKING_STA
 import ProfileTab from "./ProfileTab"
 import ReviewCard from "../components/ReviewCard"
 import ReviewModal from "../components/ReviewModal"
+import ChatModal from "../components/ChatModal"
 
 export default function DashPage({t,openAuth,setReviewBookingId}){
 
@@ -14,6 +15,7 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
   const [tab,setTab]=useState('stats');
   const [offers,setOffers]=useState([]);
   const [bookings,setBookings]=useState([]);
+  const [chatBooking,setChatBooking]=useState(null);
   const [agencyReviews,setAgencyReviews]=useState([]);
   const [loading,setLoading]=useState(false);
   const [editTarget,setEditTarget]=useState(null);
@@ -77,6 +79,7 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
   const fmtDate=(d)=>d?new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):'';
 
   return(
+    <>
     <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
@@ -237,6 +240,7 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
                     <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
                   </div>
                   {b.status==='completed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}
+                  <button onClick={()=>setChatBooking(b)} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#0B2340,#0DB9A8)',color:'#fff',border:'none',fontWeight:700}}>💬 Messagerie</button>
                 </div>
               </Card>
             ))}
@@ -244,5 +248,7 @@ export default function DashPage({t,openAuth,setReviewBookingId}){
         )}
       </div>
     </div>
+    {chatBooking&&<ChatModal booking={chatBooking} onClose={()=>setChatBooking(null)}/>}
+    </>
   );
 }

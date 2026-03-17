@@ -84,6 +84,14 @@ def init_db():
                 used BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+                sender_id INTEGER NOT NULL REFERENCES users(id),
+                content TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                read_at TIMESTAMP
+            );
             CREATE TABLE IF NOT EXISTS events (
                 id SERIAL PRIMARY KEY,
                 type TEXT NOT NULL,

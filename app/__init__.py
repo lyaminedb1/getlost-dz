@@ -96,5 +96,7 @@ def create_app():
             return send_from_directory("../static", path)
         return send_from_directory("../static", "index.html")
 
+    from app.routes.messages import messages_bp
+    app.register_blueprint(messages_bp, url_prefix='/api')
     logger.info("🚀  Get Lost DZ app factory complete")
     return app

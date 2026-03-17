@@ -18,12 +18,14 @@ export default function AuthModal({mode,onClose,t}){
   const submit=async()=>{
     if(!f.email||!f.password){show('Email et mot de passe requis','err');return;}
     if(!validateEmail(f.email)){show('Format email invalide','err');return;}
-    if(!isLogin){
+    if(isLogin){
+      // Login — pas de validation stricte du mot de passe
+    } else if(!isLogin){
       if(!f.name||!f.familyName){show('Prénom et nom de famille requis','err');return;}
       if(!f.phone){show('Numéro de téléphone requis','err');return;}
       if(!validatePhone(f.phone)){show('Numéro invalide (min. 8 chiffres)','err');return;}
       if(f.password!==f.confirmPassword){show('Les mots de passe ne correspondent pas','err');return;}
-      if(!validatePassword(f.password).valid){show('Mot de passe trop faible (8+ caractères, 1 majuscule, 1 chiffre)','err');return;}
+        if(!validatePassword(f.password).valid){show('Mot de passe trop faible (8+ caractères, 1 majuscule, 1 chiffre)','err');return;}
     }
     setLoading(true)
     try{
