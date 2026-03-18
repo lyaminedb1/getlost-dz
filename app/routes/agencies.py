@@ -80,8 +80,25 @@ def book():
         return jsonify({"error": "offerId required"}), 400
     if not phone:
         return jsonify({"error": "Numéro de téléphone requis"}), 400
-    if len(''.join(c for c in phone if c.isdigit())) < 8:
+    phone_clean = ''.join(c for c in phone if c.isdigit() or c == '+')
+    if len(''.join(c for c in phone_clean if c.isdigit())) < 8:
         return jsonify({"error": "Numéro invalide (min. 8 chiffres)"}), 400
+
+    import re
+    phone_patterns = {
+        '+213': r'^\+213[567]\d{8}$',
+        '+33':  r'^\+33[1-9]\d{8}$',
+        '+212': r'^\+212[5-7]\d{8}$',
+        '+216': r'^\+216[2-9]\d{7}$',
+        '+44':  r'^\+44[1-9]\d{9,10}$',
+        '+1':   r'^\+1[2-9]\d{9}$',
+    }
+    for prefix, pattern in phone_patterns.items():
+        if phone_clean.startswith(prefix):
+            if not re.match(pattern, phone_clean):
+                return jsonify({"error": f"Format invalide pour {prefix}"}), 400
+            break
+
     if not db_query("SELECT id FROM offers WHERE id=? AND status='approved'", (oid,), one=True):
         return jsonify({"error": "Offer not found"}), 404
 

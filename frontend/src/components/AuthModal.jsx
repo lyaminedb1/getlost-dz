@@ -24,7 +24,7 @@ export default function AuthModal({mode,onClose,t}){
     } else if(!isLogin){
       if(!f.name||!f.familyName){show('Prénom et nom de famille requis','err');return;}
       if(!f.phone){show('Numéro de téléphone requis','err');return;}
-      if(!validatePhone(f.phone)){show('Numéro invalide (min. 8 chiffres)','err');return;}
+      if(!validatePhone(f.phone).valid){show('Numéro de téléphone invalide','err');return;}
       if(f.password!==f.confirmPassword){show('Les mots de passe ne correspondent pas','err');return;}
         if(!validatePassword(f.password).valid){show('Mot de passe trop faible (8+ caractères, 1 majuscule, 1 chiffre)','err');return;}
     }

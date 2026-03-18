@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext'
 import { api } from '../api'
 import { B, Stars } from '../utils/styles.jsx'
 import { track } from '../utils/analytics'
+import { validatePhone } from '../utils/validation.jsx'
 import ReviewCard from './ReviewCard'
 import PhoneInput from './PhoneInput'
 
@@ -22,8 +23,7 @@ export default function OfferModal({offer,onClose,t,lang}){
   const handleBook=async()=>{
     track('booking_started',{offer_id:offer.id})
     if(!user){onClose();show('Connectez-vous pour réserver','warn');return;}
-    const digits=(phone.match(/\d/g)||[]).length
-    if(digits<8){show('Numéro invalide (min. 8 chiffres)','err');return;}
+    if(!validatePhone(phone).valid){show('Numéro de téléphone invalide','err');return;}
     if(travelers<1||travelers>20){show('Nombre de voyageurs: 1 à 20','err');return;}
     setBooking(true)
     try{await api('/bookings',{method:'POST',body:{offerId:offer.id,phone:phone.trim(),travelers:travelers}});track('booking_done',{offer_id:offer.id});show(t.bookMsg);setPhone('+213 ');setTravelers(1);}

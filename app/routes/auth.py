@@ -40,8 +40,38 @@ def register():
         return jsonify({"error": "Mot de passe: minimum 6 caractères"}), 400
     if not phone:
         return jsonify({"error": "Numéro de téléphone requis"}), 400
-    if len(''.join(c for c in phone if c.isdigit())) < 8:
+    # Normalize phone: strip spaces/dashes
+    phone_clean = ''.join(c for c in phone if c.isdigit() or c == '+')
+    if len(''.join(c for c in phone_clean if c.isdigit())) < 8:
         return jsonify({"error": "Numéro invalide (min. 8 chiffres)"}), 400
+
+    import re
+    phone_patterns = {
+        '+213': r'^\+213[567]\d{8}$',
+        '+33':  r'^\+33[1-9]\d{8}$',
+        '+212': r'^\+212[5-7]\d{8}$',
+        '+216': r'^\+216[2-9]\d{7}$',
+        '+44':  r'^\+44[1-9]\d{9,10}$',
+        '+1':   r'^\+1[2-9]\d{9}$',
+        '+90':  r'^\+90[5]\d{9}$',
+        '+966': r'^\+966[5]\d{8}$',
+        '+971': r'^\+971[2-9]\d{7,8}$',
+    }
+    matched = False
+    for prefix, pattern in phone_patterns.items():
+        if phone_clean.startswith(prefix):
+            if not re.match(pattern, phone_clean):
+                return jsonify({"error": f"Format invalide pour {prefix}"}), 400
+            matched = True
+            break
+
+    # Phone uniqueness check (normalized)
+    existing_phone = db_query("SELECT id FROM users WHERE phone=?", (phone,), one=True)
+    if not existing_phone:
+        existing_phone = db_query("SELECT id FROM users WHERE phone=?", (phone_clean,), one=True)
+    if existing_phone:
+        return jsonify({"error": "Ce numéro de téléphone est déjà utilisé"}), 409
+
     if db_query("SELECT id FROM users WHERE email=?", (email,), one=True):
         return jsonify({"error": "Email déjà utilisé"}), 409
 
