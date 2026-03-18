@@ -110,21 +110,21 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
             </div>
           </div>
           {user.role==='agency'&&(
-            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
+            <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
               {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer],['reviews','⭐ Avis'],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
               ))}
             </div>
           )}
           {user.role==='traveler'&&(
-            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
+            <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
               {[['bookings',t.myBook],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
               ))}
             </div>
           )}
           {user.role==='admin'&&(
-            <div style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
+            <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
               {[['overview','Vue d\'ensemble'],['activity','Activité récente'],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
               ))}
@@ -135,7 +135,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
       <div style={{maxWidth:1280,margin:'0 auto',padding:'28px 24px 60px'}}>
         {user.role==='agency'&&<>
           {tab==='stats'&&!loading&&(
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(160px,1fr))',gap:16}}>
+            <div className="stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:14}}>
               {SC('📦',t.totOff,offers.length)}
               {SC('✅',t.approved,offers.filter(o=>o.status==='approved').length)}
               {SC('⏳',t.pending,offers.filter(o=>o.status==='pending').length,'#D97706')}
@@ -275,7 +275,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
           {tab==='profile'&&<ProfileTab t={t}/>}
           {tab==='overview'&&adminData&&adminData.stats&&(
             <div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:14,marginBottom:28}}>
+              <div className="admin-stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:12,marginBottom:28}}>
                 {[
                   ['📦','Offres',adminData.stats.total_offers,'var(--teal2)'],
                   ['⏳','En attente',adminData.stats.pending_offers,'#D97706'],
@@ -287,7 +287,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
                   ['🎫','Réservations',adminData.stats.total_bookings,'var(--teal2)']
                 ].map(([ico,lbl,val,c])=>SC(ico,lbl,val,c))}
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:20}}>
+              <div className="admin-dash-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
                 <Card style={{padding:22}}>
                   <div style={{fontFamily:'Poppins',fontWeight:700,fontSize:15,color:'var(--navy)',marginBottom:14}}>🎫 Dernières réservations</div>
                   {(adminData.recentBookings||[]).length===0

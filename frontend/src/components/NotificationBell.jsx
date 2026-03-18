@@ -67,8 +67,9 @@ export default function NotificationBell({ onNavigate }) {
 
       {/* Dropdown */}
       {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 360,
+        <div className="notif-dropdown" style={{
+          position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+          width: 360,
           maxHeight: 440, background: '#fff', borderRadius: 14,
           boxShadow: '0 12px 40px rgba(11,35,64,.18), 0 0 0 1px rgba(11,35,64,.06)',
           zIndex: 9999, overflow: 'hidden', display: 'flex', flexDirection: 'column',

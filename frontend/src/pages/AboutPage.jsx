@@ -32,7 +32,7 @@ export default function AboutPage({t}){
         </div>
         {/* Values */}
         <SectionTitle center sub="Ce qui nous différencie">Nos valeurs</SectionTitle>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:20,marginBottom:60}}>
+        <div className="values-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))',gap:20,marginBottom:60}}>
           {t.vals.map(({i,t:title,d})=>(
             <Card key={title} style={{padding:'28px 24px',transition:'all .25s'}}
               onMouseEnter={e=>{e.currentTarget.style.transform='translateY(-4px)';e.currentTarget.style.boxShadow='0 16px 40px rgba(13,185,168,.15)';}}

@@ -53,7 +53,7 @@ export default function TripsPage({t,filterCat,setFilterCat,onOpen}){
             <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,marginBottom:6}}>Aucune offre trouvée</div>
             <div style={{fontSize:14}}>Essayez une autre recherche</div>
           </div>
-          :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
+          :<div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
             {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
           </div>
         }

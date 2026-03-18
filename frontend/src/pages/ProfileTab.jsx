@@ -51,7 +51,7 @@ export default function ProfileTab({t}){
   const LBL=({children})=><label style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--muted)',display:'block',marginBottom:5}}>{children}</label>;
 
   return(
-    <div style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:24,alignItems:'start'}}>
+    <div className="profile-layout" style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:24,alignItems:'start'}}>
       {/* LEFT — Avatar */}
       <Card style={{padding:28,textAlign:'center'}}>
         <div style={{position:'relative',display:'inline-block',marginBottom:20}}>

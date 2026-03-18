@@ -56,11 +56,11 @@ export default function AuthModal({mode,onClose,t}){
         ):(
           <>
             <div style={{background:'var(--teal3)',borderRadius:12,padding:'12px 16px',marginBottom:16,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>�� Identité</div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+            <div className="auth-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
               <div><LBL>Prénom<span style={{color:"var(--teal2)"}}>*</span></LBL><input style={INP} placeholder="Ahmed" value={f.name} onChange={e=>setF(p=>({...p,name:e.target.value}))}/></div>
               <div><LBL>Nom de famille<span style={{color:"var(--teal2)"}}>*</span></LBL><input style={INP} placeholder="Benali" value={f.familyName} onChange={e=>setF(p=>({...p,familyName:e.target.value}))}/></div>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+            <div className="auth-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
               <div>
                 <LBL>Date de naissance</LBL>
                 <input style={INP} type="date" value={f.birthDate} onChange={e=>setF(p=>({...p,birthDate:e.target.value}))} max={new Date().toISOString().split('T')[0]}/>
@@ -88,7 +88,7 @@ export default function AuthModal({mode,onClose,t}){
               <LBL>Téléphone (WhatsApp)<span style={{color:'var(--teal2)'}}>*</span></LBL>
               <PhoneInput value={f.phone || '+213 '} onChange={v=>setF(p=>({...p,phone:v}))} placeholder="770 123 456"/>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+            <div className="auth-grid-2col" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div>
                 <LBL>Mot de passe<span style={{color:'var(--teal2)'}}>*</span></LBL>
                 <input style={INP} type="password" placeholder="Min. 8 caractères" value={f.password} onChange={e=>setF(p=>({...p,password:e.target.value}))}/>

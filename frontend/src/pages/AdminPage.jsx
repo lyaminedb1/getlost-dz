@@ -49,7 +49,7 @@ export default function AdminPage({t,openAuth}){
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'40px 24px 0'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:28,color:'var(--navy)',marginBottom:20}}>🛡️ {t.adminTitle}</div>
-          {stats&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:12,marginBottom:24}}>
+          {stats&&<div className="admin-stats-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(130px,1fr))',gap:12,marginBottom:24}}>
             {[['📦','Offres',stats.total_offers,'var(--teal2)'],['⏳','En attente',stats.pending_offers,'#D97706'],['✅','Validées',stats.approved_offers,'#059669'],['🏢','Agences',stats.total_agencies,'var(--teal2)'],['👤','Voyageurs',stats.total_travelers,'var(--teal2)'],['💬','Avis',stats.total_reviews,'var(--teal2)'],['🔔','Avis pend.',stats.pending_reviews,'#D97706'],['🎫','Réservations',stats.total_bookings,'var(--teal2)']].map(([ico,lbl,val,c])=>(
               <div key={lbl} style={{background:'rgba(255,255,255,.8)',borderRadius:12,padding:'14px 16px',backdropFilter:'blur(4px)'}}>
                 <div style={{fontSize:20,marginBottom:6}}>{ico}</div>
@@ -58,7 +58,7 @@ export default function AdminPage({t,openAuth}){
               </div>
             ))}
           </div>}
-          <div style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
+          <div className="admin-tabs" style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
             {[['offers',t.aOffers,pendO],['bookings','Réservations',0],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR],['analytics','📊 Analytics',0]].map(([tk,lbl,badge])=>(
               <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>
                 {lbl}{badge>0&&<span style={{marginLeft:6,padding:'1px 7px',background:'#F59E0B',color:'#fff',borderRadius:10,fontSize:10,fontWeight:800}}>{badge}</span>}

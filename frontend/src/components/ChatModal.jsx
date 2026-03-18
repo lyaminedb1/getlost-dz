@@ -54,7 +54,7 @@ export default function ChatModal({ booking, onClose }) {
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(11,35,64,.6)', backdropFilter: 'blur(8px)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} onClick={onClose}>
-      <div style={{ background: '#fff', borderRadius: 24, width: '100%', maxWidth: 520, height: 600, display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(11,35,64,.2)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+      <div className="chat-modal-inner" style={{ background: '#fff', borderRadius: 24, width: '100%', maxWidth: 520, height: '80vh', maxHeight: 600, display: 'flex', flexDirection: 'column', boxShadow: '0 24px 60px rgba(11,35,64,.2)', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div style={{ background: 'linear-gradient(135deg,#0B2340,#0DB9A8)', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>

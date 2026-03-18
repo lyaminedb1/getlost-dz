@@ -68,7 +68,7 @@ export default function HomePage({t,setPage,setFilterCat,onOpen}){
       <div style={{background:'#fff',padding:'80px 24px'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <SectionTitle center sub="Trouvez le voyage parfait selon vos envies">{t.catTitle}</SectionTitle>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:20}}>
+          <div className="cat-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:16}}>
             {categories.map(({k,bg})=>(
               <div key={k} onClick={()=>{setFilterCat(k);setPage('trips');}}
                 style={{position:'relative',borderRadius:20,overflow:'hidden',cursor:'pointer',height:180,transition:'transform .25s'}}
@@ -95,7 +95,7 @@ export default function HomePage({t,setPage,setFilterCat,onOpen}){
             <button style={{...B.out,marginTop:8}} onClick={()=>setPage('trips')}>{t.seeAll} →</button>
           </div>
           {feat.length===0?<Spin/>:(
-            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:24}}>
+            <div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
               {feat.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
             </div>
           )}
