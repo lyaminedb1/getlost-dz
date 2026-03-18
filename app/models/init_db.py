@@ -60,6 +60,7 @@ def init_db():
                 user_id INTEGER NOT NULL REFERENCES users(id),
                 phone TEXT DEFAULT '',
                 message TEXT DEFAULT '',
+                travelers INTEGER DEFAULT 1,
                 status TEXT DEFAULT 'pending',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -178,6 +179,7 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 phone TEXT DEFAULT '',
                 message TEXT DEFAULT '',
+                travelers INTEGER DEFAULT 1,
                 status TEXT DEFAULT 'pending',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(offer_id) REFERENCES offers(id),
@@ -328,6 +330,7 @@ def run_migrations():
         cur = db.cursor()
         migrations = [
             "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';",
+            "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS travelers INTEGER DEFAULT 1;",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT DEFAULT '';",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS family_name TEXT DEFAULT '';",
@@ -383,6 +386,8 @@ def run_migrations():
         bcols = {r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()}
         if "phone" not in bcols:
             db.execute("ALTER TABLE bookings ADD COLUMN phone TEXT DEFAULT ''")
+        if "travelers" not in bcols:
+            db.execute("ALTER TABLE bookings ADD COLUMN travelers INTEGER DEFAULT 1")
         rcols = {r[1] for r in db.execute("PRAGMA table_info(reviews)").fetchall()}
         for col, dflt in [("booking_id", "NULL"), ("photo", "''"), ("agency_reply", "''")]:
             if col not in rcols:

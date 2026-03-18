@@ -74,6 +74,7 @@ def book():
     d = request.json or {}
     oid   = d.get("offerId")
     phone = (d.get("phone") or "").strip()
+    travelers = min(max(int(d.get("travelers", 1) or 1), 1), 20)
 
     if not oid:
         return jsonify({"error": "offerId required"}), 400
@@ -85,8 +86,8 @@ def book():
         return jsonify({"error": "Offer not found"}), 404
 
     bid = db_run(
-        "INSERT INTO bookings(offer_id,user_id,phone,message) VALUES(?,?,?,?)",
-        (oid, u["id"], phone, d.get("message", ""))
+        "INSERT INTO bookings(offer_id,user_id,phone,message,travelers) VALUES(?,?,?,?,?)",
+        (oid, u["id"], phone, d.get("message", ""), travelers)
     )
     # Email to agency
     try:

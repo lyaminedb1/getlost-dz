@@ -5,13 +5,15 @@ import { api } from '../api'
 import { B, Stars } from '../utils/styles.jsx'
 import { track } from '../utils/analytics'
 import ReviewCard from './ReviewCard'
+import PhoneInput from './PhoneInput'
 
 export default function OfferModal({offer,onClose,t,lang}){
   const {user}=useAuth()
   const {show}=useToast()
   const [reviews,setReviews]=useState([])
   const [booking,setBooking]=useState(false)
-  const [phone,setPhone]=useState('')
+  const [phone,setPhone]=useState('+213 ')
+  const [travelers,setTravelers]=useState(1)
   const rtl=lang==='ar'
   useEffect(()=>{if(offer){api(`/offers/${offer.id}/reviews`).then(setReviews).catch(()=>{});track('offer_view',{offer_id:offer.id});}},[offer?.id])
   if(!offer)return null
@@ -20,10 +22,11 @@ export default function OfferModal({offer,onClose,t,lang}){
   const handleBook=async()=>{
     track('booking_started',{offer_id:offer.id})
     if(!user){onClose();show('Connectez-vous pour réserver','warn');return;}
-    if(!phone.trim()){show('Numéro de téléphone requis','err');return;}
-    if((phone.match(/\d/g)||[]).length<8){show('Numéro invalide (min. 8 chiffres)','err');return;}
+    const digits=(phone.match(/\d/g)||[]).length
+    if(digits<8){show('Numéro invalide (min. 8 chiffres)','err');return;}
+    if(travelers<1||travelers>20){show('Nombre de voyageurs: 1 à 20','err');return;}
     setBooking(true)
-    try{await api('/bookings',{method:'POST',body:{offerId:offer.id,phone:phone.trim()}});track('booking_done',{offer_id:offer.id});show(t.bookMsg);setPhone('');}
+    try{await api('/bookings',{method:'POST',body:{offerId:offer.id,phone:phone.trim(),travelers:travelers}});track('booking_done',{offer_id:offer.id});show(t.bookMsg);setPhone('+213 ');setTravelers(1);}
     catch(e){show(e.message,'err');}
     setBooking(false)
   }
@@ -88,9 +91,13 @@ export default function OfferModal({offer,onClose,t,lang}){
               </div>
             </div>
             <div style={{display:'flex',gap:10,alignItems:'center'}}>
-              <input style={{flex:1,background:'rgba(255,255,255,.12)',border:'1.5px solid rgba(255,255,255,.25)',borderRadius:10,padding:'11px 14px',fontSize:14,color:'#fff'}}
-                placeholder={'📞 '+t.phoneLbl+' — ex: 0770 123 456'}
-                value={phone} onChange={e=>setPhone(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleBook()}/>
+              <div style={{flex:1}}>
+                <PhoneInput value={phone} onChange={setPhone} dark={true} placeholder="770 123 456"/>
+              </div>
+              <input type="number" min="1" max="20" value={travelers} onChange={e=>setTravelers(Math.max(1,Math.min(20,parseInt(e.target.value)||1)))}
+                style={{width:52,background:'rgba(255,255,255,.12)',border:'1.5px solid rgba(255,255,255,.25)',borderRadius:10,padding:'11px 8px',fontSize:14,color:'#fff',textAlign:'center'}}
+                title="Nombre de voyageurs"/>
+              <span style={{fontSize:12,color:'rgba(255,255,255,.5)',marginLeft:-4}}>👤</span>
               <button style={{...B.white,fontSize:13,padding:'11px 20px',flexShrink:0}} onClick={handleBook} disabled={booking}>{booking?'…':t.book}</button>
             </div>
           </div>

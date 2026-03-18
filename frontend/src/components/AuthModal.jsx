@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext'
 import { B, INP } from '../utils/styles.jsx'
 import { validateEmail, validatePassword, validatePhone, PasswordStrengthBar } from '../utils/validation.jsx'
 import WILAYAS from '../utils/wilayas.js'
+import PhoneInput from './PhoneInput'
 
 export default function AuthModal({mode,onClose,t}){
   const {login,register}=useAuth()
@@ -84,8 +85,8 @@ export default function AuthModal({mode,onClose,t}){
             <div style={{background:'var(--teal3)',borderRadius:12,padding:'12px 16px',marginBottom:16,marginTop:8,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
             <div><LBL>Email<span style={{color:"var(--teal2)"}}>*</span></LBL><input style={INP} type="email" placeholder="votre@email.com" value={f.email} onChange={e=>setF(p=>({...p,email:e.target.value}))}/></div>
             <div>
-              <LBL>Téléphone<span style={{color:'var(--teal2)'}}>*</span></LBL>
-              <input style={INP} type="tel" placeholder="📞 0770 123 456" value={f.phone} onChange={e=>setF(p=>({...p,phone:e.target.value}))}/>
+              <LBL>Téléphone (WhatsApp)<span style={{color:'var(--teal2)'}}>*</span></LBL>
+              <PhoneInput value={f.phone || '+213 '} onChange={v=>setF(p=>({...p,phone:v}))} placeholder="770 123 456"/>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
               <div>
