@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { B } from '../utils/styles.jsx'
 import { track } from '../utils/analytics'
 
-export default function OfferCard({offer,t,onOpen}){
+export default function OfferCard({offer,t,onOpen,onViewAgency}){
   const [hov,setHov]=useState(false)
   const avg=offer.avg_rating
   return(
@@ -22,7 +22,11 @@ export default function OfferCard({offer,t,onOpen}){
         </div>}
       </div>
       <div style={{padding:'16px 20px 20px'}}>
-        <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:6,lineHeight:1.3}}>{offer.title}</div>
+        <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:4,lineHeight:1.3}}>{offer.title}</div>
+        {offer.agency_name&&<div style={{fontSize:12,color:'var(--teal2)',fontWeight:600,marginBottom:6,cursor:onViewAgency?'pointer':'default'}}
+          onClick={e=>{e.stopPropagation();if(onViewAgency&&offer.agency_id)onViewAgency(offer.agency_id)}}>
+          {offer.agency_logo||'🏢'} {offer.agency_name}
+        </div>}
         <div style={{display:'flex',gap:14,color:'var(--muted)',fontSize:12,fontWeight:500,marginBottom:14,flexWrap:'wrap'}}>
           <span>📍 {offer.region}</span>
           <span>⏱ {offer.duration}{t.days}</span>

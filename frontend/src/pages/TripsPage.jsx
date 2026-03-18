@@ -4,7 +4,7 @@ import { B, INP, Spin, SectionTitle } from "../utils/styles.jsx"
 import { track } from "../utils/analytics"
 import OfferCard from "../components/OfferCard"
 
-export default function TripsPage({t,filterCat,setFilterCat,onOpen}){
+export default function TripsPage({t,filterCat,setFilterCat,onOpen,onViewAgency}){
 
   const [offers,setOffers]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -54,7 +54,7 @@ export default function TripsPage({t,filterCat,setFilterCat,onOpen}){
             <div style={{fontSize:14}}>Essayez une autre recherche</div>
           </div>
           :<div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
-            {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen}/>)}
+            {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency}/>)}
           </div>
         }
       </div>

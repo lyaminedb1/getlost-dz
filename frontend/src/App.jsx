@@ -15,6 +15,7 @@ import AboutPage from './pages/AboutPage'
 import DashPage from './pages/DashPage'
 import AdminPage from './pages/AdminPage'
 import AgencyAnalytics from './pages/AgencyAnalytics'
+import AgencyProfilePage from './pages/AgencyProfilePage'
 
 export default function App(){
   const [lang,setLang]=useState(localStorage.getItem("glz_lang")||"fr")
@@ -25,6 +26,7 @@ export default function App(){
   const [forgotModal,setForgotModal]=useState(false)
   const [resetToken,setResetToken]=useState(null)
   const [reviewBookingId,setReviewBookingId]=useState(null)
+  const [viewAgencyId,setViewAgencyId]=useState(null)
   const t=TR[lang]
   useEffect(()=>{track("page_view",{metadata:{page}});},[page])
   useEffect(()=>{
@@ -40,15 +42,16 @@ export default function App(){
   return(
     <div style={{direction:lang==="ar"?"rtl":"ltr"}}>
       <Navbar page={page} setPage={setPage} lang={lang} setLang={setLang} openAuth={setAuthModal} t={t}/>
-      {page==="home"&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
-      {page==="trips"&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer}/>}
+      {page==="home"&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}}/>}
+      {page==="trips"&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}}/>}
       {page==="about"&&<AboutPage t={t}/>}
       {page==="dash"&&<DashPage t={t} openAuth={setAuthModal} setReviewBookingId={setReviewBookingId} setPage={setPage}/>}
       {page==="analytics"&&<AgencyAnalytics t={t} openAuth={setAuthModal}/>}
       {page==="admin"&&<AdminPage t={t} openAuth={setAuthModal}/>}
+      {page==="agency-profile"&&<AgencyProfilePage agencyId={viewAgencyId} t={t} onOpen={setSelOffer} setPage={setPage}/>}
       <Footer t={t} setPage={setPage}/>
       {authModal&&<AuthModal mode={authModal} onClose={()=>setAuthModal(null)} t={t}/>}
-      {selOffer&&<OfferModal offer={selOffer} onClose={()=>setSelOffer(null)} t={t} lang={lang}/>}
+      {selOffer&&<OfferModal offer={selOffer} onClose={()=>setSelOffer(null)} t={t} lang={lang} onViewAgency={(id)=>{setSelOffer(null);setViewAgencyId(id);setPage('agency-profile')}}/>}
       {forgotModal&&<ForgotPasswordModal onClose={()=>setForgotModal(false)} t={t} openAuth={setAuthModal}/>}
       {resetToken&&<ResetPasswordModal token={resetToken} onClose={()=>setResetToken(null)} t={t} openAuth={setAuthModal}/>}
       {reviewBookingId&&<ReviewModal bookingId={reviewBookingId} onClose={()=>setReviewBookingId(null)} t={t}/>}

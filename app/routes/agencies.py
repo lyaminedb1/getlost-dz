@@ -330,3 +330,49 @@ def review_check(bid):
         return jsonify({"error": "Not found"}), 404
     existing = db_query("SELECT id FROM reviews WHERE booking_id=?", (bid,), one=True)
     return jsonify({"booking": bk, "already_reviewed": bool(existing)})
+
+
+# ── Public Agency Profile ──────────────────────────────────────────────────
+
+@bp.route("/agencies/<int:aid>/profile", methods=["GET"])
+def agency_profile(aid):
+    """Public profile: agency info + approved offers + reviews. No auth needed."""
+    agency = db_query("""
+        SELECT a.*, u.name owner_name, u.created_at member_since
+        FROM agencies a JOIN users u ON a.user_id=u.id
+        WHERE a.id=? AND a.status='approved'""", (aid,), one=True)
+    if not agency:
+        return jsonify({"error": "Agence non trouvée"}), 404
+
+    offers = db_query("""
+        SELECT o.*,
+            ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
+            COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
+        FROM offers o LEFT JOIN reviews r ON r.offer_id=o.id
+        WHERE o.agency_id=? AND o.status='approved'
+        GROUP BY o.id ORDER BY o.id DESC""", (aid,))
+
+    reviews = db_query("""
+        SELECT r.*, u.name user_name, o.title offer_title
+        FROM reviews r
+        JOIN users u ON r.user_id=u.id
+        JOIN offers o ON r.offer_id=o.id
+        WHERE o.agency_id=? AND r.status='approved'
+        ORDER BY r.created_at DESC LIMIT 20""", (aid,))
+
+    stats = {
+        "total_offers": len(offers),
+        "total_reviews": len(reviews),
+        "avg_rating": round(sum(r["rating"] for r in reviews) / len(reviews), 1) if reviews else None,
+        "total_bookings": db_query(
+            "SELECT COUNT(*) c FROM bookings b JOIN offers o ON b.offer_id=o.id WHERE o.agency_id=?",
+            (aid,), one=True
+        )["c"],
+    }
+
+    return jsonify({
+        "agency": agency,
+        "offers": [parse_offer(o) for o in offers],
+        "reviews": reviews,
+        "stats": stats
+    })

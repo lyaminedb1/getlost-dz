@@ -8,7 +8,7 @@ import { validatePhone } from '../utils/validation.jsx'
 import ReviewCard from './ReviewCard'
 import PhoneInput from './PhoneInput'
 
-export default function OfferModal({offer,onClose,t,lang}){
+export default function OfferModal({offer,onClose,t,lang,onViewAgency}){
   const {user}=useAuth()
   const {show}=useToast()
   const [reviews,setReviews]=useState([])
@@ -54,9 +54,15 @@ export default function OfferModal({offer,onClose,t,lang}){
             <span style={{color:'var(--muted)',fontSize:12}}>({reviews.length} {t.revs})</span>
           </div>
           <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:16}}>
-            {[['📍',offer.region],['⏱',`${offer.duration} ${t.days}`],['💰',`${(offer.price||0).toLocaleString()} DZD${t.per}`],offer.agency_name&&['🏢',offer.agency_name]].filter(Boolean).filter(([,v])=>v).map(([i,v])=>(
+            {[['📍',offer.region],['⏱',`${offer.duration} ${t.days}`],['💰',`${(offer.price||0).toLocaleString()} DZD${t.per}`]].filter(Boolean).filter(([,v])=>v).map(([i,v])=>(
               <span key={v} style={{padding:'5px 12px',background:'#F7FAFA',borderRadius:20,fontSize:12,fontWeight:500,color:'var(--text)'}}>{i} {v}</span>
             ))}
+            {offer.agency_name&&(
+              <span onClick={(e)=>{e.stopPropagation();if(onViewAgency&&offer.agency_id)onViewAgency(offer.agency_id)}}
+                style={{padding:'5px 12px',background:onViewAgency?'var(--teal3)':'#F7FAFA',borderRadius:20,fontSize:12,fontWeight:600,color:'var(--teal2)',cursor:onViewAgency?'pointer':'default',transition:'all .15s'}}>
+                🏢 {offer.agency_name} {onViewAgency&&'→'}
+              </span>
+            )}
           </div>
           {offer.description&&<p style={{color:'var(--muted)',lineHeight:1.8,marginBottom:18,fontSize:13}}>{offer.description}</p>}
           {offer.itinerary?.length>0&&<div style={{marginBottom:16}}>
