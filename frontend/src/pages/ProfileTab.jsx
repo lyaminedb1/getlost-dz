@@ -4,6 +4,7 @@ import { useToast } from "../context/ToastContext"
 import { api } from "../api"
 import { B, INP, TA, TH, TD, Card, Spin, Badge, Stars, SectionTitle } from "../utils/styles.jsx"
 import WILAYAS from '../utils/wilayas.js'
+import ImageUpload from '../components/ImageUpload'
 
 export default function ProfileTab({t}){
 
@@ -54,13 +55,18 @@ export default function ProfileTab({t}){
     <div className="profile-layout" style={{display:'grid',gridTemplateColumns:'280px 1fr',gap:24,alignItems:'start'}}>
       {/* LEFT — Avatar */}
       <Card style={{padding:28,textAlign:'center'}}>
-        <div style={{position:'relative',display:'inline-block',marginBottom:20}}>
-          <div style={{width:100,height:100,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:38,fontWeight:900,color:'#fff',overflow:'hidden',margin:'0 auto',border:'4px solid #fff',boxShadow:'0 4px 20px rgba(13,185,168,.25)'}}>
-            {user?.avatar?<img src={user.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:user?.name[0]?.toUpperCase()}
-          </div>
-          <button onClick={()=>fileRef.current?.click()} style={{position:'absolute',bottom:0,right:0,width:30,height:30,borderRadius:'50%',background:'var(--teal)',border:'2px solid #fff',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14}}>✏️</button>
+        <div style={{display:'flex',justifyContent:'center',marginBottom:16}}>
+          <ImageUpload
+            value={user?.avatar||''}
+            onChange={async(url)=>{
+              try{
+                await api('/auth/avatar',{method:'POST',body:{avatar:url}});
+                updateUser({avatar:url});show('Photo mise à jour !');
+              }catch(e){show(e.message,'err');}
+            }}
+            type="avatar" shape="circle" size={100}
+          />
         </div>
-        <input ref={fileRef} type="file" accept="image/*" style={{display:'none'}} onChange={handleAvatar}/>
         <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)',marginBottom:4}}>{user?.name}</div>
         <div style={{fontSize:12,color:'var(--muted)',marginBottom:16}}>{user?.email}</div>
         <div style={{padding:'8px 16px',background:'var(--teal3)',borderRadius:20,display:'inline-block',fontSize:12,fontWeight:700,color:'var(--teal2)',marginBottom:12}}>
@@ -69,7 +75,6 @@ export default function ProfileTab({t}){
         {user?.phone&&<div style={{fontSize:13,color:'var(--muted)',marginBottom:4}}>📞 {user.phone}</div>}
         {user?.city&&<div style={{fontSize:13,color:'var(--muted)',marginBottom:4}}>📍 {user.city}</div>}
         {user?.birth_date&&<div style={{fontSize:12,color:'var(--muted)',marginBottom:4}}>🎂 {user.birth_date}</div>}
-        <div style={{marginTop:12,fontSize:11,color:'var(--light)'}}>Cliquer sur ✏️ pour changer la photo</div>
       </Card>
 
       {/* RIGHT — Form */}

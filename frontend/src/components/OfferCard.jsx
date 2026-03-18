@@ -10,10 +10,10 @@ export default function OfferCard({offer,t,onOpen,onViewAgency}){
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{background:'#fff',borderRadius:20,overflow:'hidden',border:'1px solid #EEF3F5',cursor:'pointer',transition:'all .25s',boxShadow:hov?'0 20px 50px rgba(13,185,168,.18)':'var(--shadow)',transform:hov?'translateY(-5px)':'none'}}>
       <div style={{position:'relative'}}>
-        <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'} alt={offer.title}
+        <img src={(offer.images&&offer.images[0])||offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'} alt={offer.title}
           onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'}
           style={{width:'100%',height:200,objectFit:'cover',display:'block',transition:'transform .3s',...(hov?{transform:'scale(1.03)'}:{})}}/>
-        <div style={{position:'absolute',top:12,left:12,background:'rgba(255,255,255,.95)',backdropFilter:'blur(4px)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>
+        {offer.images&&offer.images.length>1&&<div style={{position:'absolute',top:12,right:12,background:'rgba(0,0,0,.5)',borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:700,color:'#fff'}}>📷 {offer.images.length}</div>}        <div style={{position:'absolute',top:12,left:12,background:'rgba(255,255,255,.95)',backdropFilter:'blur(4px)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>
           {t.catIco?.[offer.category]} {t.cats?.[offer.category]||offer.category}
         </div>
         {avg&&<div style={{position:'absolute',bottom:12,right:12,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 10px',display:'flex',alignItems:'center',gap:4}}>

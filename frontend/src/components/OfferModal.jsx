@@ -8,6 +8,8 @@ import { validatePhone } from '../utils/validation.jsx'
 import ReviewCard from './ReviewCard'
 import PhoneInput from './PhoneInput'
 
+const FALLBACK = 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'
+
 export default function OfferModal({offer,onClose,t,lang,onViewAgency}){
   const {user}=useAuth()
   const {show}=useToast()
@@ -15,9 +17,12 @@ export default function OfferModal({offer,onClose,t,lang,onViewAgency}){
   const [booking,setBooking]=useState(false)
   const [phone,setPhone]=useState('+213 ')
   const [travelers,setTravelers]=useState(1)
+  const [activeImg,setActiveImg]=useState(0)
   const rtl=lang==='ar'
-  useEffect(()=>{if(offer){api(`/offers/${offer.id}/reviews`).then(setReviews).catch(()=>{});track('offer_view',{offer_id:offer.id});}},[offer?.id])
+  useEffect(()=>{if(offer){api(`/offers/${offer.id}/reviews`).then(setReviews).catch(()=>{});track('offer_view',{offer_id:offer.id});setActiveImg(0);}},[offer?.id])
   if(!offer)return null
+
+  const imgs = (offer.images && offer.images.length > 0) ? offer.images : [offer.image_url || FALLBACK]
   const avg=reviews.length?(reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1):(offer.avg_rating||null)
   const SL=({children})=><div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:1.5,color:'var(--teal2)',marginBottom:10}}>{children}</div>
   const handleBook=async()=>{
@@ -30,22 +35,43 @@ export default function OfferModal({offer,onClose,t,lang,onViewAgency}){
     catch(e){show(e.message,'err');}
     setBooking(false)
   }
+  const Arrow=({dir,onClick})=>(
+    <button onClick={e=>{e.stopPropagation();onClick()}} style={{position:'absolute',[dir==='l'?'left':'right']:10,top:'50%',transform:'translateY(-50%)',background:'rgba(0,0,0,.45)',color:'#fff',border:'none',borderRadius:'50%',width:34,height:34,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',backdropFilter:'blur(4px)',transition:'background .15s'}}
+      onMouseEnter={e=>e.currentTarget.style.background='rgba(0,0,0,.7)'}
+      onMouseLeave={e=>e.currentTarget.style.background='rgba(0,0,0,.45)'}>
+      {dir==='l'?'‹':'›'}
+    </button>
+  )
   return(
     <div className="offer-modal-outer" style={{position:'fixed',inset:0,background:'rgba(11,35,64,.6)',backdropFilter:'blur(8px)',zIndex:500,display:'flex',alignItems:'flex-end',justifyContent:'center',padding:0}} onClick={onClose}>
-      {/* Mobile: slide up from bottom. Desktop: centered card */}
       <div className="offer-modal-inner" style={{background:'#fff',borderRadius:'24px 24px 0 0',overflow:'hidden',maxWidth:660,width:'100%',maxHeight:'95vh',overflowY:'auto',direction:rtl?'rtl':'ltr'}} onClick={e=>e.stopPropagation()}>
-        {/* Drag handle for mobile */}
         <div style={{display:'flex',justifyContent:'center',padding:'10px 0 0'}}>
           <div style={{width:36,height:4,borderRadius:2,background:'#DDE5E8'}}/>
         </div>
+        {/* Image gallery */}
         <div style={{position:'relative'}}>
-          <img src={offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'} alt={offer.title}
-            onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80'}
+          <img src={imgs[activeImg]||FALLBACK} alt={offer.title}
+            onError={e=>{e.target.src=FALLBACK}}
             className="offer-modal-img"
             style={{width:'100%',height:200,objectFit:'cover',display:'block'}}/>
           <button onClick={onClose} style={{position:'absolute',top:14,right:14,background:'rgba(255,255,255,.95)',border:'none',borderRadius:'50%',width:36,height:36,fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 12px rgba(0,0,0,.15)'}}>×</button>
           <div style={{position:'absolute',bottom:14,left:14,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 14px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>{t.catIco?.[offer.category]} {t.cats?.[offer.category]}</div>
+          {imgs.length>1&&<>
+            <Arrow dir="l" onClick={()=>setActiveImg(i=>(i-1+imgs.length)%imgs.length)}/>
+            <Arrow dir="r" onClick={()=>setActiveImg(i=>(i+1)%imgs.length)}/>
+            <div style={{position:'absolute',bottom:14,right:14,background:'rgba(0,0,0,.5)',borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:700,color:'#fff'}}>{activeImg+1}/{imgs.length}</div>
+          </>}
         </div>
+        {/* Thumbnails */}
+        {imgs.length>1&&(
+          <div style={{display:'flex',gap:6,padding:'10px 20px 0',overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
+            {imgs.map((url,i)=>(
+              <img key={i} src={url} alt="" onClick={()=>setActiveImg(i)}
+                onError={e=>{e.target.src=FALLBACK}}
+                style={{width:52,height:38,objectFit:'cover',borderRadius:6,cursor:'pointer',border:i===activeImg?'2px solid var(--teal)':'2px solid transparent',opacity:i===activeImg?1:.6,transition:'all .15s',flexShrink:0}}/>
+            ))}
+          </div>
+        )}
         <div className="offer-modal-body" style={{padding:'20px 20px 24px'}}>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:20,color:'var(--navy)',marginBottom:8}}>{offer.title}</div>
           <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:14}}>
@@ -93,7 +119,6 @@ export default function OfferModal({offer,onClose,t,lang,onViewAgency}){
             <span style={{fontSize:18}}>💡</span>
             <span>Vous pourrez laisser un avis après confirmation de votre réservation.</span>
           </div>}
-          {/* BOOKING BAR — stacked on mobile */}
           <div style={{background:'linear-gradient(135deg,var(--navy),#1a3a5c)',borderRadius:16,padding:'18px 18px 20px'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
               <div>

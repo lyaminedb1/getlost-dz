@@ -7,6 +7,7 @@ import ProfileTab from "./ProfileTab"
 import ReviewCard from "../components/ReviewCard"
 import ReviewModal from "../components/ReviewModal"
 import ChatModal from "../components/ChatModal"
+import ImageUpload from "../components/ImageUpload"
 
 export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
 
@@ -25,7 +26,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
   const [loading,setLoading]=useState(false);
   const [adminData,setAdminData]=useState(null);
   const [editTarget,setEditTarget]=useState(null);
-  const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',imageUrl:'',itinerary:'',includes:'',dates:''};
+  const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',images:[],itinerary:'',includes:'',dates:''};
   const [form,setForm]=useState(EF);
   const load=useCallback(async()=>{
     if(!user)return;setLoading(true);
@@ -68,7 +69,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
   const submitOffer=async()=>{
     if(!form.title||!form.price||!form.region){show('Titre, prix et région requis','err');return;}
     try{
-      const body={title:form.title,category:form.category,price:parseInt(form.price),duration:parseInt(form.duration)||1,region:form.region,description:form.description,imageUrl:form.imageUrl,
+      const body={title:form.title,category:form.category,price:parseInt(form.price),duration:parseInt(form.duration)||1,region:form.region,description:form.description,images:form.images,
         itinerary:form.itinerary.split('\n').filter(Boolean),includes:form.includes.split('\n').filter(Boolean),dates:form.dates.split('\n').filter(Boolean)};
       if(editTarget){await api(`/offers/${editTarget.id}`,{method:'PUT',body});show('Offre mise à jour!');}
       else{await api('/offers',{method:'POST',body});show('Offre soumise pour validation!');}
@@ -80,7 +81,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
     try{await api(`/offers/${id}`,{method:'DELETE'});show('Offre supprimée');load();}
     catch(e){show(e.message,'err');}
   };
-  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',imageUrl:o.image_url||'',itinerary:(o.itinerary||[]).join('\n'),includes:(o.includes||[]).join('\n'),dates:(o.available_dates||[]).join('\n')});setTab('add');};
+  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',images:o.images||[],itinerary:(o.itinerary||[]).join('\n'),includes:(o.includes||[]).join('\n'),dates:(o.available_dates||[]).join('\n')});setTab('add');};
   const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
   const FI=({label,fk,type='text'})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><input style={INP} type={type} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
   const FTA=({label,fk,h=88})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><textarea style={TA(h)} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
@@ -209,7 +210,9 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
                 <FI label={t.fPrice} fk="price" type="number"/>
                 <FI label={t.fDur} fk="duration" type="number"/>
                 <FI label={t.fRegion} fk="region"/>
-                <FI label={t.fImg} fk="imageUrl"/>
+              </div>
+              <div style={{marginBottom:12}}>
+                <ImageUpload value={form.images} onChange={imgs=>setForm(p=>({...p,images:imgs}))} type="offer" multiple={true} maxFiles={6} label="📷 Photos de l'offre (max 6)"/>
               </div>
               <FTA label={t.fDesc} fk="description" h={72}/>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>

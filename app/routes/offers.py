@@ -79,10 +79,13 @@ def create_offer():
     if not ag_id:
         return jsonify({"error": "No agency found"}), 400
 
+    images = d.get("images", [])
+    image_url = images[0] if images else d.get("imageUrl", "")
+
     oid = db_run("""INSERT INTO offers(agency_id,title,category,price,duration,region,description,
-        image_url,itinerary,includes,available_dates,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""", (
+        image_url,images,itinerary,includes,available_dates,status) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
         ag_id, d["title"], d["category"], int(d["price"]), int(d.get("duration", 1)),
-        d["region"], d.get("description", ""), d.get("imageUrl", ""),
+        d["region"], d.get("description", ""), image_url, json.dumps(images),
         json.dumps(d.get("itinerary", [])), json.dumps(d.get("includes", [])),
         json.dumps(d.get("dates", [])), "pending"
     ))
@@ -105,12 +108,15 @@ def update_offer(oid):
     if u["role"] == "agency" and offer["agency_id"] != u.get("agencyId"):
         return jsonify({"error": "Forbidden"}), 403
     d = request.json or {}
+    images = d.get("images", [])
+    image_url = images[0] if images else d.get("imageUrl", offer["image_url"])
+
     db_run("""UPDATE offers SET title=?,category=?,price=?,duration=?,region=?,
-              description=?,image_url=?,itinerary=?,includes=?,available_dates=? WHERE id=?""", (
+              description=?,image_url=?,images=?,itinerary=?,includes=?,available_dates=? WHERE id=?""", (
         d.get("title", offer["title"]), d.get("category", offer["category"]),
         int(d.get("price", offer["price"])), int(d.get("duration", offer["duration"])),
         d.get("region", offer["region"]), d.get("description", offer["description"]),
-        d.get("imageUrl", offer["image_url"]),
+        image_url, json.dumps(images),
         json.dumps(d.get("itinerary", [])), json.dumps(d.get("includes", [])),
         json.dumps(d.get("dates", [])), oid
     ))

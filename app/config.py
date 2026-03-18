@@ -25,3 +25,8 @@ LIMIT_REGISTER       = "10 per hour"
 LIMIT_FORGOT         = "5 per hour"
 LIMIT_EVENTS         = "300 per minute"
 LIMIT_DEFAULT_WRITE  = "60 per minute"
+
+# ── Cloudinary ──────────────────────────────────────────────────────────────
+CLOUDINARY_CLOUD   = os.environ.get("CLOUDINARY_CLOUD", "dcsrbxpox")
+CLOUDINARY_KEY     = os.environ.get("CLOUDINARY_KEY", "578172511394673")
+CLOUDINARY_SECRET  = os.environ.get("CLOUDINARY_SECRET", "W0u33E-UE5Arjs6Eu1MSeb-rtXQ")

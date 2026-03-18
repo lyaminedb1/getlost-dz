@@ -12,11 +12,14 @@ def parse_offer(o):
     """Parse JSON fields in an offer row into Python lists."""
     if not o:
         return o
-    for field in ("itinerary", "includes", "available_dates"):
+    for field in ("itinerary", "includes", "available_dates", "images"):
         try:
             o[field] = json.loads(o.get(field) or "[]")
         except Exception:
             o[field] = []
+    # Backward compat: if images is empty but image_url exists, use it
+    if not o.get("images") and o.get("image_url"):
+        o["images"] = [o["image_url"]]
     return o
 
 

@@ -47,6 +47,7 @@ def init_db():
                 region TEXT NOT NULL,
                 description TEXT DEFAULT '',
                 image_url TEXT DEFAULT '',
+                images TEXT DEFAULT '[]',
                 itinerary TEXT DEFAULT '[]',
                 includes TEXT DEFAULT '[]',
                 available_dates TEXT DEFAULT '[]',
@@ -165,6 +166,7 @@ def init_db():
                 region TEXT NOT NULL,
                 description TEXT DEFAULT '',
                 image_url TEXT DEFAULT '',
+                images TEXT DEFAULT '[]',
                 itinerary TEXT DEFAULT '[]',
                 includes TEXT DEFAULT '[]',
                 available_dates TEXT DEFAULT '[]',
@@ -340,6 +342,7 @@ def run_migrations():
             "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS booking_id INTEGER;",
             "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS photo TEXT DEFAULT '';",
             "ALTER TABLE reviews ADD COLUMN IF NOT EXISTS agency_reply TEXT DEFAULT '';",
+            "ALTER TABLE offers ADD COLUMN IF NOT EXISTS images TEXT DEFAULT '[]';",
             "ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'approved';",
             """CREATE TABLE IF NOT EXISTS password_resets (
                 id SERIAL PRIMARY KEY,
@@ -392,6 +395,9 @@ def run_migrations():
         for col, dflt in [("booking_id", "NULL"), ("photo", "''"), ("agency_reply", "''")]:
             if col not in rcols:
                 db.execute(f"ALTER TABLE reviews ADD COLUMN {col} TEXT DEFAULT {dflt}")
+        ocols = {r[1] for r in db.execute("PRAGMA table_info(offers)").fetchall()}
+        if "images" not in ocols:
+            db.execute("ALTER TABLE offers ADD COLUMN images TEXT DEFAULT '[]'")
         db.executescript("""
             CREATE TABLE IF NOT EXISTS password_resets (
                 id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL,

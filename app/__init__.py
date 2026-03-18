@@ -66,6 +66,7 @@ def create_app():
     from app.routes.admin     import bp as admin_bp
     from app.routes.analytics import bp as analytics_bp
     from app.routes.notifications import bp as notif_bp
+    from app.routes.upload    import bp as upload_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(offers_bp)
@@ -73,6 +74,7 @@ def create_app():
     app.register_blueprint(admin_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(notif_bp)
+    app.register_blueprint(upload_bp)
 
     # ── Apply specific rate limits if limiter available ───────────────────────
     if limiter:
