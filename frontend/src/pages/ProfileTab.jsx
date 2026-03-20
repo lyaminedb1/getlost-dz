@@ -80,44 +80,59 @@ export default function ProfileTab({t}){
       {/* RIGHT — Form */}
       <Card style={{padding:28}}>
         <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:18,color:'var(--navy)',marginBottom:22}}>✏️ {t.profileTab}</div>
-        {/* Identity */}
-        <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',marginBottom:14,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>👤 Identité</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
-          <div><LBL>Prénom</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
-          <div><LBL>Nom de famille</LBL><input style={INP} value={pf.familyName} onChange={e=>setPf(p=>({...p,familyName:e.target.value}))}/></div>
-          <div><LBL>Date de naissance</LBL><input style={INP} type="date" value={pf.birthDate} max={new Date().toISOString().split('T')[0]} onChange={e=>setPf(p=>({...p,birthDate:e.target.value}))}/></div>
-          <div><LBL>Genre</LBL>
-            <select style={{...INP,marginBottom:0}} value={pf.gender} onChange={e=>setPf(p=>({...p,gender:e.target.value}))}>
-              <option value="">— Sélectionner —</option>
-              <option value="homme">Homme</option>
-              <option value="femme">Femme</option>
-              <option value="autre">Autre</option>
-            </select>
-          </div>
-          <div style={{gridColumn:'1/-1'}}>
-            <LBL>Wilaya</LBL>
-            <select style={{...INP,marginBottom:0}} value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}>
-              <option value="">— Sélectionner une wilaya —</option>
-              {WILAYAS.map(w=><option key={w.code} value={w.name}>{w.code} — {w.name}</option>)}
-            </select>
-          </div>
-        </div>
-        {/* Contact & Access */}
-        <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
-          <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
-          <div><LBL>📞 {t.profilePhone}</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
-          <div style={{gridColumn:'1/-1'}}><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
-        </div>
-        {user?.role==='agency'&&<>
-          <div style={{height:1,background:'#F0F4F5',margin:'16px 0'}}/>
-          <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:14,color:'var(--navy)',marginBottom:14}}>🏢 {t.profileAgency}</div>
+
+        {user?.role==='agency'?(<>
+          {/* ── Agency profile ── */}
+          <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',marginBottom:14,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>🏢 Informations agence</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 80px',gap:12,marginBottom:4}}>
             <div><LBL>{t.agNameLbl}</LBL><input style={INP} value={pf.agencyName} onChange={e=>setPf(p=>({...p,agencyName:e.target.value}))}/></div>
             <div><LBL>Logo</LBL><input style={INP} value={pf.agencyLogo} placeholder="🏢" onChange={e=>setPf(p=>({...p,agencyLogo:e.target.value}))}/></div>
           </div>
           <div><LBL>{t.descLbl}</LBL><textarea style={TA(72)} value={pf.agencyDesc} onChange={e=>setPf(p=>({...p,agencyDesc:e.target.value}))}/></div>
-        </>}
+
+          <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+            <div><LBL>Nom du responsable</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
+            <div><LBL>📞 Téléphone</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
+            <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
+            <div><LBL>Wilaya</LBL>
+              <select style={{...INP,marginBottom:0}} value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}>
+                <option value="">— Sélectionner —</option>
+                {WILAYAS.map(w=><option key={w.code} value={w.name}>{w.code} — {w.name}</option>)}
+              </select>
+            </div>
+            <div style={{gridColumn:'1/-1'}}><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
+          </div>
+        </>):(<>
+          {/* ── Traveler / Admin profile ── */}
+          <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',marginBottom:14,fontSize:12,fontWeight:700,color:'var(--teal2)'}}>👤 Identité</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+            <div><LBL>Prénom</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
+            <div><LBL>Nom de famille</LBL><input style={INP} value={pf.familyName} onChange={e=>setPf(p=>({...p,familyName:e.target.value}))}/></div>
+            <div><LBL>Date de naissance</LBL><input style={INP} type="date" value={pf.birthDate} max={new Date().toISOString().split('T')[0]} onChange={e=>setPf(p=>({...p,birthDate:e.target.value}))}/></div>
+            <div><LBL>Genre</LBL>
+              <select style={{...INP,marginBottom:0}} value={pf.gender} onChange={e=>setPf(p=>({...p,gender:e.target.value}))}>
+                <option value="">— Sélectionner —</option>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+                <option value="autre">Autre</option>
+              </select>
+            </div>
+            <div style={{gridColumn:'1/-1'}}>
+              <LBL>Wilaya</LBL>
+              <select style={{...INP,marginBottom:0}} value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}>
+                <option value="">— Sélectionner une wilaya —</option>
+                {WILAYAS.map(w=><option key={w.code} value={w.name}>{w.code} — {w.name}</option>)}
+              </select>
+            </div>
+          </div>
+          <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
+            <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
+            <div><LBL>📞 {t.profilePhone}</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
+            <div style={{gridColumn:'1/-1'}}><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
+          </div>
+        </>)}
         <button style={{...B.pri,padding:'12px 28px',marginTop:8}} onClick={save} disabled={saving}>{saving?'…':t.profileSave}</button>
       </Card>
     </div>
