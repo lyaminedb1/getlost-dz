@@ -28,10 +28,10 @@ UPLOAD_LIMITS = {
 
 # Cloudinary transformations per type
 TRANSFORMS = {
-    "avatar": {"width": 400, "height": 400, "crop": "fill", "gravity": "face", "quality": "auto", "format": "webp"},
-    "logo":   {"width": 400, "height": 400, "crop": "fill", "quality": "auto", "format": "webp"},
-    "offer":  {"width": 1200, "height": 800, "crop": "fill", "quality": "auto", "format": "webp"},
-    "review": {"width": 800, "height": 600, "crop": "fill", "quality": "auto", "format": "webp"},
+    "avatar": {"width": 400, "height": 400, "crop": "thumb", "gravity": "face", "quality": "auto", "format": "jpg"},
+    "logo":   {"width": 400, "height": 400, "crop": "thumb", "quality": "auto", "format": "jpg"},
+    "offer":  {"quality": "auto", "format": "jpg"},
+    "review": {"quality": "auto", "format": "jpg"},
 }
 
 
@@ -60,12 +60,17 @@ def upload_image():
 
     try:
         folder = f"getlostdz/{img_type}s"
-        result = cloudinary.uploader.upload(
-            image,
-            folder=folder,
-            transformation=TRANSFORMS.get(img_type),
-            resource_type="image",
-        )
+        upload_params = {
+            "folder": folder,
+            "resource_type": "image",
+            "format": "jpg",  # Force convert HEIC/WEBP/PNG to JPG
+        }
+        # Avatar/logo: crop to square
+        if img_type in ("avatar", "logo"):
+            upload_params["transformation"] = [
+                {"width": 400, "height": 400, "crop": "thumb", "gravity": "face"}
+            ]
+        result = cloudinary.uploader.upload(image, **upload_params)
         url = result.get("secure_url", "")
         return jsonify({"url": url})
     except Exception as e:
@@ -97,7 +102,7 @@ def upload_multiple():
             continue
         try:
             result = cloudinary.uploader.upload(
-                img, folder=folder, transformation=transform, resource_type="image"
+                img, folder=folder, resource_type="image", format="jpg"
             )
             urls.append(result.get("secure_url", ""))
         except Exception as e:
