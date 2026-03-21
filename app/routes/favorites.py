@@ -24,7 +24,7 @@ def get_favorites():
         LEFT JOIN agencies a ON o.agency_id=a.id
         LEFT JOIN reviews r ON r.offer_id=o.id
         WHERE f.user_id=? AND o.status='approved'
-        GROUP BY o.id, a.name, a.logo
+        GROUP BY o.id, a.name, a.logo, f.created_at
         ORDER BY f.created_at DESC
     """, (uid,))
     return jsonify([parse_offer(o) for o in rows])
