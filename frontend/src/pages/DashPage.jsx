@@ -177,15 +177,14 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
                 {[
                   {key:'pending',label:'⏳ En attente',bg:'#FEF3C7',border:'#F59E0B'},
                   {key:'contacted',label:'📞 Contactés',bg:'#DBEAFE',border:'#3B82F6'},
+                  {key:'didnt_answer',label:'📵 Pas de réponse',bg:'#FEE2E2',border:'#EF4444'},
+                  {key:'pre_reserved',label:'📋 Pré-réservés',bg:'#EDE9FE',border:'#8B5CF6'},
                   {key:'confirmed',label:'✅ Confirmés',bg:'#D1FAE5',border:'#10B981'},
                   {key:'completed',label:'🎉 Terminés',bg:'#E0E7FF',border:'#6366F1'},
-                  {key:'_other',label:'📋 Autres',bg:'#F3F4F6',border:'#9CA3AF'},
+                  {key:'cancelled',label:'❌ Annulés',bg:'#F3F4F6',border:'#9CA3AF'},
                 ].map(col=>{
-                  const mainStatuses=['pending','contacted','confirmed','completed'];
-                  const colBookings=col.key==='_other'
-                    ?bookings.filter(b=>!mainStatuses.includes(b.status))
-                    :bookings.filter(b=>b.status===col.key);
-                  if(col.key==='_other'&&colBookings.length===0)return null;
+                  const colBookings=bookings.filter(b=>b.status===col.key);
+                  if(colBookings.length===0&&['didnt_answer','pre_reserved','cancelled'].includes(col.key))return null;
                   return(
                     <div key={col.key} style={{background:'#FAFCFC',borderRadius:16,border:`2px solid ${col.border}22`,minHeight:200}}>
                       <div style={{padding:'12px 16px',borderBottom:`2px solid ${col.border}33`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
