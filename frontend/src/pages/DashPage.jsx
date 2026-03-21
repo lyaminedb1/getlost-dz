@@ -16,7 +16,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
   const {show}=useToast();
 
   // Map sub-route to tab name
-  const SUB_MAP_AGENCY = {'':'stats','reservations':'bookings','offres':'offers','nouvelle-offre':'add','avis':'reviews','profil':'profile'};
+  const SUB_MAP_AGENCY = {'':'stats','reservations':'bookings','offres':'offers','nouvelle-offre':'add','avis':'reviews','favoris':'favorites','profil':'profile'};
   const SUB_MAP_TRAVELER = {'':'bookings','favoris':'favorites','profil':'profile'};
   const SUB_MAP_ADMIN = {'':'overview','activite':'activity','profil':'profile'};
   const subMap = user?.role==='agency'?SUB_MAP_AGENCY:user?.role==='admin'?SUB_MAP_ADMIN:SUB_MAP_TRAVELER;
@@ -44,6 +44,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
         const revPromises=offData.map(o=>api(`/offers/${o.id}/reviews`).then(rs=>rs.map(r=>({...r,offer_title:o.title}))).catch(()=>[]));
         const revArrays=await Promise.all(revPromises);
         setAgencyReviews(revArrays.flat());
+        try{setFavOffers(await api('/favorites'));}catch(e){}
       }
       else if(user.role==='traveler'){
         setBookings(await api('/bookings/my'));
@@ -120,7 +121,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
           </div>
           {user.role==='agency'&&(
             <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['',t.stats2],['reservations',t.myBook],['offres',t.myOffers],['nouvelle-offre',editTarget?t.save:t.addOffer],['avis','⭐ Avis'],['profil',t.profileTab]].map(([sk,lbl])=>(
+              {[['',t.stats2],['reservations',t.myBook],['offres',t.myOffers],['nouvelle-offre',editTarget?t.save:t.addOffer],['avis','⭐ Avis'],['favoris','❤️ Favoris'],['profil',t.profileTab]].map(([sk,lbl])=>(
                 <button key={sk} style={TB(tab===(SUB_MAP_AGENCY[sk]))} onClick={()=>{if(sk!=='nouvelle-offre'){setEditTarget(null);setForm(EF);}navTab(sk);}}>{lbl}</button>
               ))}
             </div>
@@ -252,6 +253,17 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
                   <ReviewCard r={r} isAgency={true} onReply={load}/>
                 </div>
               ))}
+            </div>
+          ))}
+          {tab==='favorites'&&(loading?<Spin/>:(
+            favOffers.length>0
+            ?<div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
+              {favOffers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency} isFav={true} onToggleFav={(id)=>{toggleFav(id);setFavOffers(p=>p.filter(x=>x.id!==id));}}/>)}
+            </div>
+            :<div style={{textAlign:'center',padding:'60px 0'}}>
+              <div style={{fontSize:48,marginBottom:12}}>❤️</div>
+              <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>Aucun favori</div>
+              <p style={{color:'var(--muted)',fontSize:14}}>Cliquez sur 🤍 pour ajouter des offres à vos favoris.</p>
             </div>
           ))}
         </>}
