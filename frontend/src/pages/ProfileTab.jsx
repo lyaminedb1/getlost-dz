@@ -115,7 +115,6 @@ export default function ProfileTab({t}){
                 <option value="">— Sélectionner —</option>
                 <option value="homme">Homme</option>
                 <option value="femme">Femme</option>
-                <option value="autre">Autre</option>
               </select>
             </div>
             <div style={{gridColumn:'1/-1'}}>

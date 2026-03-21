@@ -16,10 +16,15 @@ bp = Blueprint("offers", __name__, url_prefix="/api")
 
 @bp.route("/offers", methods=["GET"])
 def get_offers():
-    cat    = request.args.get("category", "")
-    search = request.args.get("search", "")
-    sort   = request.args.get("sort", "rating")
-    status = request.args.get("status", "approved")
+    cat       = request.args.get("category", "")
+    search    = request.args.get("search", "")
+    sort      = request.args.get("sort", "rating")
+    status    = request.args.get("status", "approved")
+    price_min = request.args.get("price_min", "")
+    price_max = request.args.get("price_max", "")
+    dur_min   = request.args.get("dur_min", "")
+    dur_max   = request.args.get("dur_max", "")
+    region    = request.args.get("region", "")
 
     sql = """SELECT o.*, a.name agency_name, a.logo agency_logo,
              ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
@@ -33,10 +38,22 @@ def get_offers():
         sql += " AND o.category=?"; args.append(cat)
     if search:
         sql += " AND (o.title LIKE ? OR o.region LIKE ?)"; args += [f"%{search}%", f"%{search}%"]
+    if price_min:
+        sql += " AND o.price>=?"; args.append(int(price_min))
+    if price_max:
+        sql += " AND o.price<=?"; args.append(int(price_max))
+    if dur_min:
+        sql += " AND o.duration>=?"; args.append(int(dur_min))
+    if dur_max:
+        sql += " AND o.duration<=?"; args.append(int(dur_max))
+    if region:
+        sql += " AND o.region LIKE ?"; args.append(f"%{region}%")
     sql += " GROUP BY o.id, a.name, a.logo"
     sql += {
         "price_asc":  " ORDER BY o.price ASC",
         "price_desc": " ORDER BY o.price DESC",
+        "newest":     " ORDER BY o.created_at DESC",
+        "duration":   " ORDER BY o.duration ASC",
     }.get(sort, " ORDER BY avg_rating DESC NULLS LAST, o.id DESC")
     return jsonify([parse_offer(o) for o in db_query(sql, args)])
 
