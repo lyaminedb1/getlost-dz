@@ -91,6 +91,9 @@ def create_app():
             if fname in app.view_functions:
                 limiter.limit(limit)(app.view_functions[fname])
 
+    from app.routes.messages import messages_bp
+    app.register_blueprint(messages_bp, url_prefix='/api')
+
     # ── Static catch-all (SPA) ────────────────────────────────────────────────
     import os
     from flask import send_from_directory
@@ -104,7 +107,9 @@ def create_app():
             return send_from_directory(static_dir, path)
         return send_from_directory(static_dir, "index.html")
 
-    from app.routes.messages import messages_bp
-    app.register_blueprint(messages_bp, url_prefix='/api')
+    @app.errorhandler(404)
+    def not_found(e):
+        return send_from_directory(static_dir, "index.html")
+
     logger.info("🚀  Get Lost DZ app factory complete")
     return app
