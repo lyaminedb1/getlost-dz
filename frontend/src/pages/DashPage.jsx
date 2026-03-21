@@ -10,16 +10,19 @@ import ChatModal from "../components/ChatModal"
 import ImageUpload from "../components/ImageUpload"
 import OfferCard from "../components/OfferCard"
 
-export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,toggleFav,onOpen,onViewAgency}){
+export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,toggleFav,onOpen,onViewAgency,sub}){
 
   const {user}=useAuth();
   const {show}=useToast();
-  const [tab,setTab]=useState(()=>{
-    if(!user) return 'stats';
-    if(user.role==='admin') return 'overview';
-    if(user.role==='traveler') return 'bookings';
-    return 'stats';
-  });
+
+  // Map sub-route to tab name
+  const SUB_MAP_AGENCY = {'':'stats','reservations':'bookings','offres':'offers','nouvelle-offre':'add','avis':'reviews','profil':'profile'};
+  const SUB_MAP_TRAVELER = {'':'bookings','favoris':'favorites','profil':'profile'};
+  const SUB_MAP_ADMIN = {'':'overview','activite':'activity','profil':'profile'};
+  const subMap = user?.role==='agency'?SUB_MAP_AGENCY:user?.role==='admin'?SUB_MAP_ADMIN:SUB_MAP_TRAVELER;
+  const tab = subMap[sub] || Object.values(subMap)[0];
+
+  const navTab=(subPath)=>setPage('dash',{sub:subPath});
   const [offers,setOffers]=useState([]);
   const [bookings,setBookings]=useState([]);
   const [chatBooking,setChatBooking]=useState(null);
@@ -78,7 +81,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
         itinerary:form.itinerary.split('\n').filter(Boolean),includes:form.includes.split('\n').filter(Boolean),dates:form.dates.split('\n').filter(Boolean)};
       if(editTarget){await api(`/offers/${editTarget.id}`,{method:'PUT',body});show('Offre mise à jour!');}
       else{await api('/offers',{method:'POST',body});show('Offre soumise pour validation!');}
-      setForm(EF);setEditTarget(null);setTab('offers');load();
+      setForm(EF);setEditTarget(null);navTab('offres');load();
     }catch(e){show(e.message,'err');}
   };
   const delOffer=async(id)=>{
@@ -86,7 +89,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
     try{await api(`/offers/${id}`,{method:'DELETE'});show('Offre supprimée');load();}
     catch(e){show(e.message,'err');}
   };
-  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',images:o.images||[],itinerary:(o.itinerary||[]).join('\n'),includes:(o.includes||[]).join('\n'),dates:(o.available_dates||[]).join('\n')});setTab('add');};
+  const startEdit=(o)=>{setEditTarget(o);setForm({title:o.title,category:o.category,price:String(o.price),duration:String(o.duration),region:o.region,description:o.description||'',images:o.images||[],itinerary:(o.itinerary||[]).join('\n'),includes:(o.includes||[]).join('\n'),dates:(o.available_dates||[]).join('\n')});navTab('nouvelle-offre');};
   const TB=(a)=>({padding:'10px 18px',cursor:'pointer',fontSize:13,fontWeight:700,border:'none',borderBottom:a?'2px solid var(--teal)':'2px solid transparent',color:a?'var(--teal2)':'var(--muted)',background:'none',marginBottom:-1,transition:'all .18s'});
   const FI=({label,fk,type='text'})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><input style={INP} type={type} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
   const FTA=({label,fk,h=88})=><div><label style={{fontSize:12,fontWeight:600,color:'var(--muted)',display:'block',marginBottom:5,textTransform:'uppercase',letterSpacing:.8}}>{label}</label><textarea style={TA(h)} value={form[fk]} onChange={e=>setForm(p=>({...p,[fk]:e.target.value}))}/></div>;
@@ -117,22 +120,22 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
           </div>
           {user.role==='agency'&&(
             <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['stats',t.stats2],['bookings',t.myBook],['offers',t.myOffers],['add',editTarget?t.save:t.addOffer],['reviews','⭐ Avis'],['profile',t.profileTab]].map(([tk,lbl])=>(
-                <button key={tk} style={TB(tab===tk)} onClick={()=>{if(tk!=='add'){setEditTarget(null);setForm(EF);}setTab(tk);}}>{lbl}</button>
+              {[['',t.stats2],['reservations',t.myBook],['offres',t.myOffers],['nouvelle-offre',editTarget?t.save:t.addOffer],['avis','⭐ Avis'],['profil',t.profileTab]].map(([sk,lbl])=>(
+                <button key={sk} style={TB(tab===(SUB_MAP_AGENCY[sk]))} onClick={()=>{if(sk!=='nouvelle-offre'){setEditTarget(null);setForm(EF);}navTab(sk);}}>{lbl}</button>
               ))}
             </div>
           )}
           {user.role==='traveler'&&(
             <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['bookings',t.myBook],['favorites','❤️ Mes favoris'],['profile',t.profileTab]].map(([tk,lbl])=>(
-                <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
+              {[['',t.myBook],['favoris','❤️ Mes favoris'],['profil',t.profileTab]].map(([sk,lbl])=>(
+                <button key={sk} style={TB(tab===(SUB_MAP_TRAVELER[sk]))} onClick={()=>navTab(sk)}>{lbl}</button>
               ))}
             </div>
           )}
           {user.role==='admin'&&(
             <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['overview','Vue d\'ensemble'],['activity','Activité récente'],['profile',t.profileTab]].map(([tk,lbl])=>(
-                <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
+              {[['','Vue d\'ensemble'],['activite','Activité récente'],['profil',t.profileTab]].map(([sk,lbl])=>(
+                <button key={sk} style={TB(tab===(SUB_MAP_ADMIN[sk]))} onClick={()=>navTab(sk)}>{lbl}</button>
               ))}
             </div>
           )}
@@ -227,7 +230,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
               </div>
               <div style={{display:'flex',gap:10,marginTop:8}}>
                 <button style={B.pri} onClick={submitOffer}>{editTarget?t.save:t.submit}</button>
-                {editTarget&&<button style={B.ghost} onClick={()=>{setEditTarget(null);setForm(EF);setTab('offers');}}>{t.cancel}</button>}
+                {editTarget&&<button style={B.ghost} onClick={()=>{setEditTarget(null);setForm(EF);navTab('offres');}}>{t.cancel}</button>}
               </div>
             </Card>
           )}

@@ -6,11 +6,13 @@ import { B, INP, TA, TH, TD, Card, Spin, Badge, Stars, SectionTitle, BOOKING_STA
 import AnalyticsDash from "./AdminAnalytics"
 import AdminCreateAgencyForm from "./AdminCreateAgencyForm"
 
-export default function AdminPage({t,openAuth}){
+export default function AdminPage({t,openAuth,setPage,sub}){
 
   const {user}=useAuth();
   const {show}=useToast();
-  const [tab,setTab]=useState('offers');
+  const SUB_MAP = {'':'offers','reservations':'bookings','agences':'agencies','utilisateurs':'users','avis':'reviews','analytics':'analytics'};
+  const tab = SUB_MAP[sub||''] || 'offers';
+  const navTab = (sk) => setPage('admin', { sub: sk });
   const [data,setData]=useState({offers:[],agencies:[],users:[],reviews:[],bookings:[],stats:null});
   const [loading,setLoading]=useState(false);
   const load=useCallback(async()=>{
@@ -59,8 +61,8 @@ export default function AdminPage({t,openAuth}){
             ))}
           </div>}
           <div className="admin-tabs" style={{display:'flex',gap:4,borderBottom:'2px solid rgba(0,0,0,.08)'}}>
-            {[['offers',t.aOffers,pendO],['bookings','Réservations',0],['agencies',t.aAgencies,0],['users',t.aUsers,0],['reviews',t.aRevs,pendR],['analytics','📊 Analytics',0]].map(([tk,lbl,badge])=>(
-              <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>
+            {[['',t.aOffers,pendO],['reservations','Réservations',0],['agences',t.aAgencies,0],['utilisateurs',t.aUsers,0],['avis',t.aRevs,pendR],['analytics','📊 Analytics',0]].map(([sk,lbl,badge])=>(
+              <button key={sk} style={TB(tab===(SUB_MAP[sk]))} onClick={()=>navTab(sk)}>
                 {lbl}{badge>0&&<span style={{marginLeft:6,padding:'1px 7px',background:'#F59E0B',color:'#fff',borderRadius:10,fontSize:10,fontWeight:800}}>{badge}</span>}
               </button>
             ))}

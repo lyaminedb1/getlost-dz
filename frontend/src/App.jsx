@@ -25,8 +25,8 @@ function parsePath(pathname) {
   if (p === '/') return { page: 'home' }
   if (p === '/voyages') return { page: 'trips' }
   if (p === '/a-propos') return { page: 'about' }
-  if (p === '/mon-espace') return { page: 'dash' }
-  if (p === '/admin') return { page: 'admin' }
+  if (p.startsWith('/mon-espace')) { const sub = p.replace('/mon-espace', '').replace(/^\//, '') || ''; return { page: 'dash', sub } }
+  if (p.startsWith('/admin')) { const sub = p.replace('/admin', '').replace(/^\//, '') || ''; return { page: 'admin', sub } }
   if (p === '/analytics') return { page: 'analytics' }
   if (p === '/connexion') return { page: 'login' }
   if (p === '/inscription') return { page: 'register' }
@@ -72,6 +72,8 @@ export default function App() {
     let path
     if (pg === 'offer' && opts.offerId) path = `/offre/${opts.slug || opts.offerId}`
     else if (pg === 'agency-profile' && opts.agencyId) path = `/agence/${opts.slug || opts.agencyId}`
+    else if (pg === 'dash') path = opts.sub ? `/mon-espace/${opts.sub}` : '/mon-espace'
+    else if (pg === 'admin') path = opts.sub ? `/admin/${opts.sub}` : '/admin'
     else path = PAGE_PATHS[pg] || '/'
     if (window.location.pathname !== path) {
       window.history.pushState({}, '', path)
@@ -124,9 +126,9 @@ export default function App() {
       {page === "home" && <HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={openOffer} onViewAgency={viewAgency} favIds={favIds} toggleFav={toggleFav} />}
       {page === "trips" && <TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={openOffer} onViewAgency={viewAgency} favIds={favIds} toggleFav={toggleFav} />}
       {page === "about" && <AboutPage t={t} />}
-      {page === "dash" && <DashPage t={t} openAuth={openAuth} setReviewBookingId={setReviewBookingId} setPage={setPage} favIds={favIds} toggleFav={toggleFav} onOpen={openOffer} onViewAgency={viewAgency} />}
+      {page === "dash" && <DashPage t={t} openAuth={openAuth} setReviewBookingId={setReviewBookingId} setPage={setPage} favIds={favIds} toggleFav={toggleFav} onOpen={openOffer} onViewAgency={viewAgency} sub={route.sub||''} />}
       {page === "analytics" && <AgencyAnalytics t={t} openAuth={openAuth} />}
-      {page === "admin" && <AdminPage t={t} openAuth={openAuth} />}
+      {page === "admin" && <AdminPage t={t} openAuth={openAuth} setPage={setPage} sub={route.sub||''} />}
       {page === "agency-profile" && <AgencyProfilePage agencyId={route.agencyId} t={t} onOpen={openOffer} setPage={setPage} />}
       {page === "offer" && <OfferPage offerId={route.offerId} t={t} lang={lang} setPage={setPage} />}
       {page === "login" && <AuthPage mode="login" t={t} setPage={setPage} />}
