@@ -154,37 +154,79 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
             </div>
           )}
           {tab==='bookings'&&(loading?<Spin/>:(
-            <Card>
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead><tr>{['Voyageur','Email','Offre','Prix','Téléphone','Date','Statut','Action'].map(h=><th key={h} style={TH}>{h}</th>)}</tr></thead>
-                <tbody>
-                  {bookings.map(b=>(
-                    <tr key={b.id} style={{transition:'background .15s'}} onMouseEnter={e=>e.currentTarget.style.background='#FAFCFC'} onMouseLeave={e=>e.currentTarget.style.background=''}>
-                      <td style={{...TD,fontWeight:700,color:'var(--navy)'}}><div style={{display:'flex',alignItems:'center',gap:8}}><div style={{width:30,height:30,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>{b.traveler_name}</div></td>
-                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{b.traveler_email}</td>
-                      <td style={{...TD,fontWeight:600,maxWidth:160}}>{b.offer_title}</td>
-                      <td style={{...TD,color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito'}}>{(b.price||0).toLocaleString()} DZD</td>
-                      <td style={{...TD,fontSize:13}}>{b.phone||<span style={{color:'var(--muted)'}}>—</span>}</td>
-                      <td style={{...TD,color:'var(--muted)',fontSize:12}}>{fmtDate(b.created_at)}</td>
-                      <td style={TD}><Badge status={b.status}/></td>
-                      <td style={TD}>
-                        <select value={b.status} onChange={async e=>{
-                          const ns=e.target.value;
-                          try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:ns}});
-                          const bs=BSTATUS_MAP[ns];
-                          show(bs?`Statut → ${bs.label}`:`Statut mis à jour`);load();}
-                          catch(er){show(er.message,'err');}
-                        }} style={{padding:'6px 10px',borderRadius:10,border:'1.5px solid #E2EBF0',fontSize:12,fontWeight:600,cursor:'pointer',background:'#F8FAFC'}}>
-                          {BOOKING_STATUSES.map(s=><option key={s.v} value={s.v}>{s.label}</option>)}
-                        </select>
-                        <button onClick={()=>setChatBooking(b)} style={{...B.sm,marginTop:4,width:'100%',background:'linear-gradient(135deg,#0B2340,#0DB9A8)',color:'#fff',border:'none',fontWeight:700}}>💬 Chat</button>
-                      </td>
-                    </tr>
-                  ))}
-                  {!bookings.length&&<tr><td colSpan={7} style={{...TD,textAlign:'center',color:'var(--muted)',padding:40}}>Aucune réservation reçue pour l&apos;instant.</td></tr>}
-                </tbody>
-              </table>
-            </Card>
+            <div>
+              {/* Export CSV + view toggle */}
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16,flexWrap:'wrap',gap:10}}>
+                <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:16,color:'var(--navy)'}}>{bookings.length} réservation{bookings.length>1?'s':''}</div>
+                <div style={{display:'flex',gap:8}}>
+                  <button onClick={()=>{
+                    const hdr=['Voyageur','Email','Offre','Prix','Téléphone','Date','Statut'];
+                    const rows=bookings.map(b=>[b.traveler_name,b.traveler_email,b.offer_title,b.price||0,b.phone||'',fmtDate(b.created_at),b.status]);
+                    const csv=[hdr,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+                    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+                    const url=URL.createObjectURL(blob);
+                    const a=document.createElement('a');a.href=url;a.download=`reservations_${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);
+                    show('CSV exporté !');
+                  }} style={{...B.ghost,fontSize:12,padding:'8px 16px',display:'flex',alignItems:'center',gap:6}}>
+                    📥 Export CSV
+                  </button>
+                </div>
+              </div>
+              {/* Kanban columns */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(240px,1fr))',gap:14,overflowX:'auto'}}>
+                {[
+                  {key:'pending',label:'⏳ En attente',bg:'#FEF3C7',border:'#F59E0B'},
+                  {key:'contacted',label:'📞 Contactés',bg:'#DBEAFE',border:'#3B82F6'},
+                  {key:'confirmed',label:'✅ Confirmés',bg:'#D1FAE5',border:'#10B981'},
+                  {key:'completed',label:'🎉 Terminés',bg:'#E0E7FF',border:'#6366F1'},
+                  {key:'_other',label:'📋 Autres',bg:'#F3F4F6',border:'#9CA3AF'},
+                ].map(col=>{
+                  const mainStatuses=['pending','contacted','confirmed','completed'];
+                  const colBookings=col.key==='_other'
+                    ?bookings.filter(b=>!mainStatuses.includes(b.status))
+                    :bookings.filter(b=>b.status===col.key);
+                  if(col.key==='_other'&&colBookings.length===0)return null;
+                  return(
+                    <div key={col.key} style={{background:'#FAFCFC',borderRadius:16,border:`2px solid ${col.border}22`,minHeight:200}}>
+                      <div style={{padding:'12px 16px',borderBottom:`2px solid ${col.border}33`,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                        <span style={{fontSize:13,fontWeight:700,color:'var(--navy)'}}>{col.label}</span>
+                        <span style={{background:col.bg,color:col.border,borderRadius:20,padding:'2px 10px',fontSize:12,fontWeight:800}}>{colBookings.length}</span>
+                      </div>
+                      <div style={{padding:10,display:'flex',flexDirection:'column',gap:8}}>
+                        {colBookings.length===0&&<div style={{textAlign:'center',color:'var(--muted)',fontSize:12,padding:'20px 0'}}>Aucune</div>}
+                        {colBookings.map(b=>(
+                          <Card key={b.id} style={{padding:14}}>
+                            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6}}>
+                              <div style={{width:28,height:28,borderRadius:'50%',background:'linear-gradient(135deg,var(--teal),var(--teal2))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:800,color:'#fff',flexShrink:0}}>{(b.traveler_name||'?')[0].toUpperCase()}</div>
+                              <div>
+                                <div style={{fontSize:13,fontWeight:700,color:'var(--navy)'}}>{b.traveler_name}</div>
+                                <div style={{fontSize:10,color:'var(--muted)'}}>{b.traveler_email}</div>
+                              </div>
+                            </div>
+                            <div style={{fontSize:12,fontWeight:600,color:'var(--text)',marginBottom:4}}>{b.offer_title}</div>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                              <span style={{fontFamily:'Nunito',fontWeight:800,fontSize:14,color:'var(--teal2)'}}>{(b.price||0).toLocaleString()} DZD</span>
+                              <span style={{fontSize:10,color:'var(--muted)'}}>{fmtDate(b.created_at)}</span>
+                            </div>
+                            {b.phone&&<div style={{fontSize:11,color:'var(--muted)',marginBottom:6}}>📞 {b.phone}</div>}
+                            <select value={b.status} onChange={async e=>{
+                              const ns=e.target.value;
+                              try{await api(`/bookings/${b.id}/status`,{method:'PATCH',body:{status:ns}});
+                              const bs=BSTATUS_MAP[ns];
+                              show(bs?`Statut → ${bs.label}`:'Statut mis à jour');load();}
+                              catch(er){show(er.message,'err');}
+                            }} style={{width:'100%',padding:'6px 10px',borderRadius:8,border:'1.5px solid #E2EBF0',fontSize:11,fontWeight:600,cursor:'pointer',background:'#fff',marginBottom:6}}>
+                              {BOOKING_STATUSES.map(s=><option key={s.v} value={s.v}>{s.label}</option>)}
+                            </select>
+                            <button onClick={()=>setChatBooking(b)} style={{...B.sm,width:'100%',background:'linear-gradient(135deg,#0B2340,#0DB9A8)',color:'#fff',border:'none',fontWeight:700,fontSize:11}}>💬 Chat</button>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ))}
           {tab==='offers'&&(loading?<Spin/>:(
             <Card>

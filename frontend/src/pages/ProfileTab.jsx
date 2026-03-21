@@ -3,8 +3,10 @@ import { useAuth } from "../context/AuthContext"
 import { useToast } from "../context/ToastContext"
 import { api } from "../api"
 import { B, INP, TA, TH, TD, Card, Spin, Badge, Stars, SectionTitle } from "../utils/styles.jsx"
+import { validateEmail, validatePhone } from '../utils/validation.jsx'
 import WILAYAS from '../utils/wilayas.js'
 import ImageUpload from '../components/ImageUpload'
+import PhoneInput from '../components/PhoneInput'
 
 export default function ProfileTab({t}){
 
@@ -40,6 +42,8 @@ export default function ProfileTab({t}){
 
   const save=async()=>{
     if(!pf.name||!pf.email){show('Nom et email requis','err');return;}
+    if(!validateEmail(pf.email)){show('Format email invalide','err');return;}
+    if(pf.phone&&!validatePhone(pf.phone).valid){show('Numéro de téléphone invalide','err');return;}
     setSaving(true);
     try{
       const res=await api('/auth/profile',{method:'PUT',body:{...pf}});
@@ -93,7 +97,7 @@ export default function ProfileTab({t}){
           <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
             <div><LBL>Nom du responsable</LBL><input style={INP} value={pf.name} onChange={e=>setPf(p=>({...p,name:e.target.value}))}/></div>
-            <div><LBL>📞 Téléphone</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
+            <div><LBL>📞 Téléphone</LBL><PhoneInput value={pf.phone||'+213 '} onChange={v=>setPf(p=>({...p,phone:v}))} placeholder="770 123 456"/></div>
             <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
             <div><LBL>Wilaya</LBL>
               <select style={{...INP,marginBottom:0}} value={pf.city} onChange={e=>setPf(p=>({...p,city:e.target.value}))}>
@@ -128,7 +132,7 @@ export default function ProfileTab({t}){
           <div style={{background:'var(--teal3)',borderRadius:10,padding:'8px 14px',margin:'16px 0 14px',fontSize:12,fontWeight:700,color:'var(--teal2)'}}>📬 Contact & Accès</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:4}}>
             <div><LBL>{t.emailLbl}</LBL><input style={INP} type="email" value={pf.email} onChange={e=>setPf(p=>({...p,email:e.target.value}))}/></div>
-            <div><LBL>📞 {t.profilePhone}</LBL><input style={INP} type="tel" value={pf.phone} placeholder="0770 123 456" onChange={e=>setPf(p=>({...p,phone:e.target.value}))}/></div>
+            <div><LBL>📞 {t.profilePhone}</LBL><PhoneInput value={pf.phone||'+213 '} onChange={v=>setPf(p=>({...p,phone:v}))} placeholder="770 123 456"/></div>
             <div style={{gridColumn:'1/-1'}}><LBL>🔒 {t.profileNewPass}</LBL><input style={INP} type="password" value={pf.password} placeholder="••••••••" onChange={e=>setPf(p=>({...p,password:e.target.value}))}/></div>
           </div>
         </>)}
