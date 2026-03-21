@@ -124,6 +124,9 @@ input, textarea, select { font-family: inherit; font-size: 16px; }
 
   /* Stats: 2 per row */
   .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Offer page: stack on mobile */
+  .offer-page-grid { grid-template-columns: 1fr !important; }
 }
 
 /* ── Desktop: ≥769px ─────────────────────────────────── */
