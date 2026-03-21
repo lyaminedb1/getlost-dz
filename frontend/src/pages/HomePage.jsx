@@ -3,7 +3,7 @@ import { api } from '../api'
 import { B, Spin, SectionTitle } from '../utils/styles.jsx'
 import OfferCard from '../components/OfferCard'
 
-export default function HomePage({t,setPage,setFilterCat,onOpen,onViewAgency}){
+export default function HomePage({t,setPage,setFilterCat,onOpen,onViewAgency,favIds,toggleFav}){
 
   const [feat,setFeat]=useState([]);
   useEffect(()=>{api('/offers?sort=rating').then(d=>setFeat(d.slice(0,3))).catch(()=>{});},[]);
@@ -96,7 +96,7 @@ export default function HomePage({t,setPage,setFilterCat,onOpen,onViewAgency}){
           </div>
           {feat.length===0?<Spin/>:(
             <div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
-              {feat.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency}/>)}
+              {feat.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency} isFav={favIds?.includes(o.id)} onToggleFav={toggleFav}/>)}
             </div>
           )}
         </div>

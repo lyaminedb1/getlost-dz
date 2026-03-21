@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from './context/AuthContext'
+import { api } from './api'
 import TR from './utils/translations'
 import { track } from './utils/analytics'
 import Navbar from './components/Navbar'
@@ -27,7 +28,25 @@ export default function App(){
   const [resetToken,setResetToken]=useState(null)
   const [reviewBookingId,setReviewBookingId]=useState(null)
   const [viewAgencyId,setViewAgencyId]=useState(null)
+  const [favIds,setFavIds]=useState([])
+  const {user}=useAuth()
   const t=TR[lang]
+
+  // Load favorite IDs when user logs in
+  useEffect(()=>{
+    if(user){api('/favorites/ids').then(setFavIds).catch(()=>{});}
+    else{setFavIds([]);}
+  },[user])
+
+  const toggleFav=useCallback(async(offerId)=>{
+    if(!user){setAuthModal('login');return;}
+    try{
+      const res=await api(`/favorites/${offerId}`,{method:'POST'});
+      if(res.favorited){setFavIds(p=>[...p,offerId]);}
+      else{setFavIds(p=>p.filter(id=>id!==offerId));}
+    }catch(e){console.error(e);}
+  },[user])
+
   useEffect(()=>{track("page_view",{metadata:{page}});},[page])
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search)
@@ -42,10 +61,10 @@ export default function App(){
   return(
     <div style={{direction:lang==="ar"?"rtl":"ltr"}}>
       <Navbar page={page} setPage={setPage} lang={lang} setLang={setLang} openAuth={setAuthModal} t={t}/>
-      {page==="home"&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}}/>}
-      {page==="trips"&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}}/>}
+      {page==="home"&&<HomePage t={t} setPage={setPage} setFilterCat={setFilterCat} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}} favIds={favIds} toggleFav={toggleFav}/>}
+      {page==="trips"&&<TripsPage t={t} filterCat={filterCat} setFilterCat={setFilterCat} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}} favIds={favIds} toggleFav={toggleFav}/>}
       {page==="about"&&<AboutPage t={t}/>}
-      {page==="dash"&&<DashPage t={t} openAuth={setAuthModal} setReviewBookingId={setReviewBookingId} setPage={setPage}/>}
+      {page==="dash"&&<DashPage t={t} openAuth={setAuthModal} setReviewBookingId={setReviewBookingId} setPage={setPage} favIds={favIds} toggleFav={toggleFav} onOpen={setSelOffer} onViewAgency={(id)=>{setViewAgencyId(id);setPage('agency-profile')}}/>}
       {page==="analytics"&&<AgencyAnalytics t={t} openAuth={setAuthModal}/>}
       {page==="admin"&&<AdminPage t={t} openAuth={setAuthModal}/>}
       {page==="agency-profile"&&<AgencyProfilePage agencyId={viewAgencyId} t={t} onOpen={setSelOffer} setPage={setPage}/>}

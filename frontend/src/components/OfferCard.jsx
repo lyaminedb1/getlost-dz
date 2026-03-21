@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { B } from '../utils/styles.jsx'
 import { track } from '../utils/analytics'
+import { api } from '../api'
 
-export default function OfferCard({offer,t,onOpen,onViewAgency}){
+export default function OfferCard({offer,t,onOpen,onViewAgency,isFav,onToggleFav}){
   const [hov,setHov]=useState(false)
   const avg=offer.avg_rating
   return(
@@ -13,9 +14,16 @@ export default function OfferCard({offer,t,onOpen,onViewAgency}){
         <img src={(offer.images&&offer.images[0])||offer.image_url||'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'} alt={offer.title}
           onError={e=>e.target.src='https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=500&q=80'}
           style={{width:'100%',height:200,objectFit:'cover',display:'block',transition:'transform .3s',...(hov?{transform:'scale(1.03)'}:{})}}/>
-        {offer.images&&offer.images.length>1&&<div style={{position:'absolute',top:12,right:12,background:'rgba(0,0,0,.5)',borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:700,color:'#fff'}}>📷 {offer.images.length}</div>}        <div style={{position:'absolute',top:12,left:12,background:'rgba(255,255,255,.95)',backdropFilter:'blur(4px)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>
+        {offer.images&&offer.images.length>1&&<div style={{position:'absolute',top:12,right:12,background:'rgba(0,0,0,.5)',borderRadius:20,padding:'3px 10px',fontSize:11,fontWeight:700,color:'#fff'}}>📷 {offer.images.length}</div>}
+        <div style={{position:'absolute',top:12,left:12,background:'rgba(255,255,255,.95)',backdropFilter:'blur(4px)',borderRadius:20,padding:'4px 12px',fontSize:11,fontWeight:700,color:'var(--teal2)'}}>
           {t.catIco?.[offer.category]} {t.cats?.[offer.category]||offer.category}
         </div>
+        {onToggleFav&&<button onClick={e=>{e.stopPropagation();onToggleFav(offer.id)}}
+          style={{position:'absolute',bottom:12,left:12,background:'rgba(255,255,255,.95)',border:'none',borderRadius:'50%',width:34,height:34,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,boxShadow:'0 2px 8px rgba(0,0,0,.12)',transition:'transform .15s'}}
+          onMouseEnter={e=>e.currentTarget.style.transform='scale(1.15)'}
+          onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}>
+          {isFav?'❤️':'🤍'}
+        </button>}
         {avg&&<div style={{position:'absolute',bottom:12,right:12,background:'rgba(255,255,255,.95)',borderRadius:20,padding:'4px 10px',display:'flex',alignItems:'center',gap:4}}>
           <span style={{color:'#F59E0B',fontSize:13}}>★</span>
           <span style={{fontSize:12,fontWeight:800,color:'var(--navy)'}}>{avg}</span>

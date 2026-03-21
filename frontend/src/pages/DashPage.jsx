@@ -8,8 +8,9 @@ import ReviewCard from "../components/ReviewCard"
 import ReviewModal from "../components/ReviewModal"
 import ChatModal from "../components/ChatModal"
 import ImageUpload from "../components/ImageUpload"
+import OfferCard from "../components/OfferCard"
 
-export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
+export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,toggleFav,onOpen,onViewAgency}){
 
   const {user}=useAuth();
   const {show}=useToast();
@@ -23,6 +24,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
   const [bookings,setBookings]=useState([]);
   const [chatBooking,setChatBooking]=useState(null);
   const [agencyReviews,setAgencyReviews]=useState([]);
+  const [favOffers,setFavOffers]=useState([]);
   const [loading,setLoading]=useState(false);
   const [adminData,setAdminData]=useState(null);
   const [editTarget,setEditTarget]=useState(null);
@@ -40,7 +42,10 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
         const revArrays=await Promise.all(revPromises);
         setAgencyReviews(revArrays.flat());
       }
-      else if(user.role==='traveler'){setBookings(await api('/bookings/my'));}
+      else if(user.role==='traveler'){
+        setBookings(await api('/bookings/my'));
+        try{setFavOffers(await api('/favorites'));}catch(e){}
+      }
       else if(user.role==='admin'){
         try{
           const [stats,recentBookings,recentUsers,recentReviews]=await Promise.all([
@@ -119,7 +124,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
           )}
           {user.role==='traveler'&&(
             <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['bookings',t.myBook],['profile',t.profileTab]].map(([tk,lbl])=>(
+              {[['bookings',t.myBook],['favorites','❤️ Mes favoris'],['profile',t.profileTab]].map(([tk,lbl])=>(
                 <button key={tk} style={TB(tab===tk)} onClick={()=>setTab(tk)}>{lbl}</button>
               ))}
             </div>
@@ -247,33 +252,45 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage}){
             </div>
           ))}
         </>}
-        {user.role==='traveler'&&(loading?<Spin/>:
-          tab==='profile'?<ProfileTab t={t}/>:
-          bookings.length===0
-          ?<div style={{textAlign:'center',padding:'60px 0'}}>
-            <div style={{fontSize:48,marginBottom:12}}>🎫</div>
-            <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>{t.myBook}</div>
-            <p style={{color:'var(--muted)',fontSize:14}}>{t.noBook}</p>
-          </div>
-          :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
-            {bookings.map(b=>(
-              <Card key={b.id} style={{overflow:'hidden'}}>
-                {b.image_url&&<img src={b.image_url} alt={b.offer_title} style={{width:'100%',height:120,objectFit:'cover'}}/>}
-                <div style={{padding:'16px 18px'}}>
-                  <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
-                  <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
-                  {/* FIX 4: short date format */}
-                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:b.status==='confirmed'?10:0}}>
-                    <Badge status={b.status}/>
-                    <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
+        {user.role==='traveler'&&(loading?<Spin/>:<>
+          {tab==='profile'&&<ProfileTab t={t}/>}
+          {tab==='favorites'&&(
+            favOffers.length>0
+            ?<div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
+              {favOffers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency} isFav={true} onToggleFav={(id)=>{toggleFav(id);setFavOffers(p=>p.filter(x=>x.id!==id));}}/>)}
+            </div>
+            :<div style={{textAlign:'center',padding:'60px 0'}}>
+              <div style={{fontSize:48,marginBottom:12}}>❤️</div>
+              <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>Aucun favori</div>
+              <p style={{color:'var(--muted)',fontSize:14}}>Cliquez sur 🤍 pour ajouter des offres à vos favoris.</p>
+            </div>
+          )}
+          {tab==='bookings'&&(
+            bookings.length===0
+            ?<div style={{textAlign:'center',padding:'60px 0'}}>
+              <div style={{fontSize:48,marginBottom:12}}>🎫</div>
+              <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>{t.myBook}</div>
+              <p style={{color:'var(--muted)',fontSize:14}}>{t.noBook}</p>
+            </div>
+            :<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:16}}>
+              {bookings.map(b=>(
+                <Card key={b.id} style={{overflow:'hidden'}}>
+                  {b.image_url&&<img src={b.image_url} alt={b.offer_title} style={{width:'100%',height:120,objectFit:'cover'}}/>}
+                  <div style={{padding:'16px 18px'}}>
+                    <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
+                    <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:b.status==='confirmed'?10:0}}>
+                      <Badge status={b.status}/>
+                      <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
+                    </div>
+                    {b.status==='completed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}
+                    <button onClick={()=>setChatBooking(b)} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#0B2340,#0DB9A8)',color:'#fff',border:'none',fontWeight:700}}>💬 Messagerie</button>
                   </div>
-                  {b.status==='completed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}
-                  <button onClick={()=>setChatBooking(b)} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#0B2340,#0DB9A8)',color:'#fff',border:'none',fontWeight:700}}>💬 Messagerie</button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
+                </Card>
+              ))}
+            </div>
+          )}
+        </>)}
         {user.role==='admin'&&(loading?<Spin/>:<>
           {tab==='profile'&&<ProfileTab t={t}/>}
           {tab==='overview'&&adminData&&adminData.stats&&(

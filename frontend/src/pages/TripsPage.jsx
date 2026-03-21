@@ -4,7 +4,7 @@ import { B, INP, Spin, SectionTitle } from "../utils/styles.jsx"
 import { track } from "../utils/analytics"
 import OfferCard from "../components/OfferCard"
 
-export default function TripsPage({t,filterCat,setFilterCat,onOpen,onViewAgency}){
+export default function TripsPage({t,filterCat,setFilterCat,onOpen,onViewAgency,favIds,toggleFav}){
 
   const [offers,setOffers]=useState([]);
   const [loading,setLoading]=useState(true);
@@ -119,7 +119,7 @@ export default function TripsPage({t,filterCat,setFilterCat,onOpen,onViewAgency}
           :<>
             <div style={{fontSize:13,color:'var(--muted)',marginBottom:16,fontWeight:600}}>{offers.length} offre{offers.length>1?'s':''} trouvée{offers.length>1?'s':''}</div>
             <div className="offer-grid" style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:20}}>
-              {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency}/>)}
+              {offers.map(o=><OfferCard key={o.id} offer={o} t={t} onOpen={onOpen} onViewAgency={onViewAgency} isFav={favIds?.includes(o.id)} onToggleFav={toggleFav}/>)}
             </div>
           </>
         }
