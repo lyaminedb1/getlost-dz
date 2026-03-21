@@ -39,8 +39,7 @@ export default function TripsPage({t,filterCat,setFilterCat,onOpen,onViewAgency,
   const FS={fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:.8,color:'var(--muted)',display:'block',marginBottom:4};
 
   return(
-    <div style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
-      {/* Header */}
+    <div className="page-enter" style={{background:'var(--offwhite)',minHeight:'100vh',paddingTop:68}}>
       <div style={{background:'linear-gradient(135deg,var(--teal3),var(--teal4))',padding:'48px 24px 36px'}}>
         <div style={{maxWidth:1280,margin:'0 auto'}}>
           <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:'clamp(24px,4vw,38px)',color:'var(--navy)',marginBottom:6}}>Nos Voyages</div>

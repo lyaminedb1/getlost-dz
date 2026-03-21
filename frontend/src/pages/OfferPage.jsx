@@ -68,7 +68,7 @@ export default function OfferPage({ offerId, t, lang, setPage }) {
   )
 
   return (
-    <div style={{ background: 'var(--offwhite)', minHeight: '100vh', paddingTop: 68 }}>
+    <div className="page-enter" style={{ background: 'var(--offwhite)', minHeight: '100vh', paddingTop: 68 }}>
       {/* Back button */}
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 24px 0' }}>
         <button onClick={() => window.history.length > 1 ? window.history.back() : setPage('trips')}
@@ -82,7 +82,8 @@ export default function OfferPage({ offerId, t, lang, setPage }) {
         <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', marginBottom: 24 }}>
           <img src={imgs[activeImg] || FALLBACK} alt={offer.title}
             onError={e => { e.target.src = FALLBACK }}
-            style={{ width: '100%', height: 400, objectFit: 'cover', display: 'block' }} />
+            style={{ width: '100%', height: 400, objectFit: 'cover', display: 'block' }}
+            className="offer-page-hero" />
           <div style={{ position: 'absolute', top: 16, left: 16, background: 'rgba(255,255,255,.95)', borderRadius: 20, padding: '6px 16px', fontSize: 12, fontWeight: 700, color: 'var(--teal2)' }}>
             {t.catIco?.[offer.category]} {t.cats?.[offer.category]}
           </div>

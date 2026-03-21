@@ -14,7 +14,7 @@ export default function HomePage({t,setPage,setFilterCat,onOpen,onViewAgency,fav
     {k:'visa',bg:'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80'},
   ];
   return(
-    <div>
+    <div className="page-enter">
       {/* HERO */}
       <div style={{minHeight:'100vh',display:'flex',alignItems:'center',background:'linear-gradient(160deg,#E6F9F7 0%,#CCF2EE 35%,#fff 70%)',position:'relative',overflow:'hidden',paddingTop:68}}>
         {/* BG decorations */}
