@@ -33,6 +33,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
   const [editTarget,setEditTarget]=useState(null);
   const EF={title:'',category:'national',price:'',duration:'',region:'',description:'',images:[],itinerary:'',includes:'',dates:''};
   const [form,setForm]=useState(EF);
+  const [showPreview,setShowPreview]=useState(false);
   const load=useCallback(async()=>{
     if(!user)return;setLoading(true);
     try{
@@ -231,8 +232,33 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
               </div>
               <div style={{display:'flex',gap:10,marginTop:8}}>
                 <button style={B.pri} onClick={submitOffer}>{editTarget?t.save:t.submit}</button>
+                <button style={B.ghost} onClick={()=>setShowPreview(p=>!p)}>{showPreview?'✕ Fermer':'👁 Aperçu'}</button>
                 {editTarget&&<button style={B.ghost} onClick={()=>{setEditTarget(null);setForm(EF);navTab('offres');}}>{t.cancel}</button>}
               </div>
+              {showPreview&&form.title&&(
+                <div style={{marginTop:20,borderTop:'2px solid var(--teal4)',paddingTop:20}}>
+                  <div style={{fontSize:12,fontWeight:700,textTransform:'uppercase',letterSpacing:1,color:'var(--teal2)',marginBottom:12}}>👁 Aperçu de l'offre</div>
+                  <Card style={{overflow:'hidden'}}>
+                    {form.images&&form.images[0]&&<img src={form.images[0]} alt="" style={{width:'100%',height:200,objectFit:'cover'}}/>}
+                    <div style={{padding:'16px 20px'}}>
+                      <div style={{display:'inline-block',padding:'4px 12px',background:'var(--teal3)',borderRadius:20,fontSize:11,fontWeight:700,color:'var(--teal2)',marginBottom:8}}>{t.catIco?.[form.category]} {t.cats?.[form.category]}</div>
+                      <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:18,color:'var(--navy)',marginBottom:6}}>{form.title}</div>
+                      <div style={{display:'flex',gap:12,color:'var(--muted)',fontSize:12,marginBottom:10,flexWrap:'wrap'}}>
+                        <span>📍 {form.region||'—'}</span>
+                        <span>⏱ {form.duration||'—'}j</span>
+                      </div>
+                      {form.description&&<p style={{color:'var(--muted)',fontSize:13,lineHeight:1.7,marginBottom:12}}>{form.description}</p>}
+                      <div style={{fontFamily:'Nunito',fontWeight:900,fontSize:22,color:'var(--teal2)'}}>{form.price?(parseInt(form.price)).toLocaleString():'—'} <span style={{fontSize:12,color:'var(--muted)',fontWeight:500}}>DZD/pers.</span></div>
+                      {form.itinerary&&<div style={{marginTop:12,padding:'12px 16px',background:'var(--offwhite)',borderRadius:12}}>
+                        <div style={{fontSize:11,fontWeight:700,color:'var(--teal2)',textTransform:'uppercase',marginBottom:6}}>Programme</div>
+                        {form.itinerary.split('\n').filter(Boolean).map((s,i)=><div key={i} style={{fontSize:12,color:'var(--text)',marginBottom:4}}>
+                          <span style={{display:'inline-flex',alignItems:'center',justifyContent:'center',width:18,height:18,borderRadius:'50%',background:'var(--teal3)',color:'var(--teal2)',fontSize:9,fontWeight:800,marginRight:6}}>{i+1}</span>{s}
+                        </div>)}
+                      </div>}
+                    </div>
+                  </Card>
+                </div>
+              )}
             </Card>
           )}
           {tab==='profile'&&<ProfileTab t={t}/>}
@@ -293,9 +319,32 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
                   {b.image_url&&<img src={b.image_url} alt={b.offer_title} style={{width:'100%',height:120,objectFit:'cover'}}/>}
                   <div style={{padding:'16px 18px'}}>
                     <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)',marginBottom:6}}>{b.offer_title}</div>
-                    <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:8}}>{(b.price||0).toLocaleString()} DZD</div>
-                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:b.status==='confirmed'?10:0}}>
-                      <Badge status={b.status}/>
+                    <div style={{color:'var(--teal2)',fontWeight:700,fontFamily:'Nunito',fontSize:18,marginBottom:10}}>{(b.price||0).toLocaleString()} DZD</div>
+                    {/* Booking timeline */}
+                    <div style={{marginBottom:10}}>
+                      <div style={{display:'flex',alignItems:'center',gap:0,marginBottom:6}}>
+                        {['pending','contacted','confirmed','completed'].map((step,i,arr)=>{
+                          const statusOrder=['pending','contacted','didnt_answer','pre_reserved','confirmed','completed','cancelled'];
+                          const currentIdx=statusOrder.indexOf(b.status);
+                          const stepIdx=statusOrder.indexOf(step);
+                          const done=currentIdx>=stepIdx;
+                          const isCancelled=b.status==='cancelled';
+                          return <div key={step} style={{flex:1,display:'flex',alignItems:'center'}}>
+                            <div style={{width:18,height:18,borderRadius:'50%',background:isCancelled?'#FEE2E2':done?'var(--teal)':'#E2EBF0',display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,color:isCancelled?'#991B1B':done?'#fff':'var(--muted)',fontWeight:800,flexShrink:0}}>
+                              {isCancelled?'✕':done?'✓':(i+1)}
+                            </div>
+                            {i<arr.length-1&&<div style={{flex:1,height:2,background:isCancelled?'#FECACA':done?'var(--teal)':'#E2EBF0',margin:'0 2px'}}/>}
+                          </div>
+                        })}
+                      </div>
+                      <div style={{display:'flex',justifyContent:'space-between'}}>
+                        {['Envoyée','Contacté','Confirmé','Terminé'].map((lbl,i)=>(
+                          <div key={i} style={{fontSize:9,color:'var(--muted)',fontWeight:600,textAlign:'center',flex:1}}>{lbl}</div>
+                        ))}
+                      </div>
+                    </div>
+                    <Badge status={b.status}/>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:8,marginBottom:10}}>
                       <span style={{fontSize:11,color:'var(--muted)'}}>{b.created_at?new Date(b.created_at).toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'}):''}</span>
                     </div>
                     {b.status==='completed'&&<button onClick={()=>setReviewBookingId(String(b.id))} style={{...B.sm,width:'100%',marginTop:6,background:'linear-gradient(135deg,#F59E0B,#FBBF24)',color:'#fff',border:'none',fontWeight:700}}>⭐ Laisser un avis</button>}

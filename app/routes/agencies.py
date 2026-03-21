@@ -247,50 +247,6 @@ def update_booking_status(bid):
         except Exception as e:
             print(f"[email] cancelled error: {e}")
 
-    if status == "confirmed":
-        try:
-            html = f"""
-            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-              <div style="text-align:center;margin-bottom:24px;">
-                <span style="font-size:48px;">✅</span>
-                <h2 style="color:#0B2340;">Get Lost DZ</h2>
-              </div>
-              <div style="background:#D1FAE5;border-radius:16px;padding:28px;text-align:center;">
-                <h3 style="color:#065F46;">Réservation confirmée ! 🎉</h3>
-                <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
-                <p>Votre réservation pour <strong>{booking['offer_title']}</strong> a été <strong>confirmée</strong> par l'agence.</p>
-                <p style="color:#6B8591;">L'agence vous contactera prochainement pour les détails.</p>
-                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#10B981;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
-                  Voir mes réservations
-                </a>
-              </div>
-            </div>"""
-            send_email(booking["traveler_email"], "✅ Réservation confirmée — Get Lost DZ", html)
-        except Exception as e:
-            print(f"[email] confirmed error: {e}")
-
-    if status == "cancelled":
-        try:
-            html = f"""
-            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-              <div style="text-align:center;margin-bottom:24px;">
-                <span style="font-size:48px;">❌</span>
-                <h2 style="color:#0B2340;">Get Lost DZ</h2>
-              </div>
-              <div style="background:#FEE2E2;border-radius:16px;padding:28px;text-align:center;">
-                <h3 style="color:#991B1B;">Réservation annulée</h3>
-                <p>Bonjour <strong>{booking['traveler_name']}</strong>,</p>
-                <p>Votre réservation pour <strong>{booking['offer_title']}</strong> a été annulée.</p>
-                <p style="color:#6B8591;">Explorez nos autres voyages disponibles.</p>
-                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#0DB9A8;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
-                  Voir les voyages
-                </a>
-              </div>
-            </div>"""
-            send_email(booking["traveler_email"], "❌ Réservation annulée — Get Lost DZ", html)
-        except Exception as e:
-            print(f"[email] cancelled error: {e}")
-
     if status == "completed":
         review_url = f"{APP_URL}/?review_booking={bid}"
         html = f"""

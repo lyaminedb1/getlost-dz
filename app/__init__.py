@@ -95,12 +95,14 @@ def create_app():
     import os
     from flask import send_from_directory
 
+    static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'static'))
+
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
     def serve(path):
-        if path and os.path.exists(os.path.join("static", path)):
-            return send_from_directory("../static", path)
-        return send_from_directory("../static", "index.html")
+        if path and os.path.exists(os.path.join(static_dir, path)):
+            return send_from_directory(static_dir, path)
+        return send_from_directory(static_dir, "index.html")
 
     from app.routes.messages import messages_bp
     app.register_blueprint(messages_bp, url_prefix='/api')

@@ -61,11 +61,13 @@ def get_offers():
 @bp.route("/offers/<int:oid>", methods=["GET"])
 def get_offer(oid):
     o = db_query("""SELECT o.*, a.name agency_name, a.logo agency_logo, a.description agency_desc,
+             u2.phone agency_phone,
              ROUND(AVG(CASE WHEN r.status='approved' THEN r.rating END),1) avg_rating,
              COUNT(CASE WHEN r.status='approved' THEN 1 END) review_count
              FROM offers o LEFT JOIN agencies a ON o.agency_id=a.id
+             LEFT JOIN users u2 ON a.user_id=u2.id
              LEFT JOIN reviews r ON r.offer_id=o.id
-             WHERE o.id=? GROUP BY o.id, a.name, a.logo, a.description""", (oid,), one=True)
+             WHERE o.id=? GROUP BY o.id, a.name, a.logo, a.description, u2.phone""", (oid,), one=True)
     if not o:
         return jsonify({"error": "Not found"}), 404
     db_run("UPDATE offers SET views=views+1 WHERE id=?", (oid,))
