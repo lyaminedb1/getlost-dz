@@ -18,6 +18,7 @@ import AgencyAnalytics from './pages/AgencyAnalytics'
 import AgencyProfilePage from './pages/AgencyProfilePage'
 import OfferPage from './pages/OfferPage'
 import AuthPage from './pages/AuthPage'
+import NotFoundPage from './pages/NotFoundPage'
 
 /* ── Clean URL routing ────────────────────────────────────────────── */
 function parsePath(pathname) {
@@ -38,7 +39,7 @@ function parsePath(pathname) {
     window.history.replaceState({}, '', h)
     return parsePath(h)
   }
-  return { page: 'home' }
+  return { page: '404' }
 }
 
 const PAGE_PATHS = {
@@ -133,6 +134,7 @@ export default function App() {
       {page === "offer" && <OfferPage offerId={route.offerId} t={t} lang={lang} setPage={setPage} />}
       {page === "login" && <AuthPage mode="login" t={t} setPage={setPage} />}
       {page === "register" && <AuthPage mode="register" t={t} setPage={setPage} />}
+      {page === "404" && <NotFoundPage setPage={setPage} />}
       <Footer t={t} setPage={setPage} />
       {forgotModal && <ForgotPasswordModal onClose={() => setForgotModal(false)} t={t} openAuth={openAuth} />}
       {resetToken && <ResetPasswordModal token={resetToken} onClose={() => setResetToken(null)} t={t} openAuth={openAuth} />}

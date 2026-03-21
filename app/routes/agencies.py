@@ -108,7 +108,7 @@ def book():
     )
     # Email to agency
     try:
-        offer = db_query("SELECT o.*, a.name agency_name, u2.email agency_email FROM offers o JOIN agencies ag ON o.agency_id=ag.id JOIN users u2 ON ag.user_id=u2.id WHERE o.id=?", (oid,), one=True)
+        offer = db_query("SELECT o.*, ag.name agency_name, u2.email agency_email FROM offers o JOIN agencies ag ON o.agency_id=ag.id JOIN users u2 ON ag.user_id=u2.id WHERE o.id=?", (oid,), one=True)
         traveler = db_query("SELECT name, email FROM users WHERE id=?", (u["id"],), one=True)
         if offer and offer.get("agency_email"):
             html = f"""
