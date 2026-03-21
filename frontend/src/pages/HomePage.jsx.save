@@ -1,3 +1,5 @@
+
+
 import { useState, useEffect, useRef } from 'react'
 import { api } from '../api'
 import { B, Spin, SectionTitle } from '../utils/styles.jsx'
@@ -37,11 +39,11 @@ function AnimNum({ target, suffix = '', inView }) {
 
 /* ── Hero background images (real Algeria/travel) ── */
 const HERO_IMAGES = [
-  'https://images.pexels.com/photos/3601425/pexels-photo-3601425.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/2132008/pexels-photo-2132008.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/2108845/pexels-photo-2108845.jpeg?auto=compress&w=1920',
+  'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7c?w=1920&q=80', // Zanzibar turquoise water
+  'https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=1920&q=80', // Sahara desert dunes
+  'https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=1920&q=80', // Vietnam rice terraces
+  'https://images.unsplash.com/photo-1586500036706-41963de24d8b?w=1920&q=80', // Zanzibar beach boats
+  'https://images.unsplash.com/photo-1539768942893-daf53e736b68?w=1920&q=80', // Algeria Casbah / Sahara
 ]
 
 /* ── Testimonials ── */

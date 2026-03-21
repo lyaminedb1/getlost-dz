@@ -1,49 +1,114 @@
-# 🏔️ Get Lost DZ — Travel Platform
+# 🏔️ Get Lost DZ — Plateforme de Voyage Algérienne
 
-> Algerian travel agency platform connecting travelers with the best local agencies.
+> Connecter les voyageurs aux meilleures agences locales d'Algérie pour des expériences authentiques.
 
-## 🚀 Deploy for FREE in 3 minutes
+**Production** : [getlost-dz.onrender.com](https://getlost-dz.onrender.com)
 
-### Option 1: Railway (Recommended — easiest)
-1. Go to [railway.app](https://railway.app) → Sign up free with GitHub
-2. Click **New Project → Deploy from GitHub repo**
-3. Push this folder to a GitHub repo first (see below), then connect it
-4. Railway auto-detects Python → deploys automatically
-5. Click **Generate Domain** → your live URL is ready!
+---
 
-### Option 2: Render.com
-1. Go to [render.com](https://render.com) → Sign up free
-2. Click **New → Web Service → Connect GitHub repo**
-3. Build command: `pip install -r requirements.txt`
-4. Start command: `gunicorn server:app --bind 0.0.0.0:$PORT`
-5. Deploy → free URL in ~2 minutes
+## 🛠 Stack technique
 
-### Push to GitHub (required for both):
-```bash
-cd getlost2
-git init
-git add .
-git commit -m "Get Lost DZ initial deploy"
-# Create repo on github.com then:
-git remote add origin https://github.com/YOUR_USERNAME/getlost-dz.git
-git push -u origin main
+| Couche | Technologies |
+|--------|-------------|
+| **Backend** | Python / Flask, JWT auth, bcrypt |
+| **Base de données** | PostgreSQL (production) · SQLite (développement) |
+| **Frontend** | React 18, Vite, CSS-in-JS |
+| **Images** | Cloudinary (upload, HEIC→JPG) |
+| **Déploiement** | Render.com |
+
+**Design** : Teal `#0DB9A8` · Navy `#0B2340` · Poppins + Nunito
+
+## ✨ Fonctionnalités
+
+- **Landing page** — Hero plein écran avec slider d'images, stats animées au scroll, section "Comment ça marche" en 3 étapes, témoignages, CTA
+- **Catalogue de voyages** — Filtres avancés (catégorie, prix, durée, région), tri, recherche
+- **Page offre dédiée** — Galerie d'images, programme, inclus, dates, réservation, avis
+- **Partage social** — Boutons WhatsApp, Facebook, copier le lien sur chaque offre
+- **Système d'avis** — Notes + commentaires voyageurs, réponses agences
+- **Favoris / Wishlist** — ❤️ par voyageur
+- **Chat intégré** — Messagerie agence ↔ voyageur
+- **Notifications** — Cloche + polling temps réel
+- **Dashboard agence** — Gestion offres, réservations, analytics, profil
+- **Admin panel** — Validation offres, gestion agences/users/avis, analytics globales
+- **Auth complète** — JWT, inscription, connexion, mot de passe oublié, pages dédiées
+- **Upload images** — Avatar + galerie offres (max 6), conversion HEIC→JPG via Cloudinary
+- **Profil agence public** — Page dédiée avec infos, offres, avis
+- **SEO** — Meta tags + Open Graph dynamiques
+- **3 langues** — Français, English, العربية
+- **Responsive** — Mobile-first, animations CSS (stagger, fade, smooth scroll)
+- **Page 404** personnalisée
+
+## 📁 Architecture
+
+```
+├── app/
+│   ├── __init__.py      # Flask app factory + blueprint registration
+│   ├── auth.py          # JWT token_required decorator → g.user
+│   ├── config.py        # Config (DB URL, JWT secret, Cloudinary)
+│   ├── db.py            # db_query() / db_run() — ? placeholders (auto %s pour PG)
+│   ├── utils.py         # Helpers (slugify, etc.)
+│   ├── models/          # SQL init + seed data
+│   └── routes/          # Blueprints (offers, bookings, reviews, chat, admin…)
+├── frontend/
+│   ├── src/
+│   │   ├── App.jsx      # Router (pushState), page dispatcher
+│   │   ├── api/         # api(path, opts) → JSON parsed, JWT auto-attached
+│   │   ├── components/  # Navbar, Footer, OfferCard, ChatModal, ImageUpload…
+│   │   ├── context/     # AuthContext, ToastContext
+│   │   ├── hooks/       # useNotifications
+│   │   ├── pages/       # HomePage, TripsPage, OfferPage, DashPage, AdminPage…
+│   │   ├── styles/      # globals.css (variables, animations, responsive)
+│   │   └── utils/       # translations, slug, wilayas, validation, styles
+│   └── vite.config.js
+├── server.py            # Entry point — build frontend + serve Flask
+├── start.sh             # Production start script
+└── requirements.txt
 ```
 
-## 💻 Run Locally
+**Routing** : `history.pushState` dans `App.jsx`, Flask catch-all sert `index.html`
+
+**URLs** : `/voyages`, `/offre/:slug`, `/agence/:slug`, `/connexion`, `/inscription`, `/mon-espace/:sub`, `/admin/:sub`
+
+## 💻 Développement local
+
 ```bash
+# Backend
 pip install -r requirements.txt
 python server.py
-# Open http://localhost:5000
+# → http://localhost:5000
+
+# Frontend (dev avec HMR)
+cd frontend
+npm install
+npm run dev
+# → http://localhost:5173 (proxy vers Flask)
 ```
 
-## 🔑 Demo Accounts
-| Role | Email | Password |
-|------|-------|----------|
-| Admin | admin@getlostdz.com | admin123 |
-| Agency | agency1@getlostdz.com | agency123 |
-| Traveler | sarah@test.com | user123 |
+## 🔑 Comptes de test
 
-## 🛠 Stack
-- **Backend**: Python/Flask + SQLite + JWT + bcrypt
-- **Frontend**: React (CDN) + single HTML file
-- **Deploy**: Railway / Render (free tier)
+| Rôle | Email | Mot de passe |
+|------|-------|-------------|
+| Admin | admin@getlostdz.com | admin123 |
+| Agence | agency1@getlostdz.com | agency123 |
+| Voyageur | sarah@test.com | user123 |
+
+## 🚀 Déploiement
+
+### Render.com (actuel)
+- Build : `pip install -r requirements.txt && cd frontend && npm install && npm run build`
+- Start : `gunicorn server:app --bind 0.0.0.0:$PORT`
+- Variables d'environnement : `DATABASE_URL`, `JWT_SECRET`, `CLOUDINARY_*`
+
+### Railway (alternative)
+- Push vers GitHub → Railway auto-détecte Python → déploie automatiquement
+
+## 📝 Roadmap
+
+- [x] Landing page refonte (hero slider, stats, témoignages, CTA)
+- [x] Partage social (WhatsApp, Facebook, copier lien)
+- [x] Nettoyage repo (.gitignore, README)
+- [ ] Paiement en ligne — CIB / Dahabia / BaridiMob
+
+---
+
+© Get Lost DZ — Tous droits réservés

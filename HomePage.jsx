@@ -37,11 +37,11 @@ function AnimNum({ target, suffix = '', inView }) {
 
 /* ── Hero background images (real Algeria/travel) ── */
 const HERO_IMAGES = [
-  'https://images.pexels.com/photos/3601425/pexels-photo-3601425.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/3889843/pexels-photo-3889843.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/2166559/pexels-photo-2166559.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/2132008/pexels-photo-2132008.jpeg?auto=compress&w=1920',
-  'https://images.pexels.com/photos/2108845/pexels-photo-2108845.jpeg?auto=compress&w=1920',
+  'https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=1920&q=80', // Zanzibar beach
+  'https://images.unsplash.com/photo-1583266994082-c21f77a67330?w=1920&q=80', // Sahara Algeria
+  'https://images.unsplash.com/photo-1528127269322-539801943592?w=1920&q=80', // Vietnam Ha Long Bay
+  'https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7c?w=1920&q=80', // Zanzibar turquoise
+  'https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=1920&q=80', // Algeria Hoggar
 ]
 
 /* ── Testimonials ── */
