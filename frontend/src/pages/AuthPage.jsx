@@ -37,8 +37,8 @@ export default function AuthPage({ mode, t, setPage }) {
   }
 
   return (
-    <div style={{ background: 'var(--offwhite)', minHeight: '100vh', paddingTop: 68, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '88px 16px 60px' }}>
-      <Card style={{ padding: 32, maxWidth: isLogin ? 420 : 540, width: '100%' }}>
+    <div style={{ background: 'var(--offwhite)', minHeight: '100vh', paddingTop: 68, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '88px 12px 60px' }}>
+      <Card style={{ padding: 'clamp(16px, 4vw, 32px)', maxWidth: isLogin ? 420 : 540, width: '100%', overflow: 'hidden' }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <img src="/logo-1.png" alt="Get Lost DZ" style={{ height: 52, marginBottom: 14 }} onError={e => e.target.style.display = 'none'} />
           <div style={{ fontFamily: 'Nunito', fontWeight: 900, fontSize: 22, color: 'var(--navy)' }}>{isLogin ? t.loginTitle : t.regTitle}</div>
