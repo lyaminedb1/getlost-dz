@@ -19,25 +19,31 @@ import AgencyProfilePage from './pages/AgencyProfilePage'
 import OfferPage from './pages/OfferPage'
 import AuthPage from './pages/AuthPage'
 
-/* ── Hash routing ─────────────────────────────────────────────────── */
-function parseHash(hash) {
-  const h = (hash || '').replace('#', '') || '/'
-  if (h === '/' || h === '') return { page: 'home' }
-  if (h === '/voyages') return { page: 'trips' }
-  if (h === '/a-propos') return { page: 'about' }
-  if (h === '/mon-espace') return { page: 'dash' }
-  if (h === '/admin') return { page: 'admin' }
-  if (h === '/analytics') return { page: 'analytics' }
-  if (h === '/connexion') return { page: 'login' }
-  if (h === '/inscription') return { page: 'register' }
-  if (h.startsWith('/offre/')) return { page: 'offer', offerId: fromSlug(h.split('/offre/')[1]) }
-  if (h.startsWith('/agence/')) return { page: 'agency-profile', agencyId: fromSlug(h.split('/agence/')[1]) }
+/* ── Clean URL routing ────────────────────────────────────────────── */
+function parsePath(pathname) {
+  const p = pathname || '/'
+  if (p === '/') return { page: 'home' }
+  if (p === '/voyages') return { page: 'trips' }
+  if (p === '/a-propos') return { page: 'about' }
+  if (p === '/mon-espace') return { page: 'dash' }
+  if (p === '/admin') return { page: 'admin' }
+  if (p === '/analytics') return { page: 'analytics' }
+  if (p === '/connexion') return { page: 'login' }
+  if (p === '/inscription') return { page: 'register' }
+  if (p.startsWith('/offre/')) return { page: 'offer', offerId: fromSlug(p.split('/offre/')[1]) }
+  if (p.startsWith('/agence/')) return { page: 'agency-profile', agencyId: fromSlug(p.split('/agence/')[1]) }
+  // Legacy hash support — redirect
+  if (window.location.hash.startsWith('#/')) {
+    const h = window.location.hash.replace('#', '')
+    window.history.replaceState({}, '', h)
+    return parsePath(h)
+  }
   return { page: 'home' }
 }
 
-const PAGE_HASHES = {
-  home: '#/', trips: '#/voyages', about: '#/a-propos', dash: '#/mon-espace',
-  admin: '#/admin', analytics: '#/analytics', login: '#/connexion', register: '#/inscription',
+const PAGE_PATHS = {
+  home: '/', trips: '/voyages', about: '/a-propos', dash: '/mon-espace',
+  admin: '/admin', analytics: '/analytics', login: '/connexion', register: '/inscription',
 }
 
 export default function App() {
@@ -51,23 +57,27 @@ export default function App() {
   const t = TR[lang]
 
   // ── Route state ──
-  const [route, setRoute] = useState(() => parseHash(window.location.hash))
+  const [route, setRoute] = useState(() => parsePath(window.location.pathname))
   const page = route.page
 
+  // Listen for back/forward
   useEffect(() => {
-    const onHash = () => { setRoute(parseHash(window.location.hash)); window.scrollTo(0, 0) }
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+    const onPop = () => { setRoute(parsePath(window.location.pathname)); window.scrollTo(0, 0) }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
   }, [])
 
   // Navigate
   const setPage = useCallback((pg, opts = {}) => {
-    let hash
-    if (pg === 'offer' && opts.offerId) hash = `#/offre/${opts.slug || opts.offerId}`
-    else if (pg === 'agency-profile' && opts.agencyId) hash = `#/agence/${opts.slug || opts.agencyId}`
-    else hash = PAGE_HASHES[pg] || '#/'
-    if (window.location.hash !== hash) window.location.hash = hash
-    else { setRoute(parseHash(hash)); window.scrollTo(0, 0) }
+    let path
+    if (pg === 'offer' && opts.offerId) path = `/offre/${opts.slug || opts.offerId}`
+    else if (pg === 'agency-profile' && opts.agencyId) path = `/agence/${opts.slug || opts.agencyId}`
+    else path = PAGE_PATHS[pg] || '/'
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path)
+      setRoute(parsePath(path))
+    }
+    window.scrollTo(0, 0)
   }, [])
 
   const viewAgency = useCallback((id) => setPage('agency-profile', { agencyId: id }), [setPage])
@@ -99,14 +109,13 @@ export default function App() {
     const params = new URLSearchParams(window.location.search)
     const tok = params.get("reset_token")
     const rbid = params.get("review_booking")
-    if (tok) { setResetToken(tok); window.history.replaceState({}, '', window.location.pathname + window.location.hash) }
-    if (rbid) { setReviewBookingId(rbid); window.history.replaceState({}, '', window.location.pathname + window.location.hash) }
+    if (tok) { setResetToken(tok); window.history.replaceState({}, '', window.location.pathname) }
+    if (rbid) { setReviewBookingId(rbid); window.history.replaceState({}, '', window.location.pathname) }
     const handler = () => setForgotModal(true)
     document.addEventListener("openForgot", handler)
     return () => document.removeEventListener("openForgot", handler)
   }, [])
 
-  // Redirect to login page if auth required
   const openAuth = useCallback((mode) => setPage(mode === 'register' ? 'register' : 'login'), [setPage])
 
   return (
