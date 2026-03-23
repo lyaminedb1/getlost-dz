@@ -9,6 +9,7 @@ import ReviewModal from "../components/ReviewModal"
 import ChatModal from "../components/ChatModal"
 import ImageUpload from "../components/ImageUpload"
 import OfferCard from "../components/OfferCard"
+import BookingChecklist from "../components/BookingChecklist"
 
 export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,toggleFav,onOpen,onViewAgency,sub}){
 
@@ -16,7 +17,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
   const {show}=useToast();
 
   // Map sub-route to tab name
-  const SUB_MAP_AGENCY = {'':'stats','reservations':'bookings','offres':'offers','nouvelle-offre':'add','avis':'reviews','archive':'archive','favoris':'favorites','profil':'profile'};
+  const SUB_MAP_AGENCY = {'':'stats','reservations':'bookings','offres':'offers','nouvelle-offre':'add','demandes':'requests','avis':'reviews','archive':'archive','favoris':'favorites','profil':'profile'};
   const SUB_MAP_TRAVELER = {'':'bookings','favoris':'favorites','profil':'profile'};
   const SUB_MAP_ADMIN = {'':'overview','activite':'activity','profil':'profile'};
   const subMap = user?.role==='agency'?SUB_MAP_AGENCY:user?.role==='admin'?SUB_MAP_ADMIN:SUB_MAP_TRAVELER;
@@ -26,6 +27,8 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
   const [offers,setOffers]=useState([]);
   const [bookings,setBookings]=useState([]);
   const [chatBooking,setChatBooking]=useState(null);
+  const [checklistBooking,setChecklistBooking]=useState(null);
+  const [customRequests,setCustomRequests]=useState([]);
   const [agencyReviews,setAgencyReviews]=useState([]);
   const [favOffers,setFavOffers]=useState([]);
   const [loading,setLoading]=useState(false);
@@ -47,6 +50,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
         const revArrays=await Promise.all(revPromises);
         setAgencyReviews(revArrays.flat());
         try{setFavOffers(await api('/favorites'));}catch(e){}
+        try{setCustomRequests(await api(`/agencies/${user.agencyId}/custom-requests`));}catch(e){}
       }
       else if(user.role==='traveler'){
         setBookings(await api('/bookings/my'));
@@ -124,7 +128,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
           </div>
           {user.role==='agency'&&(
             <div className="dash-tabs" style={{display:'flex',borderBottom:'2px solid rgba(0,0,0,.08)',gap:4}}>
-              {[['',t.stats2],['reservations',t.myBook],['offres',t.myOffers],['nouvelle-offre',editTarget?t.save:t.addOffer],['avis','Avis'],['archive','Archive'],['favoris','Favoris'],['profil',t.profileTab]].map(([sk,lbl])=>(
+              {[['',t.stats2],['reservations',t.myBook],['offres',t.myOffers],['nouvelle-offre',editTarget?t.save:t.addOffer],['demandes','Demandes'],['avis','Avis'],['archive','Archive'],['favoris','Favoris'],['profil',t.profileTab]].map(([sk,lbl])=>(
                 <button key={sk} style={TB(tab===(SUB_MAP_AGENCY[sk]))} onClick={()=>{if(sk!=='nouvelle-offre'){setEditTarget(null);setForm(EF);}navTab(sk);}}>{lbl}</button>
               ))}
             </div>
@@ -265,6 +269,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
                                     {BOOKING_STATUSES.map(s=><option key={s.v} value={s.v}>{s.label}</option>)}
                                   </select>
                                   <button onClick={()=>setChatBooking(b)} style={{padding:'4px 10px',borderRadius:6,background:'var(--navy)',color:'#fff',border:'none',fontSize:10,fontWeight:700,cursor:'pointer'}}>Chat</button>
+                                  <button onClick={()=>setChecklistBooking(b)} style={{padding:'4px 10px',borderRadius:6,background:'var(--teal)',color:'#fff',border:'none',fontSize:10,fontWeight:700,cursor:'pointer'}}>Suivi</button>
                                 </div>
                               </div>
                             ))}
@@ -400,6 +405,58 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
               <div style={{fontSize:48,marginBottom:12}}>❤️</div>
               <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:18,color:'var(--navy)',marginBottom:6}}>Aucun favori</div>
               <p style={{color:'var(--muted)',fontSize:14}}>Cliquez sur 🤍 pour ajouter des offres à vos favoris.</p>
+            </div>
+          ))}
+          {tab==='requests'&&(loading?<Spin/>:(
+            <div>
+              <div style={{fontSize:14,fontWeight:700,color:'var(--navy)',marginBottom:16}}>Demandes de voyage sur mesure ({customRequests.length})</div>
+              {customRequests.length===0
+                ?<div style={{textAlign:'center',padding:'60px 0',color:'var(--muted)'}}>
+                  <div style={{fontSize:40,marginBottom:12}}>✈️</div>
+                  <div style={{fontFamily:'Nunito',fontWeight:700,fontSize:16}}>Aucune demande</div>
+                  <p style={{fontSize:13,marginTop:4}}>Les voyageurs peuvent envoyer des demandes depuis votre page agence.</p>
+                </div>
+                :<div style={{display:'flex',flexDirection:'column',gap:12}}>
+                  {customRequests.map(cr=>(
+                    <Card key={cr.id} style={{padding:18}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:10}}>
+                        <div>
+                          <div style={{fontFamily:'Nunito',fontWeight:800,fontSize:15,color:'var(--navy)'}}>{cr.name}</div>
+                          <div style={{fontSize:12,color:'var(--muted)'}}>{cr.email}{cr.phone?' — '+cr.phone:''}</div>
+                        </div>
+                        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+                          <select value={cr.status} onChange={async e=>{
+                            try{await api(`/custom-requests/${cr.id}/status`,{method:'PATCH',body:{status:e.target.value}});load();}
+                            catch(er){show(er.message,'err');}
+                          }} style={{padding:'4px 10px',borderRadius:8,border:'1px solid #E2EBF0',fontSize:11,fontWeight:600,cursor:'pointer',background:cr.status==='new'?'#FEF3C7':cr.status==='contacted'?'#DBEAFE':cr.status==='converted'?'#D1FAE5':'#F3F4F6'}}>
+                            <option value="new">Nouvelle</option>
+                            <option value="contacted">Contactee</option>
+                            <option value="converted">Convertie</option>
+                            <option value="declined">Refusee</option>
+                          </select>
+                          <span style={{fontSize:10,color:'var(--muted)'}}>{fmtDate(cr.created_at)}</span>
+                        </div>
+                      </div>
+                      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:8,marginBottom:10}}>
+                        <div style={{background:'#F7FAFA',borderRadius:8,padding:'6px 10px'}}><div style={{fontSize:9,color:'var(--muted)',fontWeight:700,textTransform:'uppercase'}}>Mois</div><div style={{fontSize:13,fontWeight:600,color:'var(--navy)'}}>{cr.month}</div></div>
+                        <div style={{background:'#F7FAFA',borderRadius:8,padding:'6px 10px'}}><div style={{fontSize:9,color:'var(--muted)',fontWeight:700,textTransform:'uppercase'}}>Duree</div><div style={{fontSize:13,fontWeight:600,color:'var(--navy)'}}>{cr.duration||'—'}j</div></div>
+                        <div style={{background:'#F7FAFA',borderRadius:8,padding:'6px 10px'}}><div style={{fontSize:9,color:'var(--muted)',fontWeight:700,textTransform:'uppercase'}}>Budget</div><div style={{fontSize:13,fontWeight:600,color:'var(--navy)'}}>{cr.budget||'Non defini'}</div></div>
+                        <div style={{background:'#F7FAFA',borderRadius:8,padding:'6px 10px'}}><div style={{fontSize:9,color:'var(--muted)',fontWeight:700,textTransform:'uppercase'}}>Style</div><div style={{fontSize:13,fontWeight:600,color:'var(--navy)'}}>{cr.style==='relax'?'Chill / Relax':cr.style==='active'?'Actif / Aventure':cr.style==='mix'?'Mix':'—'}</div></div>
+                        <div style={{background:'#F7FAFA',borderRadius:8,padding:'6px 10px'}}><div style={{fontSize:9,color:'var(--muted)',fontWeight:700,textTransform:'uppercase'}}>Safari</div><div style={{fontSize:13,fontWeight:600,color:'var(--navy)'}}>{cr.safari==='yes'?'Interesse':cr.safari==='maybe'?'Pourquoi pas':cr.safari==='no'?'Non':'—'}</div></div>
+                        <div style={{background:'#F7FAFA',borderRadius:8,padding:'6px 10px'}}><div style={{fontSize:9,color:'var(--muted)',fontWeight:700,textTransform:'uppercase'}}>Voyageurs</div><div style={{fontSize:13,fontWeight:600,color:'var(--navy)'}}>{(cr.travelers||[]).length} pers. {(cr.travelers||[]).map(t2=>t2.age?t2.age+'ans':'').filter(Boolean).join(', ')}</div></div>
+                      </div>
+                      {cr.message&&<div style={{background:'#F7FAFA',borderRadius:8,padding:'10px 12px',fontSize:13,color:'var(--text)',lineHeight:1.6,marginBottom:8}}>{cr.message}</div>}
+                      <div>
+                        <label style={{fontSize:10,fontWeight:700,color:'var(--muted)',display:'block',marginBottom:3,textTransform:'uppercase'}}>Notes agence</label>
+                        <textarea style={{width:'100%',border:'1px solid #E2EBF0',borderRadius:8,padding:'8px 10px',fontSize:12,resize:'vertical',minHeight:40,fontFamily:'inherit'}}
+                          defaultValue={cr.agency_notes||''} onBlur={async e=>{
+                            try{await api(`/custom-requests/${cr.id}/status`,{method:'PATCH',body:{agency_notes:e.target.value}});}catch(er){}
+                          }} placeholder="Notes internes..."/>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              }
             </div>
           ))}
           {tab==='archive'&&(loading?<Spin/>:(
@@ -595,6 +652,7 @@ export default function DashPage({t,openAuth,setReviewBookingId,setPage,favIds,t
       </div>
     </div>
     {chatBooking&&<ChatModal booking={chatBooking} onClose={()=>setChatBooking(null)}/>}
+    {checklistBooking&&<BookingChecklist bookingId={checklistBooking.id} onClose={()=>setChecklistBooking(null)}/>}
     </>
   );
 }

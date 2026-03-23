@@ -66,6 +66,39 @@ def init_db():
                 label TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS custom_requests (
+                id SERIAL PRIMARY KEY,
+                agency_id INTEGER NOT NULL REFERENCES agencies(id),
+                user_id INTEGER REFERENCES users(id),
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT DEFAULT '',
+                month TEXT NOT NULL,
+                travelers TEXT NOT NULL DEFAULT '[]',
+                budget TEXT DEFAULT '',
+                duration TEXT DEFAULT '',
+                style TEXT DEFAULT '',
+                safari TEXT DEFAULT '',
+                message TEXT DEFAULT '',
+                status TEXT DEFAULT 'new',
+                agency_notes TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS booking_checklist (
+                id SERIAL PRIMARY KEY,
+                booking_id INTEGER UNIQUE NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+                flight TEXT DEFAULT 'pending',
+                hotel TEXT DEFAULT 'pending',
+                visa TEXT DEFAULT 'pending',
+                activities TEXT DEFAULT 'pending',
+                guides TEXT DEFAULT 'pending',
+                insurance TEXT DEFAULT 'no',
+                group_type TEXT DEFAULT '',
+                amount_paid INTEGER DEFAULT 0,
+                amount_total INTEGER DEFAULT 0,
+                notes TEXT DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
             CREATE TABLE IF NOT EXISTS bookings (
                 id SERIAL PRIMARY KEY,
                 offer_id INTEGER NOT NULL REFERENCES offers(id),
@@ -382,6 +415,39 @@ def run_migrations():
                 label TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );""",
+            """CREATE TABLE IF NOT EXISTS custom_requests (
+                id SERIAL PRIMARY KEY,
+                agency_id INTEGER NOT NULL REFERENCES agencies(id),
+                user_id INTEGER REFERENCES users(id),
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT DEFAULT '',
+                month TEXT NOT NULL,
+                travelers TEXT NOT NULL DEFAULT '[]',
+                budget TEXT DEFAULT '',
+                duration TEXT DEFAULT '',
+                style TEXT DEFAULT '',
+                safari TEXT DEFAULT '',
+                message TEXT DEFAULT '',
+                status TEXT DEFAULT 'new',
+                agency_notes TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );""",
+            """CREATE TABLE IF NOT EXISTS booking_checklist (
+                id SERIAL PRIMARY KEY,
+                booking_id INTEGER UNIQUE NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+                flight TEXT DEFAULT 'pending',
+                hotel TEXT DEFAULT 'pending',
+                visa TEXT DEFAULT 'pending',
+                activities TEXT DEFAULT 'pending',
+                guides TEXT DEFAULT 'pending',
+                insurance TEXT DEFAULT 'no',
+                group_type TEXT DEFAULT '',
+                amount_paid INTEGER DEFAULT 0,
+                amount_total INTEGER DEFAULT 0,
+                notes TEXT DEFAULT '',
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );""",
             "ALTER TABLE reviews ALTER COLUMN status SET DEFAULT 'approved';",
             """CREATE TABLE IF NOT EXISTS password_resets (
                 id SERIAL PRIMARY KEY,
@@ -452,6 +518,41 @@ def run_migrations():
                 max_places INTEGER NOT NULL DEFAULT 20,
                 label TEXT DEFAULT '',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        """);
+        db.executescript("""
+            CREATE TABLE IF NOT EXISTS custom_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agency_id INTEGER NOT NULL REFERENCES agencies(id),
+                user_id INTEGER,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL,
+                phone TEXT DEFAULT '',
+                month TEXT NOT NULL,
+                travelers TEXT NOT NULL DEFAULT '[]',
+                budget TEXT DEFAULT '',
+                duration TEXT DEFAULT '',
+                style TEXT DEFAULT '',
+                safari TEXT DEFAULT '',
+                message TEXT DEFAULT '',
+                status TEXT DEFAULT 'new',
+                agency_notes TEXT DEFAULT '',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE TABLE IF NOT EXISTS booking_checklist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_id INTEGER UNIQUE NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
+                flight TEXT DEFAULT 'pending',
+                hotel TEXT DEFAULT 'pending',
+                visa TEXT DEFAULT 'pending',
+                activities TEXT DEFAULT 'pending',
+                guides TEXT DEFAULT 'pending',
+                insurance TEXT DEFAULT 'no',
+                group_type TEXT DEFAULT '',
+                amount_paid INTEGER DEFAULT 0,
+                amount_total INTEGER DEFAULT 0,
+                notes TEXT DEFAULT '',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
         """);
         db.executescript("""
