@@ -130,6 +130,21 @@ export default function OfferPage({ offerId, t, lang, setPage }) {
 
             {offer.description && <p style={{ color: 'var(--muted)', lineHeight: 1.9, marginBottom: 24, fontSize: 14 }}>{offer.description}</p>}
 
+            {offer.price_details && (
+              <Card style={{ padding: 20, marginBottom: 16 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--teal2)', marginBottom: 14 }}>Detail du prix</div>
+                {offer.price_details.split('\n').filter(Boolean).map((line, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #F0F4F5', fontSize: 13, color: 'var(--text)' }}>
+                    <span>{line}</span>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 0', fontSize: 15, fontWeight: 800, color: 'var(--teal2)', fontFamily: 'Nunito' }}>
+                  <span>Total</span>
+                  <span>{(offer.price || 0).toLocaleString()} DZD</span>
+                </div>
+              </Card>
+            )}
+
             {offer.itinerary?.length > 0 && (
               <Card style={{ padding: 20, marginBottom: 16 }}>
                 <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1.5, color: 'var(--teal2)', marginBottom: 14 }}>{t.itin}</div>
