@@ -84,6 +84,17 @@ def init_db():
                 agency_notes TEXT DEFAULT '',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS bookings (
+                id SERIAL PRIMARY KEY,
+                offer_id INTEGER NOT NULL REFERENCES offers(id),
+                user_id INTEGER NOT NULL REFERENCES users(id),
+                phone TEXT DEFAULT '',
+                message TEXT DEFAULT '',
+                travelers INTEGER DEFAULT 1,
+                departure_id INTEGER,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
             CREATE TABLE IF NOT EXISTS booking_checklist (
                 id SERIAL PRIMARY KEY,
                 booking_id INTEGER UNIQUE NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,
@@ -98,16 +109,6 @@ def init_db():
                 amount_total INTEGER DEFAULT 0,
                 notes TEXT DEFAULT '',
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-            CREATE TABLE IF NOT EXISTS bookings (
-                id SERIAL PRIMARY KEY,
-                offer_id INTEGER NOT NULL REFERENCES offers(id),
-                user_id INTEGER NOT NULL REFERENCES users(id),
-                phone TEXT DEFAULT '',
-                message TEXT DEFAULT '',
-                travelers INTEGER DEFAULT 1,
-                status TEXT DEFAULT 'pending',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS reviews (
                 id SERIAL PRIMARY KEY,
@@ -321,39 +322,29 @@ def init_db():
     def h(pw): return bcrypt.hashpw(pw.encode(), bcrypt.gensalt()).decode()
 
     users = [
-        ("Admin GetLost",    "admin@getlostdz.com",    h("admin123"),   "admin"),
-        ("DZ Horizons",      "agency1@getlostdz.com",  h("agency123"),  "agency"),
-        ("Sahara Wings",     "agency2@getlostdz.com",  h("agency123"),  "agency"),
-        ("Atlas Adventures", "agency3@getlostdz.com",  h("agency123"),  "agency"),
-        ("Sarah Meziane",    "sarah@test.com",          h("user123"),    "traveler"),
-        ("Karim Bensalem",   "karim@test.com",          h("user123"),    "traveler"),
+        ("Admin GetLost",    "admin@getlostdz.com",       h("Belaloui2024*"),   "admin"),
+        ("Get Lost DZ",      "elyaminedb@getlostdz.com",  h("Belaloui2024*"),  "agency"),
     ]
     agencies = [
-        (2, "DZ Horizons Travel",  "Spécialiste voyages internationaux", "✈️", "premium",  "approved"),
-        (3, "Sahara Wings",         "Expert destinations africaines",     "🦅", "standard", "approved"),
-        (4, "Atlas Adventures",     "Aventures et treks en Algérie",      "⛰️", "standard", "approved"),
+        (2, "Get Lost DZ", "Votre agence de voyage en Algerie. Zanzibar, Vietnam, et plus. Des voyages inoubliables organises par des passionnes.", "🌍", "premium", "approved"),
     ]
     offers = [
-        (1, "Zanzibar Paradise",   "intl",     185000, 8,  "Afrique Est",   "Plages paradisiaques de Zanzibar.",       "https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=700&q=80",   '[\"Jour 1: Stone Town\",\"Jour 8: Retour\"]',     '[\"Vol A/R\",\"Hébergement 4 étoiles\"]', '[\"15 Avril 2025\",\"10 Mai 2025\"]',  "approved"),
-        (1, "Kenya Safari",        "intl",     220000, 10, "Afrique Est",   "Safari inoubliable Masai Mara.",          "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=700&q=80",   '[\"Jour 1: Nairobi\",\"Jour 10: Retour\"]',       '[\"Vol A/R\",\"Lodge 4 étoiles\"]',       '[\"5 Mai 2025\",\"1 Juin 2025\"]',     "approved"),
-        (2, "Tamanrasset & Hoggar","national",  55000,  5, "Tamanrasset",   "Sahara algérien.",                        "https://images.unsplash.com/photo-1509316785289-025f5b846b35?w=700&q=80",  '[\"Jour 1: Vol Alger-Tam\",\"Jour 5: Retour\"]',  '[\"Vol interne\",\"Camping\",\"Guide\"]',  '[\"20 Mars 2025\"]',                   "approved"),
-        (2, "Kabylie Villages",    "national",  18000,  3, "Kabylie",       "Week-end en Kabylie.",                    "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=700&q=80",  '[\"Jour 1: Cascade\",\"Jour 3: Retour\"]',        '[\"Transport\",\"Hébergement\"]',         '[\"Chaque week-end\"]',                "approved"),
-        (3, "Trek Djurdjura",      "hike",      12000,  2, "Bouira",        "Randonnée Djurdjura.",                    "https://images.unsplash.com/photo-1551632811-561732d1e306?w=700&q=80",   '[\"Jour 1: Tala Guilef\",\"Jour 2: Sommet\"]',    '[\"Guide\",\"Bivouac\"]',                 '[\"Tous les samedis\"]',               "approved"),
-        (3, "Sahara Bivouac",      "hike",      25000,  3, "El Oued",       "Nuit dans les dunes.",                    "https://images.unsplash.com/photo-1682687220063-4742bd7fd538?w=700&q=80",  '[\"Jour 1: Dunes 4x4\",\"Jour 3: Retour\"]',      '[\"4x4\",\"Tente\",\"Guide\"]',            '[\"Week-ends Nov-Mars\"]',             "approved"),
-        (1, "Visa Turquie Express","visa",       8500,  1, "Service ligne", "Visa electronique 48h.",                  "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=700&q=80",  '[\"Préparation\",\"Livraison\"]',                 '[\"Accompagnement\",\"Support 24/7\"]',   '[\"Toute lannee\"]',                  "approved"),
-        (2, "Malaisie et Bali",    "intl",     310000, 14, "Asie Sud-Est",  "Combiné Kuala Lumpur et Bali.",           "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=700&q=80",  '[\"J1-4: KL\",\"J8-14: Bali\"]',                 '[\"Vols\",\"Hotels 4 étoiles\"]',         '[\"20 Juillet 2025\"]',               "approved"),
+        (1, "Zanzibar — Sejour Paradisiaque",
+         "intl", 238000, 9, "Zanzibar, Tanzanie",
+         "Decouvrez Zanzibar du 17 au 27 juillet 2025. 9 jours et 8 nuits dans l'un des plus beaux endroits du monde.\n\nOption economique (2 villes) : 238 000 DZD/pers\nOption VIP (3 villes, hotels pieds dans l'eau) : 299 000 DZD/pers\n\nContactez-nous sur WhatsApp pour tous les details.",
+         "https://images.pexels.com/photos/3601425/pexels-photo-3601425.jpeg?auto=compress&w=700",
+         '[\"Jour 1 : Arrivee a Zanzibar — transfert hotel\",\"Jour 2-3 : Nungwi — plages, snorkeling, coucher de soleil\",\"Jour 4-5 : Excursions — Prison Island, Stone Town\",\"Jour 6-7 : Detente plage, activites nautiques\",\"Jour 8 : Journee libre, shopping local\",\"Jour 9 : Transfert aeroport — retour\"]',
+         '[\"Vol aller-retour\",\"Hebergement 8 nuits\",\"Transferts aeroport\",\"Petit-dejeuner inclus\",\"Assurance voyage\"]',
+         '[\"17 Juillet 2025\"]',
+         "approved"),
     ]
-    reviews = [
-        (1, 5, 5, "Voyage de rêve !",       "Zanzibar magnifique.", "approved"),
-        (1, 6, 4, "Très bonne expérience",   "Belles plages.",       "approved"),
-        (3, 5, 5, "Sahara magique",           "Inoubliable.",         "approved"),
-        (5, 5, 5, "Trek parfait",             "Djurdjura splendide.", "approved"),
-        (2, 6, 5, "Kenya exceptionnel",       "Masai Mara !",         "approved"),
-    ]
+    reviews = []
 
     if USE_POSTGRES:
         for name, email, pw, role in users:
             cur.execute("INSERT INTO users(name,email,password,role) VALUES(%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING", (name, email, pw, role))
+        # Set agency phone number
+        cur.execute("UPDATE users SET phone=%s WHERE email=%s", ("+213782829246", "elyaminedb@getlostdz.com"))
         db.commit()
         for uid, name, desc, logo, plan, status in agencies:
             cur.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT(user_id) DO NOTHING", (uid, name, desc, logo, plan, status))
@@ -369,6 +360,8 @@ def init_db():
         for name, email, pw, role in users:
             try: db.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)", (name, email, pw, role))
             except: pass
+        # Set agency phone number
+        db.execute("UPDATE users SET phone=? WHERE email=?", ("+213782829246", "elyaminedb@getlostdz.com"))
         for uid, name, desc, logo, plan, status in agencies:
             try: db.execute("INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)", (uid, name, desc, logo, plan, status))
             except: pass
