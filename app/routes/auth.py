@@ -83,61 +83,103 @@ def register():
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     try:
+        # Do NOT include email_verified in INSERT — uses column DEFAULT (FALSE)
+        # This works whether or not the migration has added the column yet
         uid = db_run(
-            "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone,email_verified) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone, 0)
+            "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone) VALUES(?,?,?,?,?,?,?,?,?)",
+            (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone)
         )
     except Exception as e:
         print(f"[register] DB insert error: {e}")
         return jsonify({"error": "Erreur lors de la création du compte. Réessayez."}), 500
 
-    # Generate 6-digit verification code
+    # Generate 6-digit verification code and store it
     code = f"{random.randint(0, 999999):06d}"
     expires = (datetime.now(timezone.utc) + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+    verification_ready = False
     try:
         db_run(
             "INSERT INTO email_verification_codes(user_id, code, expires_at) VALUES(?,?,?)",
             (uid, code, expires)
         )
+        verification_ready = True
     except Exception as e:
-        print(f"[register] verification code insert error: {e}")
+        print(f"[register] verification code insert error (migration pending?): {e}")
+        # Migration hasn't run yet — mark user as verified so they can log in normally
+        try:
+            db_run("UPDATE users SET email_verified=1 WHERE id=?", (uid,))
+        except Exception:
+            pass  # Column doesn't exist yet either — that's OK
 
-    # Send verification email
-    try:
-        html = f"""
-        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
-          <div style="text-align:center;margin-bottom:28px;">
-            <div style="font-size:32px;">🌍</div>
-            <strong style="font-size:22px;color:#0B2340;">Get Lost DZ</strong>
-          </div>
-          <div style="background:#E6F9F7;border-radius:16px;padding:28px 24px;text-align:center;">
-            <h2 style="color:#0B2340;margin:0 0 12px;">Vérifiez votre email</h2>
-            <p style="color:#6B8591;margin:0 0 20px;line-height:1.7;">
-              Bonjour <strong>{name}</strong>,<br>
-              Entrez ce code pour activer votre compte :
-            </p>
-            <div style="background:#fff;border:2px solid #0DB9A8;border-radius:12px;padding:20px;display:inline-block;margin:0 auto;">
-              <span style="font-size:36px;font-weight:900;letter-spacing:10px;color:#0B2340;">{code}</span>
-            </div>
-            <p style="color:#A8BEC6;font-size:12px;margin-top:16px;">
-              Ce code expire dans <strong>15 minutes</strong>.
-            </p>
-          </div>
-          <p style="text-align:center;color:#999;font-size:12px;margin-top:16px;">
-            Get Lost DZ — La référence du tourisme expérientiel en Algérie
-          </p>
-        </div>"""
-        send_email(email, "🔐 Vérifiez votre email — Get Lost DZ", html)
-    except Exception as e:
-        print(f"[email] verification send error: {e}")
+    # Send email and return
+    if verification_ready:
+        # Normal flow: send verification code email
+        try:
+            html = f"""
+            <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
+              <div style="text-align:center;margin-bottom:28px;">
+                <div style="font-size:32px;">🌍</div>
+                <strong style="font-size:22px;color:#0B2340;">Get Lost DZ</strong>
+              </div>
+              <div style="background:#E6F9F7;border-radius:16px;padding:28px 24px;text-align:center;">
+                <h2 style="color:#0B2340;margin:0 0 12px;">Vérifiez votre email</h2>
+                <p style="color:#6B8591;margin:0 0 20px;line-height:1.7;">
+                  Bonjour <strong>{name}</strong>,<br>
+                  Entrez ce code pour activer votre compte :
+                </p>
+                <div style="background:#fff;border:2px solid #0DB9A8;border-radius:12px;padding:20px;display:inline-block;margin:0 auto;">
+                  <span style="font-size:36px;font-weight:900;letter-spacing:10px;color:#0B2340;">{code}</span>
+                </div>
+                <p style="color:#A8BEC6;font-size:12px;margin-top:16px;">
+                  Ce code expire dans <strong>15 minutes</strong>.
+                </p>
+              </div>
+              <p style="text-align:center;color:#999;font-size:12px;margin-top:16px;">
+                Get Lost DZ — La référence du tourisme expérientiel en Algérie
+              </p>
+            </div>"""
+            send_email(email, "🔐 Vérifiez votre email — Get Lost DZ", html)
+        except Exception as e:
+            print(f"[email] verification send error: {e}")
 
-    # Notify admins
-    try:
-        notify_admins_new_user(name, email)
-    except Exception as e:
-        print(f"[notif] new user error: {e}")
+        try:
+            notify_admins_new_user(name, email)
+        except Exception as e:
+            print(f"[notif] new user error: {e}")
 
-    return jsonify({"needsVerification": True, "email": email}), 201
+        return jsonify({"needsVerification": True, "email": email}), 201
+    else:
+        # Fallback: migration hasn't run yet — log user in directly (old behavior)
+        user = db_query("SELECT * FROM users WHERE id=?", (uid,), one=True)
+        agency_id = None
+        try:
+            html = f"""
+            <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+              <div style="text-align:center;margin-bottom:24px;">
+                <span style="font-size:48px;">🌍</span>
+                <h2 style="color:#0B2340;margin:8px 0;">Get Lost DZ</h2>
+              </div>
+              <div style="background:#E6F9F7;border-radius:16px;padding:28px;text-align:center;">
+                <h3 style="color:#0B2340;">Bienvenue {name} ! 🎉</h3>
+                <p style="color:#6B8591;line-height:1.7;">Votre compte voyageur a été créé avec succès.</p>
+                <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#0DB9A8;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
+                  Explorer les voyages
+                </a>
+              </div>
+            </div>"""
+            send_email(email, "🌍 Bienvenue sur Get Lost DZ !", html)
+        except Exception as e:
+            print(f"[email] welcome error: {e}")
+        try:
+            notify_admins_new_user(name, email)
+        except Exception as e:
+            print(f"[notif] new user error: {e}")
+        return jsonify({"token": make_token(user, agency_id), "user": {
+            "id": user["id"], "name": user["name"], "email": user["email"],
+            "role": user["role"], "phone": user.get("phone", ""),
+            "avatar": user.get("avatar", ""), "agencyId": None,
+            "email_verified": False,
+        }}), 201
 
 
 @bp.route("/auth/verify-email", methods=["POST"])
