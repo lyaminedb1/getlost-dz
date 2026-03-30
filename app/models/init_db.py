@@ -401,6 +401,7 @@ def run_migrations():
     if USE_POSTGRES:
         from app.db import raw_conn
         db = raw_conn()
+        db.autocommit = True  # Each migration runs in its own transaction — one failure won't abort the rest
         cur = db.cursor()
         migrations = [
             "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT '';",
@@ -504,7 +505,6 @@ def run_migrations():
         for m in migrations:
             try: cur.execute(m)
             except Exception as e: print(f"  ⚠️  Migration skipped: {e}")
-        db.commit()
         db.close()
     else:
         import sqlite3
