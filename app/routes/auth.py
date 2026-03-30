@@ -385,7 +385,7 @@ def login():
 @token_required
 def me():
     u = db_query(
-        "SELECT id,name,family_name,birth_date,gender,city,email,role,phone,avatar,email_verified,created_at FROM users WHERE id=?",
+        "SELECT * FROM users WHERE id=?",
         (g.user["id"],), one=True
     )
     result = dict(u)
