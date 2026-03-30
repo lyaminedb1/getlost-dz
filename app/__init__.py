@@ -5,7 +5,7 @@ Rate limiting, logging, and all blueprints registered here.
 """
 import time
 import logging
-from flask import Flask, request, g
+from flask import Flask, request, jsonify, g
 from flask_cors import CORS
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
@@ -111,7 +111,15 @@ def create_app():
 
     @app.errorhandler(404)
     def not_found(e):
+        # Return JSON for API routes, index.html for everything else
+        if request.path.startswith("/api"):
+            return jsonify({"error": "Not found"}), 404
         return send_from_directory(static_dir, "index.html")
+
+    @app.errorhandler(500)
+    def server_error(e):
+        logger.error("500 error: %s", e)
+        return jsonify({"error": "Erreur serveur interne"}), 500
 
     logger.info("🚀  Get Lost DZ app factory complete")
     return app

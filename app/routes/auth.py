@@ -82,18 +82,25 @@ def register():
         return jsonify({"error": "Email déjà utilisé"}), 409
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    uid = db_run(
-        "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone,email_verified) VALUES(?,?,?,?,?,?,?,?,?,?)",
-        (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone, 0)
-    )
+    try:
+        uid = db_run(
+            "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone,email_verified) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone, 0)
+        )
+    except Exception as e:
+        print(f"[register] DB insert error: {e}")
+        return jsonify({"error": "Erreur lors de la création du compte. Réessayez."}), 500
 
     # Generate 6-digit verification code
     code = f"{random.randint(0, 999999):06d}"
     expires = (datetime.now(timezone.utc) + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
-    db_run(
-        "INSERT INTO email_verification_codes(user_id, code, expires_at) VALUES(?,?,?)",
-        (uid, code, expires)
-    )
+    try:
+        db_run(
+            "INSERT INTO email_verification_codes(user_id, code, expires_at) VALUES(?,?,?)",
+            (uid, code, expires)
+        )
+    except Exception as e:
+        print(f"[register] verification code insert error: {e}")
 
     # Send verification email
     try:
