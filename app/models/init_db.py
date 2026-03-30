@@ -25,6 +25,7 @@ def init_db():
                 role TEXT NOT NULL DEFAULT 'traveler',
                 phone TEXT DEFAULT '',
                 avatar TEXT DEFAULT '',
+                email_verified BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS agencies (
@@ -174,6 +175,14 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, offer_id)
             );
+            CREATE TABLE IF NOT EXISTS email_verification_codes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                code TEXT NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
         """)
         db.commit()
         cur.execute("SELECT COUNT(*) as c FROM users")
@@ -195,6 +204,7 @@ def init_db():
                 role TEXT NOT NULL DEFAULT 'traveler',
                 phone TEXT DEFAULT '',
                 avatar TEXT DEFAULT '',
+                email_verified INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             );
             CREATE TABLE IF NOT EXISTS agencies (
@@ -310,6 +320,15 @@ def init_db():
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY(offer_id) REFERENCES offers(id) ON DELETE CASCADE
             );
+            CREATE TABLE IF NOT EXISTS email_verification_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                code TEXT NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
         """)
         already_seeded = db.execute("SELECT COUNT(*) FROM users").fetchone()[0] > 0
 
@@ -342,7 +361,7 @@ def init_db():
 
     if USE_POSTGRES:
         for name, email, pw, role in users:
-            cur.execute("INSERT INTO users(name,email,password,role) VALUES(%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING", (name, email, pw, role))
+            cur.execute("INSERT INTO users(name,email,password,role,email_verified) VALUES(%s,%s,%s,%s,%s) ON CONFLICT(email) DO NOTHING", (name, email, pw, role, True))
         # Set agency phone number
         cur.execute("UPDATE users SET phone=%s WHERE email=%s", ("+213782829246", "elyaminedb@getlostdz.com"))
         db.commit()
@@ -358,7 +377,7 @@ def init_db():
         db.close()
     else:
         for name, email, pw, role in users:
-            try: db.execute("INSERT INTO users(name,email,password,role) VALUES(?,?,?,?)", (name, email, pw, role))
+            try: db.execute("INSERT INTO users(name,email,password,role,email_verified) VALUES(?,?,?,?,?)", (name, email, pw, role, 1))
             except: pass
         # Set agency phone number
         db.execute("UPDATE users SET phone=? WHERE email=?", ("+213782829246", "elyaminedb@getlostdz.com"))
@@ -471,6 +490,16 @@ def run_migrations():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );""",
             "CREATE INDEX IF NOT EXISTS idx_notif_user_unread ON notifications(user_id, read_at);",
+            "ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;",
+            "UPDATE users SET email_verified=TRUE WHERE role IN ('admin','agency') AND (email_verified IS NULL OR email_verified=FALSE);",
+            """CREATE TABLE IF NOT EXISTS email_verification_codes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                code TEXT NOT NULL,
+                expires_at TIMESTAMP NOT NULL,
+                used BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );""",
         ]
         for m in migrations:
             try: cur.execute(m)
@@ -484,6 +513,9 @@ def run_migrations():
         for col, dflt in [("phone","''"), ("avatar","''"), ("family_name","''"), ("birth_date","''"), ("gender","''"), ("city","''")]:
             if col not in existing:
                 db.execute(f"ALTER TABLE users ADD COLUMN {col} TEXT DEFAULT {dflt}")
+        if "email_verified" not in existing:
+            db.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
+            db.execute("UPDATE users SET email_verified=1 WHERE role IN ('admin','agency')")
         bcols = {r[1] for r in db.execute("PRAGMA table_info(bookings)").fetchall()}
         if "phone" not in bcols:
             db.execute("ALTER TABLE bookings ADD COLUMN phone TEXT DEFAULT ''")
@@ -570,6 +602,14 @@ def run_migrations():
                 link TEXT,
                 ref_id INTEGER,
                 read_at DATETIME,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);
+            CREATE TABLE IF NOT EXISTS email_verification_codes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                code TEXT NOT NULL,
+                expires_at DATETIME NOT NULL,
+                used INTEGER DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE);
         """)

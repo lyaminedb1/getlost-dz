@@ -29,10 +29,26 @@ export function AuthProvider({ children }) {
 
   const register = async (form) => {
     const data = await api('/auth/register', { method: 'POST', body: form })
+    if (data.needsVerification) {
+      return { needsVerification: true, email: data.email }
+    }
+    // Fallback (shouldn't normally happen)
     localStorage.setItem('glz_token', data.token)
     const fullUser = await api('/auth/me')
     setUser(fullUser)
     return fullUser
+  }
+
+  const verifyEmail = async (email, code) => {
+    const data = await api('/auth/verify-email', { method: 'POST', body: { email, code } })
+    localStorage.setItem('glz_token', data.token)
+    const fullUser = await api('/auth/me')
+    setUser(fullUser)
+    return fullUser
+  }
+
+  const resendCode = async (email) => {
+    return await api('/auth/resend-code', { method: 'POST', body: { email } })
   }
 
   const logout = () => {
@@ -43,7 +59,7 @@ export function AuthProvider({ children }) {
   const updateUser = (updates) => setUser(u => ({ ...u, ...updates }))
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyEmail, resendCode, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -3,9 +3,58 @@ GET LOST DZ — Shared utilities
 Small helpers used by multiple route modules.
 """
 import json
+import re
 import urllib.request
 import urllib.error
 from app.config import MAIL_FROM, MAIL_PASS, APP_URL
+
+# Known disposable / temporary email domains
+_BLOCKED_EMAIL_DOMAINS = {
+    'yopmail.com', 'yopmail.fr', 'cool.fr.nf', 'jetable.fr.nf', 'nospam.ze.tc',
+    'nomail.xl.cx', 'mega.zik.dj', 'speed.1s.fr', 'courriel.fr.nf',
+    'moncourrier.fr.nf', 'monemail.fr.nf', 'monmail.fr.nf',
+    'tempmail.com', 'temp-mail.org', 'tempinbox.com', 'tempr.email',
+    'tempomail.fr', 'temporaryemail.net', 'temporaryinbox.com',
+    'throwam.com', 'throwaway.email', 'throwawaymail.com',
+    'guerrillamail.com', 'guerrillamail.net', 'guerrillamail.org',
+    'guerrillamail.biz', 'guerrillamail.de', 'guerrillamailblock.com',
+    'grr.la', 'guerrillamail.info', 'spam4.me',
+    'trashmail.com', 'trashmail.at', 'trashmail.io', 'trashmail.me',
+    'trashmail.net', 'trashmail.org', 'trashmail.app', 'trashmail.xyz',
+    'trash-mail.at', 'trash-mail.com', 'trash-mail.de', 'trash-mail.io',
+    'trash-mail.me', 'trash-mail.net', 'trashemail.de',
+    'dispostable.com', 'maildrop.cc', 'fakeinbox.com', 'discard.email',
+    'getairmail.com', 'mailinator.com', 'mailnull.com',
+    '10minutemail.com', '10minutemail.net', '20minutemail.com',
+    'sharklasers.com', 'spam.la', 'binkmail.com', 'filzmail.com',
+    'jetable.com', 'jetable.net', 'jetable.org',
+    'mailexpire.com', 'mailforspam.com', 'mailscrap.com',
+    'mintemail.com', 'neverbox.com', 'nomail.pw',
+    'objectmail.com', 'owlpic.com', 'spamgourmet.com',
+    'spamgourmet.net', 'spamgourmet.org', 'spamhole.com',
+    'spaml.com', 'spaml.de', 'spammotel.com', 'spamspot.com',
+    'spamstack.net', 'spamtroll.net', 'tempalias.com',
+    'tempe-mail.com', 'tempemail.biz', 'tempemail.com', 'tempemail.net',
+    'tempinbox.co.uk', 'tempmail.de', 'tempmail.eu', 'tempmail.it',
+    'tempmailo.com', 'tempsky.com', 'tempthe.net', 'tempymail.com',
+    'tilien.com', 'tmail.com', 'tmailinator.com',
+}
+
+
+def validate_email_strict(email):
+    """
+    Validate email format and block known disposable/fake email domains.
+    Returns (ok: bool, error: str | None)
+    """
+    if not email or not isinstance(email, str):
+        return False, "Email requis"
+    email = email.strip().lower()
+    if not re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
+        return False, "Format email invalide"
+    domain = email.split('@')[1].lower()
+    if domain in _BLOCKED_EMAIL_DOMAINS:
+        return False, "Les adresses email temporaires ne sont pas autorisées"
+    return True, None
 
 
 def parse_offer(o):

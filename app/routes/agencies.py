@@ -78,6 +78,12 @@ def book():
 
     if not oid:
         return jsonify({"error": "offerId required"}), 400
+
+    # Block booking for users who haven't verified their email
+    user_row = db_query("SELECT email_verified FROM users WHERE id=?", (u["id"],), one=True)
+    if not user_row or not user_row.get("email_verified"):
+        return jsonify({"error": "Vérifiez votre adresse email avant de réserver", "code": "EMAIL_NOT_VERIFIED"}), 403
+
     if not phone:
         return jsonify({"error": "Numéro de téléphone requis"}), 400
     phone_clean = ''.join(c for c in phone if c.isdigit() or c == '+')

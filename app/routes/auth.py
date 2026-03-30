@@ -2,13 +2,13 @@
 GET LOST DZ — Auth Routes Blueprint
 /api/auth/* and /api/admin/create-agency
 """
-import bcrypt, secrets
+import bcrypt, secrets, random
 from datetime import datetime, timedelta, timezone
 from flask import Blueprint, request, jsonify, g
 
 from app.db import db_query, db_run
 from app.auth import make_token, token_required, admin_required
-from app.utils import send_email, validate
+from app.utils import send_email, validate, validate_email_strict
 from app.config import APP_URL
 from app.routes.notification_helpers import notify_admins_new_user
 
@@ -40,6 +40,12 @@ def register():
         return jsonify({"error": "Mot de passe: minimum 6 caractères"}), 400
     if not phone:
         return jsonify({"error": "Numéro de téléphone requis"}), 400
+
+    # Strict email validation (format + disposable domain check)
+    email_ok, email_err = validate_email_strict(email)
+    if not email_ok:
+        return jsonify({"error": email_err}), 400
+
     # Normalize phone: strip spaces/dashes
     phone_clean = ''.join(c for c in phone if c.isdigit() or c == '+')
     if len(''.join(c for c in phone_clean if c.isdigit())) < 8:
@@ -77,10 +83,109 @@ def register():
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     uid = db_run(
-        "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone) VALUES(?,?,?,?,?,?,?,?,?)",
-        (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone)
+        "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone,email_verified) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (name, family_name, birth_date, gender, city, email, hashed, "traveler", phone, 0)
     )
-    user = {"id": uid, "name": name, "family_name": family_name, "email": email, "role": "traveler", "phone": phone}
+
+    # Generate 6-digit verification code
+    code = f"{random.randint(0, 999999):06d}"
+    expires = (datetime.now(timezone.utc) + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+    db_run(
+        "INSERT INTO email_verification_codes(user_id, code, expires_at) VALUES(?,?,?)",
+        (uid, code, expires)
+    )
+
+    # Send verification email
+    try:
+        html = f"""
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
+          <div style="text-align:center;margin-bottom:28px;">
+            <div style="font-size:32px;">🌍</div>
+            <strong style="font-size:22px;color:#0B2340;">Get Lost DZ</strong>
+          </div>
+          <div style="background:#E6F9F7;border-radius:16px;padding:28px 24px;text-align:center;">
+            <h2 style="color:#0B2340;margin:0 0 12px;">Vérifiez votre email</h2>
+            <p style="color:#6B8591;margin:0 0 20px;line-height:1.7;">
+              Bonjour <strong>{name}</strong>,<br>
+              Entrez ce code pour activer votre compte :
+            </p>
+            <div style="background:#fff;border:2px solid #0DB9A8;border-radius:12px;padding:20px;display:inline-block;margin:0 auto;">
+              <span style="font-size:36px;font-weight:900;letter-spacing:10px;color:#0B2340;">{code}</span>
+            </div>
+            <p style="color:#A8BEC6;font-size:12px;margin-top:16px;">
+              Ce code expire dans <strong>15 minutes</strong>.
+            </p>
+          </div>
+          <p style="text-align:center;color:#999;font-size:12px;margin-top:16px;">
+            Get Lost DZ — La référence du tourisme expérientiel en Algérie
+          </p>
+        </div>"""
+        send_email(email, "🔐 Vérifiez votre email — Get Lost DZ", html)
+    except Exception as e:
+        print(f"[email] verification send error: {e}")
+
+    # Notify admins
+    try:
+        notify_admins_new_user(name, email)
+    except Exception as e:
+        print(f"[notif] new user error: {e}")
+
+    return jsonify({"needsVerification": True, "email": email}), 201
+
+
+@bp.route("/auth/verify-email", methods=["POST"])
+def verify_email():
+    d     = request.json or {}
+    email = (d.get("email") or "").strip().lower()
+    code  = (d.get("code") or "").strip()
+
+    if not email or not code:
+        return jsonify({"error": "Email et code requis"}), 400
+
+    user = db_query("SELECT * FROM users WHERE email=?", (email,), one=True)
+    if not user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+
+    # Already verified — just log them in
+    if user.get("email_verified"):
+        agency_id = None
+        if user["role"] == "agency":
+            ag = db_query("SELECT id FROM agencies WHERE user_id=?", (user["id"],), one=True)
+            if ag: agency_id = ag["id"]
+        return jsonify({
+            "token": make_token(user, agency_id),
+            "user": {
+                "id": user["id"], "name": user["name"], "email": user["email"],
+                "role": user["role"], "phone": user.get("phone", ""),
+                "avatar": user.get("avatar", ""), "agencyId": agency_id,
+                "email_verified": True,
+            }
+        }), 200
+
+    # Validate code
+    row = db_query(
+        "SELECT * FROM email_verification_codes WHERE user_id=? AND code=? AND used=0 ORDER BY created_at DESC LIMIT 1",
+        (user["id"], code), one=True
+    )
+    if not row:
+        return jsonify({"error": "Code invalide"}), 400
+
+    try:
+        expires = datetime.strptime(str(row["expires_at"])[:19], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        if datetime.now(timezone.utc) > expires:
+            return jsonify({"error": "Code expiré. Cliquez sur « Renvoyer le code »."}), 400
+    except Exception:
+        return jsonify({"error": "Code invalide"}), 400
+
+    # Mark code used, verify user
+    db_run("UPDATE email_verification_codes SET used=1 WHERE id=?", (row["id"],))
+    db_run("UPDATE users SET email_verified=1 WHERE id=?", (user["id"],))
+
+    agency_id = None
+    if user["role"] == "agency":
+        ag = db_query("SELECT id FROM agencies WHERE user_id=?", (user["id"],), one=True)
+        if ag: agency_id = ag["id"]
+
     # Welcome email
     try:
         html = f"""
@@ -90,7 +195,7 @@ def register():
             <h2 style="color:#0B2340;margin:8px 0;">Get Lost DZ</h2>
           </div>
           <div style="background:#E6F9F7;border-radius:16px;padding:28px;text-align:center;">
-            <h3 style="color:#0B2340;">Bienvenue {name} ! 🎉</h3>
+            <h3 style="color:#0B2340;">Bienvenue {user['name']} ! 🎉</h3>
             <p style="color:#6B8591;line-height:1.7;">Votre compte voyageur a été créé avec succès.<br>
             Découvrez nos voyages et réservez votre prochaine aventure !</p>
             <a href="{APP_URL}" style="display:inline-block;margin-top:20px;background:#0DB9A8;color:#fff;padding:14px 32px;border-radius:50px;text-decoration:none;font-weight:700;">
@@ -102,12 +207,68 @@ def register():
         send_email(email, "🌍 Bienvenue sur Get Lost DZ !", html)
     except Exception as e:
         print(f"[email] welcome error: {e}")
-    # Notify admins
+
+    return jsonify({
+        "token": make_token(user, agency_id),
+        "user": {
+            "id": user["id"], "name": user["name"], "email": user["email"],
+            "role": user["role"], "phone": user.get("phone", ""),
+            "avatar": user.get("avatar", ""), "agencyId": agency_id,
+            "email_verified": True,
+        }
+    }), 200
+
+
+@bp.route("/auth/resend-code", methods=["POST"])
+def resend_code():
+    email = ((request.json or {}).get("email") or "").strip().lower()
+    if not email:
+        return jsonify({"error": "Email requis"}), 400
+
+    user = db_query("SELECT * FROM users WHERE email=?", (email,), one=True)
+    if not user:
+        # Don't reveal existence
+        return jsonify({"message": "Code envoyé si le compte existe."}), 200
+    if user.get("email_verified"):
+        return jsonify({"message": "Email déjà vérifié"}), 200
+
+    # Invalidate old codes
+    db_run("UPDATE email_verification_codes SET used=1 WHERE user_id=? AND used=0", (user["id"],))
+
+    # New code
+    code = f"{random.randint(0, 999999):06d}"
+    expires = (datetime.now(timezone.utc) + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S")
+    db_run(
+        "INSERT INTO email_verification_codes(user_id, code, expires_at) VALUES(?,?,?)",
+        (user["id"], code, expires)
+    )
+
     try:
-        notify_admins_new_user(name, email)
+        html = f"""
+        <div style="font-family:sans-serif;max-width:520px;margin:0 auto;padding:32px 24px;">
+          <div style="text-align:center;margin-bottom:28px;">
+            <div style="font-size:32px;">🌍</div>
+            <strong style="font-size:22px;color:#0B2340;">Get Lost DZ</strong>
+          </div>
+          <div style="background:#E6F9F7;border-radius:16px;padding:28px 24px;text-align:center;">
+            <h2 style="color:#0B2340;margin:0 0 12px;">Nouveau code de vérification</h2>
+            <p style="color:#6B8591;margin:0 0 20px;line-height:1.7;">
+              Bonjour <strong>{user['name']}</strong>,<br>
+              Voici votre nouveau code :
+            </p>
+            <div style="background:#fff;border:2px solid #0DB9A8;border-radius:12px;padding:20px;display:inline-block;margin:0 auto;">
+              <span style="font-size:36px;font-weight:900;letter-spacing:10px;color:#0B2340;">{code}</span>
+            </div>
+            <p style="color:#A8BEC6;font-size:12px;margin-top:16px;">
+              Ce code expire dans <strong>15 minutes</strong>.
+            </p>
+          </div>
+        </div>"""
+        send_email(email, "🔐 Nouveau code de vérification — Get Lost DZ", html)
     except Exception as e:
-        print(f"[notif] new user error: {e}")
-    return jsonify({"token": make_token(user, None), "user": {**user, "agencyId": None}}), 201
+        print(f"[email] resend error: {e}")
+
+    return jsonify({"message": "Code envoyé"}), 200
 
 
 @bp.route("/admin/create-agency", methods=["POST"])
@@ -132,8 +293,8 @@ def admin_create_agency():
 
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     uid = db_run(
-        "INSERT INTO users(name,email,password,role,phone) VALUES(?,?,?,?,?)",
-        (name, email, hashed, "agency", phone)
+        "INSERT INTO users(name,email,password,role,phone,email_verified) VALUES(?,?,?,?,?,?)",
+        (name, email, hashed, "agency", phone, 1)
     )
     agency_id = db_run(
         "INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)",
@@ -166,6 +327,7 @@ def login():
             "id": user["id"], "name": user["name"], "email": user["email"],
             "role": user["role"], "phone": user.get("phone", ""),
             "avatar": user.get("avatar", ""), "agencyId": agency_id,
+            "email_verified": bool(user.get("email_verified", False)),
         }
     })
 
@@ -174,10 +336,11 @@ def login():
 @token_required
 def me():
     u = db_query(
-        "SELECT id,name,family_name,birth_date,gender,city,email,role,phone,avatar,created_at FROM users WHERE id=?",
+        "SELECT id,name,family_name,birth_date,gender,city,email,role,phone,avatar,email_verified,created_at FROM users WHERE id=?",
         (g.user["id"],), one=True
     )
     result = dict(u)
+    result["email_verified"] = bool(result.get("email_verified", False))
     if result.get("role") == "agency":
         ag = db_query("SELECT id FROM agencies WHERE user_id=?", (result["id"],), one=True)
         result["agencyId"] = ag["id"] if ag else None
