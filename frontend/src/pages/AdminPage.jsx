@@ -127,13 +127,14 @@ export default function AdminPage({t,openAuth,setPage,sub}){
               </Tbl>
             </div>
           </>}
-          {tab==='users'&&<Tbl cols={['Nom','Email','Rôle','Inscrit le']}>
+          {tab==='users'&&<Tbl cols={['Nom','Email','Rôle','Inscrit le','']}>
             {users.map(u=>(
               <tr key={u.id}>
                 <td style={{...TD,fontWeight:700}}>{u.name}</td>
                 <td style={{...TD,color:'var(--muted)',fontSize:13}}>{u.email}</td>
                 <td style={TD}><span style={{padding:'3px 10px',borderRadius:20,fontSize:11,fontWeight:700,background:u.role==='admin'?'#D1FAE5':u.role==='agency'?'#EDE9FE':'#F0F4F5',color:u.role==='admin'?'#065F46':u.role==='agency'?'#5B21B6':'var(--muted)'}}>{u.role}</span></td>
                 <td style={{...TD,color:'var(--muted)',fontSize:13}}>{(u.created_at||'').split('T')[0]}</td>
+                <td style={TD}>{u.role!=='admin'&&<button style={B.danger} onClick={async()=>{if(!confirm(`Supprimer ${u.name} (${u.email}) ?`))return;try{await api(`/admin/users/${u.id}`,{method:'DELETE'});show('Supprimé');load();}catch(e){show(e.message,'err');}}}>🗑</button>}</td>
               </tr>
             ))}
           </Tbl>}

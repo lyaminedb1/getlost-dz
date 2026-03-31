@@ -3,7 +3,7 @@ GET LOST DZ — Admin Blueprint
 /api/admin/* (stats, offers, reviews, bookings, users)
 """
 from flask import Blueprint, request, jsonify
-from app.db import db_query
+from app.db import db_query, db_run
 from app.auth import admin_required
 from app.utils import parse_offer
 
@@ -70,3 +70,15 @@ def admin_bookings():
 def admin_users():
     rows = db_query("SELECT id,name,email,role,created_at FROM users ORDER BY id")
     return jsonify(rows)
+
+
+@bp.route("/users/<int:user_id>", methods=["DELETE"])
+@admin_required
+def admin_delete_user(user_id):
+    user = db_query("SELECT id, role FROM users WHERE id=?", (user_id,), one=True)
+    if not user:
+        return jsonify({"error": "Utilisateur non trouvé"}), 404
+    if user["role"] == "admin":
+        return jsonify({"error": "Impossible de supprimer un administrateur"}), 403
+    db_run("DELETE FROM users WHERE id=?", (user_id,))
+    return jsonify({"message": "Utilisateur supprimé"}), 200
