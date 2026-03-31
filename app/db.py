@@ -33,10 +33,16 @@ if USE_POSTGRES:
         return sql.replace("?", "%s")
 
     def db_query(sql, args=(), one=False):
-        cur = get_db().cursor()
-        cur.execute(_fix(sql), args)
-        rows = [dict(r) for r in cur.fetchall()]
-        return (rows[0] if rows else None) if one else rows
+        db = get_db()
+        cur = db.cursor()
+        try:
+            cur.execute(_fix(sql), args)
+            rows = [dict(r) for r in cur.fetchall()]
+            return (rows[0] if rows else None) if one else rows
+        except Exception:
+            try: db.rollback()
+            except Exception: pass
+            raise
 
     def db_run(sql, args=()):
         sql2 = _fix(sql)
@@ -44,12 +50,17 @@ if USE_POSTGRES:
             sql2 = sql2.rstrip("; ") + " RETURNING id"
         db = get_db()
         cur = db.cursor()
-        cur.execute(sql2, args)
-        db.commit()
-        if "RETURNING" in sql2:
-            row = cur.fetchone()
-            return row["id"] if row else None
-        return None
+        try:
+            cur.execute(sql2, args)
+            db.commit()
+            if "RETURNING" in sql2:
+                row = cur.fetchone()
+                return row["id"] if row else None
+            return None
+        except Exception:
+            try: db.rollback()
+            except Exception: pass
+            raise
 
     def raw_conn():
         """Direct connection outside request context (used by init_db / migrations)."""

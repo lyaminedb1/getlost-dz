@@ -88,7 +88,7 @@ def register():
 
     # Invalidate any previous pending registrations for this email
     try:
-        db_run("UPDATE pending_registrations SET used=1 WHERE email=? AND used=0", (email,))
+        db_run("UPDATE pending_registrations SET used=TRUE WHERE email=? AND used=FALSE", (email,))
     except Exception as e:
         print(f"[register] pending invalidate error: {e}")
 
@@ -132,7 +132,7 @@ def register():
     if not sent:
         # Email rejected — clean up pending row and tell user
         try:
-            db_run("UPDATE pending_registrations SET used=1 WHERE email=? AND code=?", (email, code))
+            db_run("UPDATE pending_registrations SET used=TRUE WHERE email=? AND code=?", (email, code))
         except Exception:
             pass
         return jsonify({"error": "Impossible d'envoyer l'email. Vérifiez votre adresse email."}), 400
@@ -151,7 +151,7 @@ def verify_email():
 
     # Look up pending registration
     row = db_query(
-        "SELECT * FROM pending_registrations WHERE email=? AND code=? AND used=0 ORDER BY created_at DESC LIMIT 1",
+        "SELECT * FROM pending_registrations WHERE email=? AND code=? AND used=FALSE ORDER BY created_at DESC LIMIT 1",
         (email, code), one=True
     )
     if not row:
@@ -187,7 +187,7 @@ def verify_email():
         return jsonify({"error": "Erreur lors de la création du compte. Réessayez."}), 500
 
     # Mark pending row as used
-    db_run("UPDATE pending_registrations SET used=1 WHERE id=?", (row["id"],))
+    db_run("UPDATE pending_registrations SET used=TRUE WHERE id=?", (row["id"],))
 
     user = db_query("SELECT * FROM users WHERE id=?", (uid,), one=True)
 
@@ -237,7 +237,7 @@ def resend_code():
 
     # Look up the most recent unused pending registration
     pending = db_query(
-        "SELECT * FROM pending_registrations WHERE email=? AND used=0 ORDER BY created_at DESC LIMIT 1",
+        "SELECT * FROM pending_registrations WHERE email=? AND used=FALSE ORDER BY created_at DESC LIMIT 1",
         (email,), one=True
     )
     if not pending:
@@ -252,7 +252,7 @@ def resend_code():
         pass
 
     # Invalidate old pending rows for this email
-    db_run("UPDATE pending_registrations SET used=1 WHERE email=? AND used=0", (email,))
+    db_run("UPDATE pending_registrations SET used=TRUE WHERE email=? AND used=FALSE", (email,))
 
     # Create new pending row with fresh code
     code = f"{random.randint(0, 999999):06d}"
