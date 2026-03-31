@@ -180,7 +180,7 @@ def verify_email():
             "INSERT INTO users(name,family_name,birth_date,gender,city,email,password,role,phone,email_verified) "
             "VALUES(?,?,?,?,?,?,?,?,?,?)",
             (pd["name"], pd["family_name"], pd["birth_date"], pd["gender"], pd["city"],
-             pd["email"], pd["password"], "traveler", pd["phone"], 1)
+             pd["email"], pd["password"], "traveler", pd["phone"], True)
         )
     except Exception as e:
         print(f"[verify_email] user insert error: {e}")
@@ -312,7 +312,7 @@ def admin_create_agency():
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     uid = db_run(
         "INSERT INTO users(name,email,password,role,phone,email_verified) VALUES(?,?,?,?,?,?)",
-        (name, email, hashed, "agency", phone, 1)
+        (name, email, hashed, "agency", phone, True)
     )
     agency_id = db_run(
         "INSERT INTO agencies(user_id,name,description,logo,plan,status) VALUES(?,?,?,?,?,?)",
