@@ -105,16 +105,21 @@ def create_app():
     @app.route("/", defaults={"path": ""})
     @app.route("/<path:path>")
     def serve(path):
+        if path.startswith("api/"):
+            return jsonify({"error": "Not found"}), 404
         if path and os.path.exists(os.path.join(static_dir, path)):
             return send_from_directory(static_dir, path)
         return send_from_directory(static_dir, "index.html")
 
     @app.errorhandler(404)
     def not_found(e):
-        # Return JSON for API routes, index.html for everything else
         if request.path.startswith("/api"):
             return jsonify({"error": "Not found"}), 404
         return send_from_directory(static_dir, "index.html")
+
+    @app.errorhandler(429)
+    def rate_limited(e):
+        return jsonify({"error": "Trop de tentatives. Réessayez dans quelques minutes."}), 429
 
     @app.errorhandler(500)
     def server_error(e):
