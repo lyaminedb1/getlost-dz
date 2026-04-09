@@ -3,16 +3,34 @@ GET LOST DZ — Entry Point
 Bootstraps the DB then starts the Flask app.
 Everything else lives in app/
 """
-import os
+import os, time
 from app.config import USE_POSTGRES, SQLITE_FILE
 from app.models.init_db import init_db, run_migrations
 
 # ── DB bootstrap ──────────────────────────────────────────────────────────────
 if USE_POSTGRES or not os.path.exists(SQLITE_FILE):
     print("🔧  Initialising database …")
-    init_db()
+    for attempt in range(1, 6):
+        try:
+            init_db()
+            break
+        except Exception as e:
+            if attempt == 5:
+                raise
+            wait = 2 ** attempt  # 2, 4, 8, 16 seconds
+            print(f"⚠️  DB connection failed (attempt {attempt}/5): {e} — retrying in {wait}s …")
+            time.sleep(wait)
 
-run_migrations()
+for attempt in range(1, 6):
+    try:
+        run_migrations()
+        break
+    except Exception as e:
+        if attempt == 5:
+            raise
+        wait = 2 ** attempt
+        print(f"⚠️  Migrations failed (attempt {attempt}/5): {e} — retrying in {wait}s …")
+        time.sleep(wait)
 
 # ── Create app ────────────────────────────────────────────────────────────────
 from app import create_app
